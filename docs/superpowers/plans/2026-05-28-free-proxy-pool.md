@@ -1511,8 +1511,9 @@ git commit -m "feat(popup): source toggle + free pool block + AI banner
 Settings: new Manual/Free source pill group above existing fields,
 free-block with current proxy + Rotate button + warning, manual fields
 collapse when Free is active. Main: AI banner when free + any AI preset
-enabled. Field changes go through PERSIST_MANUAL so the source-switch
-roundtrip stays consistent. Bumps manifest to 0.5.0."
+enabled. Field changes mirror state.proxy into state.manualProxy via a
+local helper so switching to Free and back preserves the typed config.
+Bumps manifest to 0.5.0."
 ```
 
 ---
