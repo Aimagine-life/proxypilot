@@ -12,9 +12,13 @@ const POOL_URL = 'https://raw.githubusercontent.com/proxifly/free-proxy-list/mai
 const POOL_TTL_MS = 5 * 60 * 1000;
 const POOL_CACHE_KEY = 'freeProxyPoolCache';
 const FETCH_TIMEOUT_MS = 15_000;
-const VALIDATE_TIMEOUT_MS = 3_000;
-const VALIDATE_URL = 'https://www.cloudflare.com/cdn-cgi/trace';
-const MAX_VALIDATE_ATTEMPTS = 10;
+const VALIDATE_TIMEOUT_MS = 5_000;
+// Google's generate_204 — designed for connectivity checks (Android uses it),
+// no rate limit, no body to parse, and a working proxy that passes here is
+// likely to pass google.com / gemini.google.com too. Cloudflare trace was
+// tried first but Cloudflare blocks many known free-proxy IPs at L7.
+const VALIDATE_URL = 'https://www.google.com/generate_204';
+const MAX_VALIDATE_ATTEMPTS = 15;
 const BLOCKED_COUNTRIES = new Set(['RU', 'BY', 'CN', 'IR']);
 export const DEAD_HOST_TTL_MS = 30 * 60 * 1000;
 
@@ -23,7 +27,7 @@ let memoryFetchedAt = 0;
 
 /**
  * Fetch the Proxifly pool. Three-tier cache: memory → chrome.storage → network.
- * Returns normalized array of { host, port, protocol, country }.
+ * Returns normalized array of { host, port, protocol, country, score, anonymity }.
  * `force: true` skips both caches.
  */
 export async function fetchPool({ force = false } = {}) {
@@ -91,9 +95,11 @@ function normalizePool(raw) {
     const port = Number(entry?.port);
     const protocol = entry?.protocol;
     const country = entry?.geolocation?.country || entry?.country || null;
+    const score = Number(entry?.score) || 0;
+    const anonymity = entry?.anonymity || null;
     if (!host || !port || !Number.isInteger(port) || port < 1 || port > 65535) continue;
     if (!['http', 'https', 'socks4', 'socks5'].includes(protocol)) continue;
-    out.push({ host, port, protocol, country });
+    out.push({ host, port, protocol, country, score, anonymity });
   }
   return out;
 }
@@ -105,9 +111,13 @@ export function __resetMemoryCache() {
 }
 
 /**
- * Filter a normalized pool: drop BLOCKED_COUNTRIES and entries in deadHosts.
- * Mutates deadHosts to prune expired entries (TTL check). Returns a SHUFFLED
- * copy of the kept entries.
+ * Filter a normalized pool. Drops:
+ *   - entries whose country is in BLOCKED_COUNTRIES (RU/BY/CN/IR)
+ *   - entries whose country is 'ZZ' (Proxifly's "unknown" — almost always dead)
+ *   - entries with anonymity === 'transparent' (leak real IP, Google flags them)
+ *   - entries in deadHosts (TTL pruned in-place)
+ * Sorts kept entries by score DESC, then shuffles within equal-score tiers so
+ * runs don't all hit the same top-scoring proxy.
  */
 export function filterPool(pool, { deadHosts = {} } = {}) {
   const now = Date.now();
@@ -118,22 +128,27 @@ export function filterPool(pool, { deadHosts = {} } = {}) {
   const kept = [];
   for (const entry of pool) {
     if (entry.country && BLOCKED_COUNTRIES.has(entry.country)) continue;
+    if (entry.country === 'ZZ') continue;
+    if (entry.anonymity === 'transparent') continue;
     const key = `${entry.host}:${entry.port}`;
     if (deadHosts[key]) continue;
     kept.push(entry);
   }
-  // Fisher-Yates shuffle
+  // Shuffle first (Fisher-Yates), then stable-sort by score DESC.
+  // Result: highest-scoring proxies come first; ties are randomised across calls.
   for (let i = kept.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [kept[i], kept[j]] = [kept[j], kept[i]];
   }
+  kept.sort((a, b) => (b.score || 0) - (a.score || 0));
   return kept;
 }
 
 /**
  * Validate a proxy candidate by routing test traffic through it.
  * Temporarily replaces chrome.proxy.settings with PAC=ALL→candidate, fetches
- * Cloudflare's trace endpoint, parses ip/loc, then clears proxy settings.
+ * Google's generate_204 endpoint (returns HTTP 204, no body), then clears
+ * proxy settings.
  *
  * CALLER must restore the user's proxy via applyProxy(state) after this returns —
  * we only clear, we don't know what was there before. (In practice, the background
@@ -153,30 +168,17 @@ export async function validateProxy(candidate) {
       signal: AbortSignal.timeout(VALIDATE_TIMEOUT_MS),
     });
     const latencyMs = Date.now() - start;
+    // generate_204 returns 204 No Content. Accept anything 2xx; some proxies
+    // may rewrite to 200 with empty body, which is still a working proxy.
     if (!res.ok) {
-      return { ok: false, latencyMs, country: null, error: `HTTP ${res.status}` };
+      return { ok: false, latencyMs, error: `HTTP ${res.status}` };
     }
-    const text = await res.text();
-    const country = parseTrace(text, 'loc');
-    const ip = parseTrace(text, 'ip');
-    if (!ip) {
-      return { ok: false, latencyMs, country: null, error: 'malformed trace' };
-    }
-    return { ok: true, latencyMs, country, ip, error: null };
+    return { ok: true, latencyMs, error: null };
   } catch (err) {
-    return { ok: false, latencyMs: Date.now() - start, country: null, error: String(err?.message || err) };
+    return { ok: false, latencyMs: Date.now() - start, error: String(err?.message || err) };
   } finally {
     await chrome.proxy.settings.clear({ scope: 'regular' });
   }
-}
-
-function parseTrace(text, key) {
-  for (const line of text.split('\n')) {
-    const eq = line.indexOf('=');
-    if (eq === -1) continue;
-    if (line.slice(0, eq) === key) return line.slice(eq + 1).trim();
-  }
-  return null;
 }
 
 function buildAllThroughPac({ host, port, protocol }) {
@@ -199,6 +201,7 @@ function buildAllThroughPac({ host, port, protocol }) {
  *
  * Returns { pick, attemptedHosts, poolSize, error }.
  *   pick: { host, port, scheme, country, latencyMs, validatedAt } | null
+ *   error: user-facing Russian string when pick is null.
  */
 export async function pickAndValidate(state) {
   const deadHosts = (state.freeProxy && state.freeProxy.deadHosts) || {};
@@ -206,11 +209,21 @@ export async function pickAndValidate(state) {
   try {
     pool = await fetchPool();
   } catch (err) {
-    return { pick: null, attemptedHosts: [], poolSize: 0, error: `pool fetch failed: ${err.message}` };
+    return {
+      pick: null,
+      attemptedHosts: [],
+      poolSize: 0,
+      error: `не удалось загрузить список: ${err.message}`,
+    };
   }
   const candidates = filterPool(pool, { deadHosts }).slice(0, MAX_VALIDATE_ATTEMPTS);
   if (candidates.length === 0) {
-    return { pick: null, attemptedHosts: [], poolSize: pool.length, error: 'pool is empty after filtering' };
+    return {
+      pick: null,
+      attemptedHosts: [],
+      poolSize: pool.length,
+      error: 'нет подходящих кандидатов после фильтрации',
+    };
   }
 
   const attempted = [];
@@ -223,7 +236,7 @@ export async function pickAndValidate(state) {
           host: cand.host,
           port: cand.port,
           scheme: cand.protocol,
-          country: result.country || cand.country || null,
+          country: cand.country || null,
           latencyMs: result.latencyMs,
           validatedAt: Date.now(),
         },
@@ -237,6 +250,6 @@ export async function pickAndValidate(state) {
     pick: null,
     attemptedHosts: attempted,
     poolSize: pool.length,
-    error: `no working proxies found (tried ${attempted.length})`,
+    error: `не нашли рабочий прокси (проверено ${attempted.length})`,
   };
 }

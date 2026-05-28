@@ -46,12 +46,16 @@ function mockResponse({ ok = true, status = 200, text = '', json = null } = {}) 
   };
 }
 
+function ok204() {
+  return mockResponse({ ok: true, status: 204, text: '' });
+}
+
 import { fetchPool, __resetMemoryCache } from '../extension/lib/free-pool.js';
 
 const SAMPLE_POOL = [
-  { proxy: 'socks5://1.2.3.4:1080', protocol: 'socks5', ip: '1.2.3.4', port: 1080, geolocation: { country: 'NL' } },
-  { proxy: 'http://5.6.7.8:8080',   protocol: 'http',   ip: '5.6.7.8', port: 8080, geolocation: { country: 'DE' } },
-  { proxy: 'socks4://9.9.9.9:1234', protocol: 'socks4', ip: '9.9.9.9', port: 1234, geolocation: { country: 'US' } },
+  { proxy: 'socks5://1.2.3.4:1080', protocol: 'socks5', ip: '1.2.3.4', port: 1080, anonymity: 'elite',  score: 100, geolocation: { country: 'NL' } },
+  { proxy: 'http://5.6.7.8:8080',   protocol: 'http',   ip: '5.6.7.8', port: 8080, anonymity: 'anonymous', score: 80,  geolocation: { country: 'DE' } },
+  { proxy: 'socks4://9.9.9.9:1234', protocol: 'socks4', ip: '9.9.9.9', port: 1234, anonymity: 'elite',  score: 50,  geolocation: { country: 'US' } },
 ];
 
 test('fetchPool: parses Proxifly JSON array', async () => {
@@ -59,8 +63,12 @@ test('fetchPool: parses Proxifly JSON array', async () => {
   mockFetchResponses.push(mockResponse({ text: JSON.stringify(SAMPLE_POOL) }));
   const pool = await fetchPool({ force: true });
   assert.equal(pool.length, 3);
-  assert.deepEqual(pool[0], { host: '1.2.3.4', port: 1080, protocol: 'socks5', country: 'NL' });
-  assert.deepEqual(pool[1], { host: '5.6.7.8', port: 8080, protocol: 'http',   country: 'DE' });
+  assert.equal(pool[0].host, '1.2.3.4');
+  assert.equal(pool[0].port, 1080);
+  assert.equal(pool[0].protocol, 'socks5');
+  assert.equal(pool[0].country, 'NL');
+  assert.equal(pool[0].score, 100);
+  assert.equal(pool[0].anonymity, 'elite');
 });
 
 test('fetchPool: parses NDJSON', async () => {
@@ -75,11 +83,11 @@ test('fetchPool: parses NDJSON', async () => {
 test('fetchPool: drops entries missing ip or port', async () => {
   __resetMemoryCache();
   const data = [
-    { proxy: 'http://x:80', protocol: 'http', port: 80, geolocation: { country: 'US' } },        // no ip
-    { proxy: 'http://1.2.3.4', protocol: 'http', ip: '1.2.3.4', geolocation: { country: 'US' } }, // no port
-    { proxy: 'http://1.2.3.4:abc', protocol: 'http', ip: '1.2.3.4', port: 'abc', geolocation: { country: 'US' } },
-    { proxy: 'http://1.2.3.4:99999', protocol: 'http', ip: '1.2.3.4', port: 99999, geolocation: { country: 'US' } },
-    { proxy: 'http://1.2.3.4:8080', protocol: 'http', ip: '1.2.3.4', port: 8080, geolocation: { country: 'US' } },
+    { protocol: 'http', port: 80, geolocation: { country: 'US' } },                              // no ip
+    { protocol: 'http', ip: '1.2.3.4', geolocation: { country: 'US' } },                          // no port
+    { protocol: 'http', ip: '1.2.3.4', port: 'abc', geolocation: { country: 'US' } },             // invalid port
+    { protocol: 'http', ip: '1.2.3.4', port: 99999, geolocation: { country: 'US' } },             // port out of range
+    { protocol: 'http', ip: '1.2.3.4', port: 8080, geolocation: { country: 'US' } },              // valid
   ];
   mockFetchResponses.push(mockResponse({ text: JSON.stringify(data) }));
   const pool = await fetchPool({ force: true });
@@ -127,14 +135,14 @@ test('fetchPool: expired chrome.storage cache → network fetch', async () => {
 import { filterPool } from '../extension/lib/free-pool.js';
 
 const BIG_POOL = [
-  { host: '1.1.1.1', port: 80, protocol: 'http', country: 'NL' },
-  { host: '2.2.2.2', port: 80, protocol: 'http', country: 'RU' },   // blocked country
-  { host: '3.3.3.3', port: 80, protocol: 'http', country: 'BY' },   // blocked country
-  { host: '4.4.4.4', port: 80, protocol: 'http', country: 'CN' },   // blocked country
-  { host: '5.5.5.5', port: 80, protocol: 'http', country: 'IR' },   // blocked country
-  { host: '6.6.6.6', port: 80, protocol: 'http', country: 'DE' },
-  { host: '7.7.7.7', port: 80, protocol: 'http', country: null },   // unknown — kept
-  { host: '8.8.8.8', port: 80, protocol: 'http', country: 'US' },
+  { host: '1.1.1.1', port: 80, protocol: 'http', country: 'NL', score: 50, anonymity: 'elite' },
+  { host: '2.2.2.2', port: 80, protocol: 'http', country: 'RU', score: 90, anonymity: 'elite' },     // blocked country
+  { host: '3.3.3.3', port: 80, protocol: 'http', country: 'BY', score: 90, anonymity: 'elite' },     // blocked country
+  { host: '4.4.4.4', port: 80, protocol: 'http', country: 'CN', score: 90, anonymity: 'elite' },     // blocked country
+  { host: '5.5.5.5', port: 80, protocol: 'http', country: 'IR', score: 90, anonymity: 'elite' },     // blocked country
+  { host: '6.6.6.6', port: 80, protocol: 'http', country: 'DE', score: 70, anonymity: 'elite' },
+  { host: '7.7.7.7', port: 80, protocol: 'http', country: null, score: 30, anonymity: 'anonymous' }, // unknown country — kept
+  { host: '8.8.8.8', port: 80, protocol: 'http', country: 'US', score: 100, anonymity: 'elite' },
 ];
 
 test('filterPool: drops blocked countries', () => {
@@ -145,6 +153,38 @@ test('filterPool: drops blocked countries', () => {
   assert.equal(countries.has('CN'), false);
   assert.equal(countries.has('IR'), false);
   assert.equal(filtered.length, 4); // NL, DE, null, US
+});
+
+test('filterPool: drops ZZ (unknown) country entries', () => {
+  const pool = [
+    { host: '1.1.1.1', port: 80, protocol: 'http', country: 'ZZ', score: 100, anonymity: 'elite' },
+    { host: '2.2.2.2', port: 80, protocol: 'http', country: 'NL', score: 50,  anonymity: 'elite' },
+  ];
+  const filtered = filterPool(pool, { deadHosts: {} });
+  assert.equal(filtered.length, 1);
+  assert.equal(filtered[0].host, '2.2.2.2');
+});
+
+test('filterPool: drops transparent-anonymity entries', () => {
+  const pool = [
+    { host: '1.1.1.1', port: 80, protocol: 'http', country: 'NL', score: 100, anonymity: 'transparent' },
+    { host: '2.2.2.2', port: 80, protocol: 'http', country: 'NL', score: 50,  anonymity: 'anonymous' },
+    { host: '3.3.3.3', port: 80, protocol: 'http', country: 'NL', score: 30,  anonymity: 'elite' },
+  ];
+  const filtered = filterPool(pool, { deadHosts: {} });
+  const hosts = new Set(filtered.map((p) => p.host));
+  assert.equal(hosts.has('1.1.1.1'), false);
+  assert.equal(hosts.size, 2);
+});
+
+test('filterPool: sorts by score DESC (highest first)', () => {
+  const filtered = filterPool(BIG_POOL, { deadHosts: {} });
+  // Expected after blocked-country filter: US(100), DE(70), NL(50), null(30)
+  assert.equal(filtered[0].score, 100);
+  assert.equal(filtered[filtered.length - 1].score, 30);
+  for (let i = 1; i < filtered.length; i++) {
+    assert.ok(filtered[i - 1].score >= filtered[i].score, `score not descending at ${i}`);
+  }
 });
 
 test('filterPool: drops dead hosts and prunes expired ones', () => {
@@ -163,37 +203,32 @@ test('filterPool: drops dead hosts and prunes expired ones', () => {
 
 import { validateProxy } from '../extension/lib/free-pool.js';
 
-const CF_TRACE = `fl=123f456
-h=www.cloudflare.com
-ip=185.123.45.67
-ts=1716902400.123
-visit_scheme=https
-uag=Mozilla/5.0
-colo=AMS
-sliver=none
-http=http/2
-loc=NL
-tls=TLSv1.3
-sni=plaintext
-warp=off
-gateway=off
-rbi=off
-kex=X25519`;
-
-test('validateProxy: success → ok=true, parses ip/loc', async () => {
-  mockFetchResponses.push(mockResponse({ text: CF_TRACE }));
+test('validateProxy: 204 → ok=true', async () => {
+  mockFetchResponses.push(ok204());
   const result = await validateProxy({ host: '1.2.3.4', port: 1080, protocol: 'socks5' });
   assert.equal(result.ok, true);
-  assert.equal(result.country, 'NL');
   assert.equal(typeof result.latencyMs, 'number');
   assert.ok(result.latencyMs >= 0);
   assert.equal(result.error, null);
 });
 
-test('validateProxy: sets and clears chrome.proxy.settings', async () => {
-  mockFetchResponses.push(mockResponse({ text: CF_TRACE }));
+test('validateProxy: 200 also accepted (some proxies rewrite 204→200)', async () => {
+  mockFetchResponses.push(mockResponse({ ok: true, status: 200 }));
+  const result = await validateProxy({ host: '1.2.3.4', port: 1080, protocol: 'socks5' });
+  assert.equal(result.ok, true);
+});
+
+test('validateProxy: hits Google generate_204', async () => {
+  mockFetchResponses.push(ok204());
   await validateProxy({ host: '1.2.3.4', port: 1080, protocol: 'socks5' });
-  // After the call, mockProxyConfig should be null (cleared) — we restored.
+  assert.equal(mockFetchCalls.length, 1);
+  assert.match(mockFetchCalls[0].url, /generate_204/);
+});
+
+test('validateProxy: sets and clears chrome.proxy.settings', async () => {
+  mockFetchResponses.push(ok204());
+  await validateProxy({ host: '1.2.3.4', port: 1080, protocol: 'socks5' });
+  // After the call, mockProxyConfig should be null (cleared) — we cleared in finally.
   assert.equal(mockProxyConfig, null);
 });
 
@@ -213,34 +248,35 @@ test('validateProxy: non-2xx response → ok=false', async () => {
 
 import { pickAndValidate } from '../extension/lib/free-pool.js';
 
-test('pickAndValidate: first candidate alive → returns it', async () => {
+test('pickAndValidate: first candidate alive → returns it with cand.country', async () => {
   __resetMemoryCache();
-  const onePool = [{ proxy: 'socks5://1.2.3.4:1080', protocol: 'socks5', ip: '1.2.3.4', port: 1080, geolocation: { country: 'NL' } }];
+  const onePool = [{ protocol: 'socks5', ip: '1.2.3.4', port: 1080, anonymity: 'elite', score: 100, geolocation: { country: 'NL' } }];
   mockFetchResponses.push(mockResponse({ text: JSON.stringify(onePool) }));  // pool fetch
-  mockFetchResponses.push(mockResponse({ text: CF_TRACE }));                  // validate
+  mockFetchResponses.push(ok204());                                           // validate
   const result = await pickAndValidate({ freeProxy: { deadHosts: {} } });
   assert.equal(result.pick.host, '1.2.3.4');
   assert.equal(result.pick.scheme, 'socks5');
-  assert.equal(result.pick.country, 'NL');
+  assert.equal(result.pick.country, 'NL');  // taken from candidate
   assert.equal(result.error, null);
   assert.equal(result.poolSize, 1);
 });
 
 test('pickAndValidate: first 2 dead, 3rd alive → returns 3rd', async () => {
   __resetMemoryCache();
-  // Force identity order: Math.random near 1 makes Fisher-Yates j===i → no-op swaps.
+  // Stub Math.random near 1 — Fisher-Yates becomes no-op AND keeps the
+  // already-by-score order (all scores equal) deterministic.
   const origRandom = Math.random;
   Math.random = () => 0.999;
   try {
     const pool = [
-      { protocol: 'socks5', ip: '1.1.1.1', port: 1080, geolocation: { country: 'NL' } },
-      { protocol: 'socks5', ip: '2.2.2.2', port: 1080, geolocation: { country: 'NL' } },
-      { protocol: 'socks5', ip: '3.3.3.3', port: 1080, geolocation: { country: 'NL' } },
+      { protocol: 'socks5', ip: '1.1.1.1', port: 1080, anonymity: 'elite', score: 50, geolocation: { country: 'NL' } },
+      { protocol: 'socks5', ip: '2.2.2.2', port: 1080, anonymity: 'elite', score: 50, geolocation: { country: 'NL' } },
+      { protocol: 'socks5', ip: '3.3.3.3', port: 1080, anonymity: 'elite', score: 50, geolocation: { country: 'NL' } },
     ];
     mockFetchResponses.push(mockResponse({ text: JSON.stringify(pool) }));
     mockFetchResponses.push(new Error('dead 1'));
     mockFetchResponses.push(new Error('dead 2'));
-    mockFetchResponses.push(mockResponse({ text: CF_TRACE }));
+    mockFetchResponses.push(ok204());
     const result = await pickAndValidate({ freeProxy: { deadHosts: {} } });
     assert.equal(result.pick.host, '3.3.3.3');
     assert.equal(result.attemptedHosts.length, 3);
@@ -249,28 +285,36 @@ test('pickAndValidate: first 2 dead, 3rd alive → returns 3rd', async () => {
   }
 });
 
-test('pickAndValidate: all dead → null pick + error', async () => {
+test('pickAndValidate: all dead → null pick with Russian error', async () => {
   __resetMemoryCache();
   const pool = [
-    { protocol: 'socks5', ip: '1.1.1.1', port: 1080, geolocation: { country: 'NL' } },
-    { protocol: 'socks5', ip: '2.2.2.2', port: 1080, geolocation: { country: 'NL' } },
+    { protocol: 'socks5', ip: '1.1.1.1', port: 1080, anonymity: 'elite', score: 10, geolocation: { country: 'NL' } },
+    { protocol: 'socks5', ip: '2.2.2.2', port: 1080, anonymity: 'elite', score: 10, geolocation: { country: 'NL' } },
   ];
   mockFetchResponses.push(mockResponse({ text: JSON.stringify(pool) }));
   mockFetchResponses.push(new Error('dead'));
   mockFetchResponses.push(new Error('dead'));
   const result = await pickAndValidate({ freeProxy: { deadHosts: {} } });
   assert.equal(result.pick, null);
-  assert.match(result.error, /no working/i);
+  assert.match(result.error, /не нашли рабочий прокси/);
   assert.equal(result.attemptedHosts.length, 2);
 });
 
 test('pickAndValidate: empty filtered pool → null pick with specific error', async () => {
   __resetMemoryCache();
   const pool = [
-    { protocol: 'socks5', ip: '1.1.1.1', port: 1080, geolocation: { country: 'RU' } }, // all blocked
+    { protocol: 'socks5', ip: '1.1.1.1', port: 1080, anonymity: 'elite', score: 100, geolocation: { country: 'RU' } }, // all blocked
   ];
   mockFetchResponses.push(mockResponse({ text: JSON.stringify(pool) }));
   const result = await pickAndValidate({ freeProxy: { deadHosts: {} } });
   assert.equal(result.pick, null);
-  assert.match(result.error, /pool is empty/i);
+  assert.match(result.error, /нет подходящих кандидатов/);
+});
+
+test('pickAndValidate: pool fetch fails → null pick with fetch error', async () => {
+  __resetMemoryCache();
+  mockFetchResponses.push(new Error('network down'));
+  const result = await pickAndValidate({ freeProxy: { deadHosts: {} } });
+  assert.equal(result.pick, null);
+  assert.match(result.error, /не удалось загрузить список/);
 });
