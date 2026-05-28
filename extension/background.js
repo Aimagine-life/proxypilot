@@ -228,29 +228,6 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true;
   }
 
-  if (msg?.type === 'PERSIST_MANUAL') {
-    (async () => {
-      try {
-        const state = await loadState();
-        state.manualProxy = {
-          host: msg.host || '',
-          port: Number(msg.port) || 0,
-          scheme: msg.scheme || 'auto',
-          user: msg.user || '',
-          pass: msg.pass || '',
-        };
-        if (state.proxySource === 'manual') {
-          state.proxy = { ...state.manualProxy };
-        }
-        await saveState(state);
-        sendResponse({ ok: true });
-      } catch (err) {
-        console.error('[bg] PERSIST_MANUAL failed:', err);
-        sendResponse({ ok: false, error: String(err?.message || err) });
-      }
-    })();
-    return true;
-  }
 });
 
 async function runProxyTest(url) {
@@ -315,39 +292,46 @@ function buildAllThroughPac(proxy) {
  * Mark the current free proxy as dead, find a new one, and update state.
  * Returns the new state (or unchanged if no new proxy found and no current to remove).
  */
+let rotationInProgress = false;
+
 async function rotateFreeProxy(state, { markCurrentDead = true } = {}) {
   if (state.proxySource !== 'free') return state;
+  if (rotationInProgress) return state;  // another rotation is already running
+  rotationInProgress = true;
+  try {
+    if (markCurrentDead && state.proxy?.host) {
+      const key = `${state.proxy.host}:${state.proxy.port}`;
+      state.freeProxy.deadHosts[key] = Date.now() + DEAD_HOST_TTL_MS;
+    }
 
-  if (markCurrentDead && state.proxy?.host) {
-    const key = `${state.proxy.host}:${state.proxy.port}`;
-    state.freeProxy.deadHosts[key] = Date.now() + DEAD_HOST_TTL_MS;
+    const result = await pickAndValidate(state);
+    if (result.pick) {
+      state.freeProxy.selected = result.pick;
+      state.freeProxy.lastError = null;
+      state.proxy = {
+        host: result.pick.host,
+        port: result.pick.port,
+        scheme: result.pick.scheme,
+        user: '',
+        pass: '',
+        lastTest: {
+          ok: true,
+          country: result.pick.country,
+          latencyMs: result.pick.latencyMs,
+          at: Math.floor(Date.now() / 1000),
+        },
+      };
+    } else {
+      state.freeProxy.selected = null;
+      state.freeProxy.lastError = result.error;
+      state.proxy = null;
+    }
+    state.freeProxy.poolFetchedAt = Date.now();
+    await saveState(state);
+    return state;
+  } finally {
+    rotationInProgress = false;
   }
-
-  const result = await pickAndValidate(state);
-  if (result.pick) {
-    state.freeProxy.selected = result.pick;
-    state.freeProxy.lastError = null;
-    state.proxy = {
-      host: result.pick.host,
-      port: result.pick.port,
-      scheme: result.pick.scheme,
-      user: '',
-      pass: '',
-      lastTest: {
-        ok: true,
-        country: result.pick.country,
-        latencyMs: result.pick.latencyMs,
-        at: Math.floor(Date.now() / 1000),
-      },
-    };
-  } else {
-    state.freeProxy.selected = null;
-    state.freeProxy.lastError = result.error;
-    state.proxy = null;
-  }
-  state.freeProxy.poolFetchedAt = Date.now();
-  await saveState(state);
-  return state;
 }
 
 function registerProxyErrorListener() {
