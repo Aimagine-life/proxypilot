@@ -174,65 +174,80 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
   if (msg?.type === 'SWITCH_SOURCE') {
     (async () => {
-      const state = await loadState();
-      state.proxySource = msg.source === 'free' ? 'free' : 'manual';
-      if (state.proxySource === 'manual') {
-        state.proxy = state.manualProxy ? { ...state.manualProxy } : null;
-        await saveState(state);
-        sendResponse({ ok: true, state });
-        return;
+      try {
+        const state = await loadState();
+        state.proxySource = msg.source === 'free' ? 'free' : 'manual';
+        if (state.proxySource === 'manual') {
+          state.proxy = state.manualProxy ? { ...state.manualProxy } : null;
+          await saveState(state);
+          sendResponse({ ok: true, state });
+          return;
+        }
+        // → 'free'
+        if (state.freeProxy.selected) {
+          // Reuse previously-validated pick (may be stale; onErrorOccurred will rotate if dead).
+          state.proxy = {
+            host: state.freeProxy.selected.host,
+            port: state.freeProxy.selected.port,
+            scheme: state.freeProxy.selected.scheme,
+            user: '',
+            pass: '',
+            lastTest: {
+              ok: true,
+              country: state.freeProxy.selected.country,
+              latencyMs: state.freeProxy.selected.latencyMs,
+              at: Math.floor(state.freeProxy.selected.validatedAt / 1000),
+            },
+          };
+          await saveState(state);
+          sendResponse({ ok: true, state });
+          return;
+        }
+        // No prior pick → run pickAndValidate
+        const newState = await rotateFreeProxy(state, { markCurrentDead: false });
+        sendResponse({ ok: !!newState.freeProxy.selected, state: newState });
+      } catch (err) {
+        console.error('[bg] SWITCH_SOURCE failed:', err);
+        sendResponse({ ok: false, error: String(err?.message || err) });
       }
-      // → 'free'
-      if (state.freeProxy.selected) {
-        // Reuse previously-validated pick (may be stale; onErrorOccurred will rotate if dead).
-        state.proxy = {
-          host: state.freeProxy.selected.host,
-          port: state.freeProxy.selected.port,
-          scheme: state.freeProxy.selected.scheme,
-          user: '',
-          pass: '',
-          lastTest: {
-            ok: true,
-            country: state.freeProxy.selected.country,
-            latencyMs: state.freeProxy.selected.latencyMs,
-            at: Math.floor(state.freeProxy.selected.validatedAt / 1000),
-          },
-        };
-        await saveState(state);
-        sendResponse({ ok: true, state });
-        return;
-      }
-      // No prior pick → run pickAndValidate
-      const newState = await rotateFreeProxy(state, { markCurrentDead: false });
-      sendResponse({ ok: !!newState.freeProxy.selected, state: newState });
     })();
     return true;
   }
 
   if (msg?.type === 'ROTATE_FREE') {
     (async () => {
-      const state = await loadState();
-      const newState = await rotateFreeProxy(state, { markCurrentDead: true });
-      sendResponse({ ok: !!newState.freeProxy.selected, state: newState });
+      try {
+        const state = await loadState();
+        const newState = await rotateFreeProxy(state, { markCurrentDead: true });
+        sendResponse({ ok: !!newState.freeProxy.selected, state: newState });
+      } catch (err) {
+        console.error('[bg] ROTATE_FREE failed:', err);
+        sendResponse({ ok: false, error: String(err?.message || err) });
+      }
     })();
     return true;
   }
 
   if (msg?.type === 'PERSIST_MANUAL') {
     (async () => {
-      const state = await loadState();
-      state.manualProxy = {
-        host: msg.host || '',
-        port: Number(msg.port) || 0,
-        scheme: msg.scheme || 'auto',
-        user: msg.user || '',
-        pass: msg.pass || '',
-      };
-      if (state.proxySource === 'manual') {
-        state.proxy = { ...state.manualProxy };
+      try {
+        const state = await loadState();
+        state.manualProxy = {
+          host: msg.host || '',
+          port: Number(msg.port) || 0,
+          scheme: msg.scheme || 'auto',
+          user: msg.user || '',
+          pass: msg.pass || '',
+        };
+        if (state.proxySource === 'manual') {
+          state.proxy = { ...state.manualProxy };
+        }
+        await saveState(state);
+        sendResponse({ ok: true });
+      } catch (err) {
+        console.error('[bg] PERSIST_MANUAL failed:', err);
+        sendResponse({ ok: false, error: String(err?.message || err) });
       }
-      await saveState(state);
-      sendResponse({ ok: true });
     })();
     return true;
   }
@@ -337,7 +352,11 @@ async function rotateFreeProxy(state, { markCurrentDead = true } = {}) {
 
 function registerProxyErrorListener() {
   chrome.webRequest.onErrorOccurred.addListener(
-    (details) => { handleProxyError(details).catch(() => {}); },
+    (details) => {
+      handleProxyError(details).catch((err) => {
+        console.error('[bg] handleProxyError failed:', err);
+      });
+    },
     { urls: ['<all_urls>'] }
   );
 }
