@@ -40,6 +40,7 @@ export async function loadState() {
   if (!saved.schemaVersion || saved.schemaVersion < 2) {
     saved.schemaVersion = 2;
     saved.proxySource = 'manual';
+    // Shallow copy — safe as long as `proxy` remains flat (no nested objects).
     saved.manualProxy = saved.proxy ? { ...saved.proxy } : null;
     saved.freeProxy = { ...defaults.freeProxy };
   }

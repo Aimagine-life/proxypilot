@@ -130,3 +130,71 @@ test('loadState: v2 state is loaded as-is (idempotent)', async () => {
   assert.equal(s.manualProxy.host, '1.1.1.1');
   assert.equal(s.freeProxy.selected.host, '5.5.5.5');
 });
+
+test('loadState: repeated calls on v1 state without saveState still return v2', async () => {
+  await chrome.storage.local.clear();
+  mockStore.state = {
+    schemaVersion: 1,
+    enabled: false,
+    proxy: { host: '1.2.3.4', port: 8080, scheme: 'http', user: '', pass: '' },
+    theme: 'auto',
+    resolvedTheme: 'light',
+    presets: {},
+    customDomains: [],
+  };
+  // First load — runs migration in memory but does NOT call saveState
+  const a = await loadState();
+  assert.equal(a.schemaVersion, 2);
+  assert.equal(a.proxySource, 'manual');
+  // Second load — must still produce a valid v2 result
+  const b = await loadState();
+  assert.equal(b.schemaVersion, 2);
+  assert.equal(b.proxySource, 'manual');
+  assert.deepEqual(b.manualProxy, a.manualProxy);
+});
+
+test('loadState: v2 state with missing freeProxy gets backfilled', async () => {
+  await chrome.storage.local.clear();
+  mockStore.state = {
+    schemaVersion: 2,
+    enabled: false,
+    proxy: null,
+    proxySource: 'manual',
+    manualProxy: null,
+    // freeProxy intentionally absent (e.g., corrupted state)
+    theme: 'auto',
+    resolvedTheme: 'light',
+    presets: {},
+    customDomains: [],
+  };
+  const s = await loadState();
+  assert.deepEqual(s.freeProxy, {
+    selected: null,
+    lastError: null,
+    deadHosts: {},
+    poolFetchedAt: 0,
+  });
+});
+
+test('loadState: v2 state with missing freeProxy.deadHosts gets backfilled', async () => {
+  await chrome.storage.local.clear();
+  mockStore.state = {
+    schemaVersion: 2,
+    enabled: false,
+    proxy: null,
+    proxySource: 'manual',
+    manualProxy: null,
+    freeProxy: {
+      selected: null,
+      lastError: null,
+      // deadHosts intentionally absent
+      poolFetchedAt: 0,
+    },
+    theme: 'auto',
+    resolvedTheme: 'light',
+    presets: {},
+    customDomains: [],
+  };
+  const s = await loadState();
+  assert.deepEqual(s.freeProxy.deadHosts, {});
+});
