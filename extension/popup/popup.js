@@ -373,12 +373,20 @@ function bindSettings() {
       // Disable both pills while switching
       for (const p of document.querySelectorAll('#source-pills .pill')) p.disabled = true;
       $('#rotate-free').disabled = true;
-      $('#free-current').textContent = source === 'free' ? 'Searching for working proxy…' : 'Switching…';
+      $('#free-current').textContent = 'Switching…';
 
       try {
         const res = await chrome.runtime.sendMessage({ type: 'SWITCH_SOURCE', source });
-        state = res.state;
-        renderSettings();
+        if (res?.state) {
+          state = res.state;
+          renderSettings();
+        } else {
+          // Background returned an error without state — re-render with current state so UI stays consistent
+          renderSettings();
+          if (res?.error) {
+            $('#free-current').textContent = `Error: ${res.error}`;
+          }
+        }
       } finally {
         for (const p of document.querySelectorAll('#source-pills .pill')) p.disabled = false;
         $('#rotate-free').disabled = false;
@@ -392,8 +400,16 @@ function bindSettings() {
     $('#free-current').textContent = 'Searching for working proxy…';
     try {
       const res = await chrome.runtime.sendMessage({ type: 'ROTATE_FREE' });
-      state = res.state;
-      renderSettings();
+      if (res?.state) {
+        state = res.state;
+        renderSettings();
+      } else {
+        // Background returned an error without state — re-render with current state so UI stays consistent
+        renderSettings();
+        if (res?.error) {
+          $('#free-current').textContent = `Error: ${res.error}`;
+        }
+      }
     } finally {
       btn.disabled = false;
     }
@@ -450,8 +466,9 @@ function renderSettings() {
 
 function countryFlag(cc) {
   if (!cc || cc.length !== 2) return '';
+  const upper = cc.toUpperCase();
   const A = 0x41, base = 0x1F1E6;
-  return String.fromCodePoint(base + cc.charCodeAt(0) - A, base + cc.charCodeAt(1) - A);
+  return String.fromCodePoint(base + upper.charCodeAt(0) - A, base + upper.charCodeAt(1) - A);
 }
 
 /**
