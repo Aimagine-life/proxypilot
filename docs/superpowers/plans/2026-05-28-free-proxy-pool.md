@@ -699,35 +699,55 @@ Adds `proxySource`, `manualProxy`, `freeProxy` to default state and migrates exi
 
 **Files:**
 - Modify: `extension/lib/storage.js`
-- Create: `tests/storage.test.js`
+- Modify: `tests/storage.test.js` (already exists with 6 tests — two will need to update from schemaVersion 1 → 2; rest stay; append new migration tests)
 
-### Step 2.1: Write failing migration tests
+### Step 2.1: Update existing storage tests for v2 + add migration tests
 
-- [ ] Create `tests/storage.test.js`:
+The existing `tests/storage.test.js` uses a module-level mock pattern (`let mockStore = {}` at the top, not per-test reset). Keep that pattern. Update the two assertions that hardcode `schemaVersion === 1` and append the new migration tests.
+
+- [ ] In `tests/storage.test.js`, change line 19 from:
 
 ```js
-import { test, beforeEach } from 'node:test';
-import assert from 'node:assert/strict';
-
-let mockStorage;
-
-beforeEach(() => {
-  mockStorage = {};
-  globalThis.chrome = {
-    storage: {
-      local: {
-        get: async (key) => ({ [key]: mockStorage[key] }),
-        set: async (obj) => { Object.assign(mockStorage, obj); },
-      },
-    },
-  };
+test('getDefaultState: schemaVersion is 1', () => {
+  assert.equal(getDefaultState().schemaVersion, 1);
 });
+```
 
-import { loadState, getDefaultState } from '../extension/lib/storage.js';
+to:
 
-test('getDefaultState: includes new schema fields at v2', () => {
-  const s = getDefaultState();
+```js
+test('getDefaultState: schemaVersion is 2', () => {
+  assert.equal(getDefaultState().schemaVersion, 2);
+});
+```
+
+- [ ] Change the `loadState: returns default state when storage empty` test (around line 37) from:
+
+```js
+test('loadState: returns default state when storage empty', async () => {
+  await chrome.storage.local.clear();
+  const s = await loadState();
+  assert.equal(s.schemaVersion, 1);
+  assert.equal(s.enabled, false);
+});
+```
+
+to:
+
+```js
+test('loadState: returns default state when storage empty', async () => {
+  await chrome.storage.local.clear();
+  const s = await loadState();
   assert.equal(s.schemaVersion, 2);
+  assert.equal(s.enabled, false);
+});
+```
+
+- [ ] APPEND to the end of `tests/storage.test.js`:
+
+```js
+test('getDefaultState: includes new v2 fields', () => {
+  const s = getDefaultState();
   assert.equal(s.proxySource, 'manual');
   assert.equal(s.manualProxy, null);
   assert.deepEqual(s.freeProxy, {
@@ -739,14 +759,14 @@ test('getDefaultState: includes new schema fields at v2', () => {
 });
 
 test('loadState: fresh storage returns default v2', async () => {
+  await chrome.storage.local.clear();
   const s = await loadState();
-  assert.equal(s.schemaVersion, 2);
   assert.equal(s.proxySource, 'manual');
 });
 
 test('loadState: migrates v1 with proxy → v2 with manualProxy', async () => {
-  // Simulate pre-migration state (no schemaVersion field, or v1)
-  mockStorage.state = {
+  await chrome.storage.local.clear();
+  mockStore.state = {
     schemaVersion: 1,
     enabled: true,
     proxy: { host: '1.2.3.4', port: 8080, scheme: 'http', user: 'u', pass: 'p' },
@@ -765,7 +785,8 @@ test('loadState: migrates v1 with proxy → v2 with manualProxy', async () => {
 });
 
 test('loadState: migrates v1 with null proxy → manualProxy null', async () => {
-  mockStorage.state = {
+  await chrome.storage.local.clear();
+  mockStore.state = {
     schemaVersion: 1,
     enabled: false,
     proxy: null,
@@ -781,7 +802,8 @@ test('loadState: migrates v1 with null proxy → manualProxy null', async () => 
 });
 
 test('loadState: v2 state is loaded as-is (idempotent)', async () => {
-  mockStorage.state = {
+  await chrome.storage.local.clear();
+  mockStore.state = {
     schemaVersion: 2,
     enabled: true,
     proxy: { host: '5.5.5.5', port: 1080, scheme: 'socks5' },
@@ -813,7 +835,7 @@ test('loadState: v2 state is loaded as-is (idempotent)', async () => {
 node --test tests/storage.test.js
 ```
 
-- [ ] Expected: failures (`getDefaultState` returns schemaVersion 1, or no `proxySource` field).
+- [ ] Expected: failures on the new tests (`proxySource`/`manualProxy`/`freeProxy` undefined). The two updated assertions for `schemaVersion === 2` should now fail until step 2.3 lands.
 
 ### Step 2.3: Update `getDefaultState`
 
@@ -898,13 +920,13 @@ export async function loadState() {
 node --test tests/storage.test.js
 ```
 
-- [ ] Expected: 5 passes. Also run the full suite to make sure nothing regressed:
+- [ ] Expected: all storage tests pass (originally 6, now 11 after adding 5 new). Also run the full suite to make sure nothing regressed:
 
 ```bash
 node --test
 ```
 
-- [ ] Expected: existing `tests/domain.test.js` still all green; total = existing + 5 (storage) + 17 (free-pool).
+- [ ] Expected: existing `tests/domain.test.js` + `tests/pac.test.js` still all green; storage now 11; free-pool 17; total grew by ~22.
 
 ### Step 2.6: Commit Task 2
 
@@ -914,7 +936,9 @@ git commit -m "feat(storage): schema v2 — proxySource, manualProxy, freeProxy
 
 Migrates v1 state on load: copies existing proxy → manualProxy,
 sets proxySource='manual', initializes freeProxy. Idempotent;
-v2 state passes through unchanged. Existing tests unaffected."
+v2 state passes through unchanged. Updates two existing test
+assertions that pinned schemaVersion to 1; appends 5 new tests
+covering the migration paths."
 ```
 
 ---
