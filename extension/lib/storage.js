@@ -4,9 +4,12 @@ const STORAGE_KEY = 'state';
 
 export function getDefaultState() {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     enabled: false,
     proxy: null,
+    proxySource: 'manual',
+    manualProxy: null,
+    freeProxy: { selected: null, lastError: null, deadHosts: {}, poolFetchedAt: 0 },
     theme: 'auto',
     resolvedTheme: 'light',
     presets: {
@@ -31,8 +34,17 @@ export async function loadState() {
   const saved = result[STORAGE_KEY];
   if (!saved) return getDefaultState();
 
-  // Merge: add any new presets that didn't exist when the user first installed.
   const defaults = getDefaultState();
+
+  // Migrate v1 → v2.
+  if (!saved.schemaVersion || saved.schemaVersion < 2) {
+    saved.schemaVersion = 2;
+    saved.proxySource = 'manual';
+    saved.manualProxy = saved.proxy ? { ...saved.proxy } : null;
+    saved.freeProxy = { ...defaults.freeProxy };
+  }
+
+  // Merge: add any new presets that didn't exist when the user first installed.
   for (const [key, def] of Object.entries(defaults.presets)) {
     if (!saved.presets[key]) {
       saved.presets[key] = def;
@@ -41,6 +53,11 @@ export async function loadState() {
   // Backfill theme fields for users upgrading from pre-0.4.3.
   if (!saved.theme) saved.theme = defaults.theme;
   if (!saved.resolvedTheme) saved.resolvedTheme = defaults.resolvedTheme;
+
+  // Defensive freeProxy backfill.
+  if (!saved.freeProxy) saved.freeProxy = { ...defaults.freeProxy };
+  if (!saved.freeProxy.deadHosts) saved.freeProxy.deadHosts = {};
+
   return saved;
 }
 
