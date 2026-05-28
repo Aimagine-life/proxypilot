@@ -18,7 +18,6 @@ const VALIDATE_TIMEOUT_MS = 5_000;
 // likely to pass google.com / gemini.google.com too. Cloudflare trace was
 // tried first but Cloudflare blocks many known free-proxy IPs at L7.
 const VALIDATE_URL = 'https://www.google.com/generate_204';
-const MAX_VALIDATE_ATTEMPTS = 15;
 const BLOCKED_COUNTRIES = new Set(['RU', 'BY', 'CN', 'IR']);
 export const DEAD_HOST_TTL_MS = 30 * 60 * 1000;
 
@@ -193,17 +192,22 @@ function buildAllThroughPac({ host, port, protocol }) {
 }
 
 /**
- * Fetch pool, filter by deadHosts from state.freeProxy, validate candidates
- * sequentially until one passes or MAX_VALIDATE_ATTEMPTS is exhausted.
+ * Fetch pool, filter by deadHosts from state.freeProxy, validate ALL filtered
+ * candidates sequentially until one passes. No hard cap on attempts — caller
+ * can interrupt by ignoring the response (popup closes, etc.).
  *
  * Does NOT mutate the passed-in state. Caller is responsible for writing
  * state.freeProxy.selected / deadHosts / poolFetchedAt based on the return value.
+ *
+ * `onProgress(index, total, candidate)` is invoked before each validateProxy
+ * call so the caller can stream progress to the UI. Errors thrown by
+ * onProgress are swallowed.
  *
  * Returns { pick, attemptedHosts, poolSize, error }.
  *   pick: { host, port, scheme, country, latencyMs, validatedAt } | null
  *   error: user-facing Russian string when pick is null.
  */
-export async function pickAndValidate(state) {
+export async function pickAndValidate(state, { onProgress } = {}) {
   const deadHosts = (state.freeProxy && state.freeProxy.deadHosts) || {};
   let pool;
   try {
@@ -216,7 +220,7 @@ export async function pickAndValidate(state) {
       error: `не удалось загрузить список: ${err.message}`,
     };
   }
-  const candidates = filterPool(pool, { deadHosts }).slice(0, MAX_VALIDATE_ATTEMPTS);
+  const candidates = filterPool(pool, { deadHosts });
   if (candidates.length === 0) {
     return {
       pick: null,
@@ -227,8 +231,13 @@ export async function pickAndValidate(state) {
   }
 
   const attempted = [];
-  for (const cand of candidates) {
+  const total = candidates.length;
+  for (let i = 0; i < total; i++) {
+    const cand = candidates[i];
     attempted.push(`${cand.host}:${cand.port}`);
+    if (onProgress) {
+      try { onProgress(i + 1, total, cand); } catch { /* swallow — UI is best-effort */ }
+    }
     const result = await validateProxy(cand);
     if (result.ok) {
       return {
@@ -250,6 +259,6 @@ export async function pickAndValidate(state) {
     pick: null,
     attemptedHosts: attempted,
     poolSize: pool.length,
-    error: `не нашли рабочий прокси (проверено ${attempted.length})`,
+    error: `не нашли рабочий прокси (проверено ${attempted.length} из ${pool.length})`,
   };
 }

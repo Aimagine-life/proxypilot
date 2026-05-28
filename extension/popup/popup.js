@@ -574,6 +574,14 @@ async function autoDetectScheme() {
   });
 }
 
+// Receive live progress from background's pickAndValidate.
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg?.type !== 'FREE_PROGRESS') return;
+  const el = $('#free-current');
+  if (!el) return;
+  el.textContent = `Проверка ${msg.index}/${msg.total} · ${msg.host}:${msg.port}`;
+});
+
 // Watch storage changes for detect progress + general state updates.
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local' || !changes.state) return;

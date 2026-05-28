@@ -318,3 +318,62 @@ test('pickAndValidate: pool fetch fails → null pick with fetch error', async (
   assert.equal(result.pick, null);
   assert.match(result.error, /не удалось загрузить список/);
 });
+
+test('pickAndValidate: iterates ALL filtered candidates (no hard cap)', async () => {
+  __resetMemoryCache();
+  // 20 candidates, all dead — must try every single one.
+  const pool = [];
+  for (let i = 0; i < 20; i++) {
+    pool.push({ protocol: 'socks5', ip: `10.0.0.${i + 1}`, port: 1080, anonymity: 'elite', score: 50, geolocation: { country: 'NL' } });
+  }
+  mockFetchResponses.push(mockResponse({ text: JSON.stringify(pool) }));
+  for (let i = 0; i < 20; i++) mockFetchResponses.push(new Error('dead'));
+  const result = await pickAndValidate({ freeProxy: { deadHosts: {} } });
+  assert.equal(result.pick, null);
+  assert.equal(result.attemptedHosts.length, 20);
+});
+
+test('pickAndValidate: invokes onProgress before each validation', async () => {
+  __resetMemoryCache();
+  const pool = [
+    { protocol: 'socks5', ip: '1.1.1.1', port: 1080, anonymity: 'elite', score: 50, geolocation: { country: 'NL' } },
+    { protocol: 'socks5', ip: '2.2.2.2', port: 1080, anonymity: 'elite', score: 50, geolocation: { country: 'NL' } },
+    { protocol: 'socks5', ip: '3.3.3.3', port: 1080, anonymity: 'elite', score: 50, geolocation: { country: 'NL' } },
+  ];
+  const origRandom = Math.random;
+  Math.random = () => 0.999;
+  try {
+    mockFetchResponses.push(mockResponse({ text: JSON.stringify(pool) }));
+    mockFetchResponses.push(new Error('dead'));
+    mockFetchResponses.push(new Error('dead'));
+    mockFetchResponses.push(ok204());
+
+    const calls = [];
+    const result = await pickAndValidate(
+      { freeProxy: { deadHosts: {} } },
+      { onProgress: (i, total, cand) => calls.push({ i, total, host: cand.host }) },
+    );
+    assert.equal(result.pick.host, '3.3.3.3');
+    assert.deepEqual(calls, [
+      { i: 1, total: 3, host: '1.1.1.1' },
+      { i: 2, total: 3, host: '2.2.2.2' },
+      { i: 3, total: 3, host: '3.3.3.3' },
+    ]);
+  } finally {
+    Math.random = origRandom;
+  }
+});
+
+test('pickAndValidate: throwing onProgress does not break validation', async () => {
+  __resetMemoryCache();
+  const pool = [
+    { protocol: 'socks5', ip: '1.1.1.1', port: 1080, anonymity: 'elite', score: 50, geolocation: { country: 'NL' } },
+  ];
+  mockFetchResponses.push(mockResponse({ text: JSON.stringify(pool) }));
+  mockFetchResponses.push(ok204());
+  const result = await pickAndValidate(
+    { freeProxy: { deadHosts: {} } },
+    { onProgress: () => { throw new Error('UI gone'); } },
+  );
+  assert.equal(result.pick.host, '1.1.1.1');
+});

@@ -304,7 +304,18 @@ async function rotateFreeProxy(state, { markCurrentDead = true } = {}) {
       state.freeProxy.deadHosts[key] = Date.now() + DEAD_HOST_TTL_MS;
     }
 
-    const result = await pickAndValidate(state);
+    const result = await pickAndValidate(state, {
+      onProgress: (index, total, cand) => {
+        // Best-effort: push progress to popup if open. No receiver = no problem.
+        chrome.runtime.sendMessage({
+          type: 'FREE_PROGRESS',
+          index,
+          total,
+          host: cand.host,
+          port: cand.port,
+        }).catch(() => { /* popup closed */ });
+      },
+    });
     if (result.pick) {
       state.freeProxy.selected = result.pick;
       state.freeProxy.lastError = null;
