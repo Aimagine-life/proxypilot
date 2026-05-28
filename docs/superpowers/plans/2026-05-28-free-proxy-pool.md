@@ -955,7 +955,7 @@ Wires `lib/free-pool.js` into the service worker via three new message types and
 - [ ] At the top of `extension/background.js`, add the new import next to the existing ones:
 
 ```js
-import { pickAndValidate } from './lib/free-pool.js';
+import { pickAndValidate, DEAD_HOST_TTL_MS } from './lib/free-pool.js';
 ```
 
 (Place it after the existing `lib/` imports — keep file order consistent.)
@@ -974,7 +974,7 @@ async function rotateFreeProxy(state, { markCurrentDead = true } = {}) {
 
   if (markCurrentDead && state.proxy?.host) {
     const key = `${state.proxy.host}:${state.proxy.port}`;
-    state.freeProxy.deadHosts[key] = Date.now() + (30 * 60 * 1000); // 30-min TTL
+    state.freeProxy.deadHosts[key] = Date.now() + DEAD_HOST_TTL_MS;
   }
 
   const result = await pickAndValidate(state);

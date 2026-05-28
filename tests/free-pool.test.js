@@ -46,7 +46,7 @@ function mockResponse({ ok = true, status = 200, text = '', json = null } = {}) 
   };
 }
 
-import { fetchPool } from '../extension/lib/free-pool.js';
+import { fetchPool, __resetMemoryCache } from '../extension/lib/free-pool.js';
 
 const SAMPLE_POOL = [
   { proxy: 'socks5://1.2.3.4:1080', protocol: 'socks5', ip: '1.2.3.4', port: 1080, geolocation: { country: 'NL' } },
@@ -55,14 +55,13 @@ const SAMPLE_POOL = [
 ];
 
 test('fetchPool: parses Proxifly JSON array', async () => {
+  __resetMemoryCache();
   mockFetchResponses.push(mockResponse({ text: JSON.stringify(SAMPLE_POOL) }));
   const pool = await fetchPool({ force: true });
   assert.equal(pool.length, 3);
   assert.deepEqual(pool[0], { host: '1.2.3.4', port: 1080, protocol: 'socks5', country: 'NL' });
   assert.deepEqual(pool[1], { host: '5.6.7.8', port: 8080, protocol: 'http',   country: 'DE' });
 });
-
-import { __resetMemoryCache } from '../extension/lib/free-pool.js';
 
 test('fetchPool: parses NDJSON', async () => {
   __resetMemoryCache();

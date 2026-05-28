@@ -16,7 +16,7 @@ const VALIDATE_TIMEOUT_MS = 3_000;
 const VALIDATE_URL = 'https://www.cloudflare.com/cdn-cgi/trace';
 const MAX_VALIDATE_ATTEMPTS = 10;
 const BLOCKED_COUNTRIES = new Set(['RU', 'BY', 'CN', 'IR']);
-const DEAD_HOST_TTL_MS = 30 * 60 * 1000;
+export const DEAD_HOST_TTL_MS = 30 * 60 * 1000;
 
 let memoryPool = null;
 let memoryFetchedAt = 0;
@@ -41,7 +41,9 @@ export async function fetchPool({ force = false } = {}) {
         memoryFetchedAt = cached.at;
         return memoryPool;
       }
-    } catch { /* fall through to network */ }
+    } catch (err) {
+      console.warn('[FreePool] Cache read failed:', err.message);
+    }
   }
 
   const res = await fetch(POOL_URL, {
@@ -56,7 +58,9 @@ export async function fetchPool({ force = false } = {}) {
 
   try {
     await chrome.storage.local.set({ [POOL_CACHE_KEY]: { raw, at: now } });
-  } catch { /* not fatal */ }
+  } catch (err) {
+    console.warn('[FreePool] Cache write failed:', err.message);
+  }
 
   return memoryPool;
 }
