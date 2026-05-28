@@ -11,7 +11,11 @@ Chromium extension that routes AI services and other geo-restricted sites throug
 
 ## Setup
 
-1. Click the extension icon → **Open settings**
+Two sources are available — pick one in **Settings → Proxy source**.
+
+### A. Your own proxy (recommended)
+
+1. Click the extension icon → **Open settings** → **Manual**
 2. Paste your proxy in any format:
    - `host:port:user:pass` (provider format)
    - `socks5://user:pass@host:port`
@@ -19,6 +23,17 @@ Chromium extension that routes AI services and other geo-restricted sites throug
 3. Protocol is auto-detected — or pick manually
 4. Click **Test proxy** to verify
 5. Go back, enable the master toggle
+
+### B. Free pool (no own proxy needed)
+
+1. **Settings → Proxy source → Free pool**
+2. The extension fetches the public [Proxifly](https://github.com/proxifly/free-proxy-list) list, filters out transparent / unknown-country / `RU·BY·CN·IR` entries, sorts by score, and validates candidates against Google's `generate_204` until one works
+3. Live progress shows `Checking N/M · host:port`; if everything's dead, the full pool count is reported
+4. Click **↻ Rotate** to drop the current pick and find another
+
+**Important:** free proxies are operated by random people. Avoid logging into Google / accounts you care about while routed through them — Google will likely flag the sign-in. The popup shows an explicit warning banner when Free pool is active with any AI service enabled.
+
+UI language: Russian (`<html lang="ru">`). Brand and preset names stay in English.
 
 ## Supported services
 
@@ -66,14 +81,29 @@ Manifest V3, vanilla JS, no dependencies, no build step. Tests: `npm test`.
 
 ## Настройка
 
-1. Кликните на иконку расширения → **Open settings**
-2. Вставьте прокси в любом формате:
+Доступны два источника прокси — выбирай в **Настройки → Источник прокси**.
+
+### A. Свой прокси (рекомендуется)
+
+1. Кликни на иконку расширения → **Открыть настройки** → **Свой**
+2. Вставь прокси в любом формате:
    - `host:port:user:pass` (формат провайдера)
    - `socks5://user:pass@host:port`
    - `http://host:port`
-3. Протокол определяется автоматически — или выберите вручную
-4. Нажмите **Test proxy** для проверки
-5. Вернитесь назад, включите главный переключатель
+3. Протокол определяется автоматически — или выбери вручную
+4. Нажми **Проверить прокси** для верификации
+5. Вернись назад, включи главный переключатель
+
+### B. Бесплатный пул (если своего прокси нет)
+
+1. **Настройки → Источник прокси → Бесплатный пул**
+2. Расширение тянет публичный список [Proxifly](https://github.com/proxifly/free-proxy-list), отфильтровывает `transparent`-анонимность, `country: ZZ` и страны `RU·BY·CN·IR`, сортирует по `score`, и последовательно проверяет кандидатов через Google `generate_204` пока не найдёт живой
+3. В реальном времени показывается прогресс: `Проверка N/M · host:port`. Если ничего живого не нашлось — сообщение с количеством проверенных
+4. Кнопка **↻ Сменить** помечает текущий как мёртвый и ищет другой
+
+**Важно:** бесплатные прокси крутят случайные люди. Не входи в Google-аккаунт и другие важные сервисы, когда трафик идёт через них — Google почти наверняка пометит вход как подозрительный. В popup есть явный жёлтый баннер когда `Бесплатный пул` активен вместе с любым AI-сервисом.
+
+UI расширения на русском (`<html lang="ru">`). Бренд и имена пресетов оставлены по-английски.
 
 ## Поддерживаемые сервисы
 
