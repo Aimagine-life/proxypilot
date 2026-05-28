@@ -4,6 +4,27 @@
 [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версионирование — [SemVer](https://semver.org/lang/ru/).
 
+## [0.5.3] — 2026-05-28
+
+### Изменено
+- **Ребрендинг:** `Gemini Unblock` → `ProxyPilot`. Имя становится
+  универсальным — плагин давно роутит не только Gemini, а любые домены
+  через свой прокси или free pool.
+- Репозиторий переименован: `Aimagine-life/gemini-unblock` →
+  `Aimagine-life/proxypilot`. GitHub держит редирект со старого URL
+  автоматически.
+- Бренд обновлён везде:
+  - `extension/manifest.json` — `name`, `default_title`, `description`
+    (теперь по-русски), `homepage_url`
+  - `extension/popup/popup.html` — `<title>` и заголовки экранов
+  - `extension/lib/icon.js` — tooltips на toolbar-иконке (заодно
+    переведены на русский)
+  - `extension/lib/rkn-check.js` — URL списка РКН на
+    raw.githubusercontent.com
+  - `package.json` — `name`
+  - `README.md` — заголовки + двуязычный переключатель в шапке (RU/EN)
+- README: русская секция теперь первая, английская — вторая.
+
 ## [0.5.2] — 2026-05-28
 
 ### Изменено

@@ -1,76 +1,8 @@
-# Gemini Unblock
+# ProxyPilot
 
-Chromium extension that routes AI services and other geo-restricted sites through your own proxy.
+**Русский · [English](#proxypilot-en)**
 
-## Install
-
-1. Download or clone this repo
-2. Open `chrome://extensions`
-3. Enable **Developer mode**
-4. Click **Load unpacked** → select the `extension/` folder
-
-## Setup
-
-Two sources are available — pick one in **Settings → Proxy source**.
-
-### A. Your own proxy (recommended)
-
-1. Click the extension icon → **Open settings** → **Manual**
-2. Paste your proxy in any format:
-   - `host:port:user:pass` (provider format)
-   - `socks5://user:pass@host:port`
-   - `http://host:port`
-3. Protocol is auto-detected — or pick manually
-4. Click **Test proxy** to verify
-5. Go back, enable the master toggle
-
-### B. Free pool (no own proxy needed)
-
-1. **Settings → Proxy source → Free pool**
-2. The extension fetches the public [Proxifly](https://github.com/proxifly/free-proxy-list) list, filters out transparent / unknown-country / `RU·BY·CN·IR` entries, sorts by score, and validates candidates against Google's `generate_204` until one works
-3. Live progress shows `Checking N/M · host:port`; if everything's dead, the full pool count is reported
-4. Click **↻ Rotate** to drop the current pick and find another
-
-**Important:** free proxies are operated by random people. Avoid logging into Google / accounts you care about while routed through them — Google will likely flag the sign-in. The popup shows an explicit warning banner when Free pool is active with any AI service enabled.
-
-UI language: Russian (`<html lang="ru">`). Brand and preset names stay in English.
-
-## Supported services
-
-| Service | Domains |
-|---|---|
-| Gemini | gemini.google.com |
-| AI Studio | aistudio.google.com |
-| NotebookLM | notebooklm.google.com |
-| Google Labs | labs.google |
-| ChatGPT | chatgpt.com, chat.openai.com |
-| Claude | claude.ai |
-| Perplexity | perplexity.ai |
-| Grok | grok.com, x.ai |
-| ElevenLabs | elevenlabs.io |
-| YouTube | youtube.com, youtu.be, googlevideo.com |
-
-Custom domains can also be added — they're checked against the RKN registry before being accepted. RKN-blocked domains are rejected.
-
-Google Auth (accounts.google.com) is auto-routed when any Google AI service is enabled.
-
-## RKN compliance
-
-The extension checks whether routed domains are blocked by Roskomnadzor. If a domain is in the RKN registry, routing is automatically disabled to comply with Russian law (149-FZ). Checks run on startup and every 24 hours.
-
-## Proxy protocols
-
-HTTP, HTTPS, SOCKS5, SOCKS4. Auto-detection supported. Authentication supported.
-
-## Tech
-
-Manifest V3, vanilla JS, no dependencies, no build step. Tests: `npm test`.
-
----
-
-# Gemini Unblock (RU)
-
-Расширение для Chromium, которое направляет AI-сервисы и другие гео-ограниченные сайты через ваш прокси.
+Расширение для Chromium, которое направляет AI-сервисы и другие гео-ограниченные сайты через ваш прокси или подобранный бесплатный.
 
 ## Установка
 
@@ -103,7 +35,7 @@ Manifest V3, vanilla JS, no dependencies, no build step. Tests: `npm test`.
 
 **Важно:** бесплатные прокси крутят случайные люди. Не входи в Google-аккаунт и другие важные сервисы, когда трафик идёт через них — Google почти наверняка пометит вход как подозрительный. В popup есть явный жёлтый баннер когда `Бесплатный пул` активен вместе с любым AI-сервисом.
 
-UI расширения на русском (`<html lang="ru">`). Бренд и имена пресетов оставлены по-английски.
+UI расширения на русском (`<html lang="ru">`). Имена пресетов сервисов оставлены по-английски.
 
 ## Поддерживаемые сервисы
 
@@ -135,3 +67,75 @@ HTTP, HTTPS, SOCKS5, SOCKS4. Автоопределение протокола. 
 ## Технологии
 
 Manifest V3, чистый JS, без зависимостей, без сборки. Тесты: `npm test`.
+
+---
+
+# ProxyPilot (EN)
+
+**[Русский](#proxypilot) · English**
+
+Chromium extension that routes AI services and other geo-restricted sites through your own proxy — or a curated free pool when you don't have one.
+
+## Install
+
+1. Download or clone this repo
+2. Open `chrome://extensions`
+3. Enable **Developer mode**
+4. Click **Load unpacked** → select the `extension/` folder
+
+## Setup
+
+Two sources are available — pick one in **Settings → Proxy source**.
+
+### A. Your own proxy (recommended)
+
+1. Click the extension icon → **Open settings** → **Manual**
+2. Paste your proxy in any format:
+   - `host:port:user:pass` (provider format)
+   - `socks5://user:pass@host:port`
+   - `http://host:port`
+3. Protocol is auto-detected — or pick manually
+4. Click **Test proxy** to verify
+5. Go back, enable the master toggle
+
+### B. Free pool (no own proxy needed)
+
+1. **Settings → Proxy source → Free pool**
+2. The extension fetches the public [Proxifly](https://github.com/proxifly/free-proxy-list) list, filters out transparent / unknown-country / `RU·BY·CN·IR` entries, sorts by score, and validates candidates against Google's `generate_204` until one works
+3. Live progress shows `Проверка N/M · host:port`; if everything's dead, the full pool count is reported
+4. Click **↻ Rotate** to drop the current pick and find another
+
+**Important:** free proxies are operated by random people. Avoid logging into Google / accounts you care about while routed through them — Google will likely flag the sign-in. The popup shows an explicit warning banner when Free pool is active with any AI service enabled.
+
+UI language: Russian (`<html lang="ru">`). Service preset names stay in English.
+
+## Supported services
+
+| Service | Domains |
+|---|---|
+| Gemini | gemini.google.com |
+| AI Studio | aistudio.google.com |
+| NotebookLM | notebooklm.google.com |
+| Google Labs | labs.google |
+| ChatGPT | chatgpt.com, chat.openai.com |
+| Claude | claude.ai |
+| Perplexity | perplexity.ai |
+| Grok | grok.com, x.ai |
+| ElevenLabs | elevenlabs.io |
+| YouTube | youtube.com, youtu.be, googlevideo.com |
+
+Custom domains can also be added — they're checked against the RKN registry before being accepted. RKN-blocked domains are rejected.
+
+Google Auth (accounts.google.com) is auto-routed when any Google AI service is enabled.
+
+## RKN compliance
+
+The extension checks whether routed domains are blocked by Roskomnadzor. If a domain is in the RKN registry, routing is automatically disabled to comply with Russian law (149-FZ). Checks run on startup and every 24 hours.
+
+## Proxy protocols
+
+HTTP, HTTPS, SOCKS5, SOCKS4. Auto-detection supported. Authentication supported.
+
+## Tech
+
+Manifest V3, vanilla JS, no dependencies, no build step. Tests: `npm test`.

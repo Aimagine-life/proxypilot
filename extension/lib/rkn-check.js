@@ -5,7 +5,7 @@
 // a government ban — using a proxy is legal. An RKN block IS a government ban —
 // circumventing it may violate 149-FZ.
 
-const LIST_URL = 'https://raw.githubusercontent.com/Aimagine-life/gemini-unblock/main/data/rkn-domains.txt';
+const LIST_URL = 'https://raw.githubusercontent.com/Aimagine-life/proxypilot/main/data/rkn-domains.txt';
 const CACHE_KEY = 'rknListCache';
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 30000;

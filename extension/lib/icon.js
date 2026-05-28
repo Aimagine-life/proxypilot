@@ -11,25 +11,25 @@ const STATES = {
     name: 'off',
     badge: '',
     badgeColor: '#000000',
-    tooltipFn: () => 'Gemini Unblock — disabled',
+    tooltipFn: () => 'ProxyPilot — выключено',
   },
   routed: {
     name: 'routed',
     badgeColor: '#10b981',
     tooltipFn: ({ host, country, latencyMs }) =>
-      `Gemini Unblock — ${host} routed via proxy${country ? ' (' + country + ')' : ''}${latencyMs ? ' · ' + latencyMs + ' ms' : ''}`,
+      `ProxyPilot — ${host} через прокси${country ? ' (' + country + ')' : ''}${latencyMs ? ' · ' + latencyMs + ' мс' : ''}`,
   },
   direct: {
     name: 'direct',
     badge: '',
     badgeColor: '#000000',
-    tooltipFn: ({ host }) => `Gemini Unblock — ${host} is direct (not in routed list)`,
+    tooltipFn: ({ host }) => `ProxyPilot — ${host} напрямую (не в списке маршрутизации)`,
   },
   error: {
     name: 'error',
     badge: '!',
     badgeColor: '#ef4444',
-    tooltipFn: ({ reason }) => `Gemini Unblock — proxy error: ${reason || 'unreachable'}`,
+    tooltipFn: ({ reason }) => `ProxyPilot — ошибка прокси: ${reason || 'недоступен'}`,
   },
 };
 

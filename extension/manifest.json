@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Gemini Unblock",
-  "version": "0.5.2",
+  "name": "ProxyPilot",
+  "version": "0.5.3",
   "description": "Маршрутизация выбранных доменов через свой HTTP/SOCKS прокси или подобранный бесплатный пул прокси.",
-  "homepage_url": "https://github.com/Aimagine-life/gemini-unblock",
+  "homepage_url": "https://github.com/Aimagine-life/proxypilot",
   "minimum_chrome_version": "120",
   "background": {
     "service_worker": "background.js",
@@ -11,7 +11,7 @@
   },
   "action": {
     "default_popup": "popup/popup.html",
-    "default_title": "Gemini Unblock",
+    "default_title": "ProxyPilot",
     "default_icon": {
       "16": "icons/light/off-16.png",
       "32": "icons/light/off-32.png",
