@@ -7,9 +7,13 @@ import { applyProxy, registerAuthListener } from './lib/proxy.js';
 import { setIconState } from './lib/icon.js';
 import { buildPacScript } from './lib/pac.js';
 import { checkAllPresets, isCheckDue, checkDomain } from './lib/rkn-check.js';
+import { pickAndValidate, DEAD_HOST_TTL_MS } from './lib/free-pool.js';
 
 // 1. Auth listener — must be top-level for sleep/wake survival.
 registerAuthListener();
+
+// 1b. Auto-rotate free proxy on proxy connection errors.
+registerProxyErrorListener();
 
 // 2. Storage change → re-apply PAC and refresh icons.
 chrome.storage.onChanged.addListener(async (changes, area) => {
@@ -167,6 +171,71 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     })();
     return true;
   }
+
+  if (msg?.type === 'SWITCH_SOURCE') {
+    (async () => {
+      const state = await loadState();
+      state.proxySource = msg.source === 'free' ? 'free' : 'manual';
+      if (state.proxySource === 'manual') {
+        state.proxy = state.manualProxy ? { ...state.manualProxy } : null;
+        await saveState(state);
+        sendResponse({ ok: true, state });
+        return;
+      }
+      // → 'free'
+      if (state.freeProxy.selected) {
+        // Reuse previously-validated pick (may be stale; onErrorOccurred will rotate if dead).
+        state.proxy = {
+          host: state.freeProxy.selected.host,
+          port: state.freeProxy.selected.port,
+          scheme: state.freeProxy.selected.scheme,
+          user: '',
+          pass: '',
+          lastTest: {
+            ok: true,
+            country: state.freeProxy.selected.country,
+            latencyMs: state.freeProxy.selected.latencyMs,
+            at: Math.floor(state.freeProxy.selected.validatedAt / 1000),
+          },
+        };
+        await saveState(state);
+        sendResponse({ ok: true, state });
+        return;
+      }
+      // No prior pick → run pickAndValidate
+      const newState = await rotateFreeProxy(state, { markCurrentDead: false });
+      sendResponse({ ok: !!newState.freeProxy.selected, state: newState });
+    })();
+    return true;
+  }
+
+  if (msg?.type === 'ROTATE_FREE') {
+    (async () => {
+      const state = await loadState();
+      const newState = await rotateFreeProxy(state, { markCurrentDead: true });
+      sendResponse({ ok: !!newState.freeProxy.selected, state: newState });
+    })();
+    return true;
+  }
+
+  if (msg?.type === 'PERSIST_MANUAL') {
+    (async () => {
+      const state = await loadState();
+      state.manualProxy = {
+        host: msg.host || '',
+        port: Number(msg.port) || 0,
+        scheme: msg.scheme || 'auto',
+        user: msg.user || '',
+        pass: msg.pass || '',
+      };
+      if (state.proxySource === 'manual') {
+        state.proxy = { ...state.manualProxy };
+      }
+      await saveState(state);
+      sendResponse({ ok: true });
+    })();
+    return true;
+  }
 });
 
 async function runProxyTest(url) {
@@ -225,6 +294,77 @@ function buildAllThroughPac(proxy) {
     default:       directive = `PROXY ${host}:${port}`;
   }
   return `function FindProxyForURL(url, host) { return "${directive}"; }`;
+}
+
+/**
+ * Mark the current free proxy as dead, find a new one, and update state.
+ * Returns the new state (or unchanged if no new proxy found and no current to remove).
+ */
+async function rotateFreeProxy(state, { markCurrentDead = true } = {}) {
+  if (state.proxySource !== 'free') return state;
+
+  if (markCurrentDead && state.proxy?.host) {
+    const key = `${state.proxy.host}:${state.proxy.port}`;
+    state.freeProxy.deadHosts[key] = Date.now() + DEAD_HOST_TTL_MS;
+  }
+
+  const result = await pickAndValidate(state);
+  if (result.pick) {
+    state.freeProxy.selected = result.pick;
+    state.freeProxy.lastError = null;
+    state.proxy = {
+      host: result.pick.host,
+      port: result.pick.port,
+      scheme: result.pick.scheme,
+      user: '',
+      pass: '',
+      lastTest: {
+        ok: true,
+        country: result.pick.country,
+        latencyMs: result.pick.latencyMs,
+        at: Math.floor(Date.now() / 1000),
+      },
+    };
+  } else {
+    state.freeProxy.selected = null;
+    state.freeProxy.lastError = result.error;
+    state.proxy = null;
+  }
+  state.freeProxy.poolFetchedAt = Date.now();
+  await saveState(state);
+  return state;
+}
+
+function registerProxyErrorListener() {
+  chrome.webRequest.onErrorOccurred.addListener(
+    (details) => { handleProxyError(details).catch(() => {}); },
+    { urls: ['<all_urls>'] }
+  );
+}
+
+const PROXY_ERROR_CODES = new Set([
+  'net::ERR_PROXY_CONNECTION_FAILED',
+  'net::ERR_TUNNEL_CONNECTION_FAILED',
+  'net::ERR_PROXY_AUTH_UNSUPPORTED',
+  'net::ERR_MANDATORY_PROXY_CONFIGURATION_FAILED',
+  'net::ERR_SOCKS_CONNECTION_FAILED',
+  'net::ERR_SOCKS_CONNECTION_HOST_UNREACHABLE',
+  'net::ERR_PROXY_CERTIFICATE_INVALID',
+]);
+
+const ROTATE_DEBOUNCE_MS = 10_000;
+
+async function handleProxyError(details) {
+  if (!PROXY_ERROR_CODES.has(details.error)) return;
+
+  const now = Date.now();
+  const last = globalThis.__lastRotateAt || 0;
+  if (now - last < ROTATE_DEBOUNCE_MS) return;
+  globalThis.__lastRotateAt = now;
+
+  const state = await loadState();
+  if (state.proxySource !== 'free') return;
+  await rotateFreeProxy(state, { markCurrentDead: true });
 }
 
 // Auto-detect which protocol the proxy speaks.
