@@ -28,6 +28,14 @@
         <span class="rkn-text" id="rkn-text"></span>
       </div>
 
+      <div class="ai-free-banner" id="ai-free-banner" hidden>
+        <span class="ai-free-icon">⚠</span>
+        <span class="ai-free-text">
+          Free proxy active with AI services — Google may flag this account.
+          Use a private proxy for Google account access.
+        </span>
+      </div>
+
       <section class="block">
         <div class="block-label">Routed services</div>
         <div class="preset-grid" id="preset-grid"></div>
@@ -55,37 +63,58 @@
       </header>
 
       <section class="block">
-        <div class="block-label">Protocol</div>
-        <div class="pill-group" id="scheme-pills">
-          <button type="button" data-scheme="auto" class="pill pill-auto">&#x2725; Auto</button>
-          <button type="button" data-scheme="http"   class="pill">HTTP</button>
-          <button type="button" data-scheme="https"  class="pill">HTTPS</button>
-          <button type="button" data-scheme="socks5" class="pill">SOCKS5</button>
-          <button type="button" data-scheme="socks4" class="pill">SOCKS4</button>
+        <div class="block-label">Proxy source</div>
+        <div class="pill-group" id="source-pills">
+          <button type="button" data-source="manual" class="pill">Manual</button>
+          <button type="button" data-source="free"   class="pill">Free pool</button>
         </div>
       </section>
 
-      <section class="block">
-        <div class="row">
-          <div class="field grow">
-            <div class="block-label">Host</div>
-            <input type="text" id="cfg-host" autocomplete="off" />
-          </div>
-          <div class="field port">
-            <div class="block-label">Port</div>
-            <input type="text" id="cfg-port" autocomplete="off" inputmode="numeric" />
-          </div>
+      <section class="block free-block" id="free-block" hidden>
+        <div class="block-label">Free proxy pool</div>
+        <div class="free-current" id="free-current">No proxy selected</div>
+        <div class="free-pool-meta" id="free-pool-meta"></div>
+        <button type="button" class="action" id="rotate-free">↻ Rotate now</button>
+        <div class="free-warning">
+          ⚠ Free proxies are public and untrusted. Avoid logging into accounts
+          you care about while routed through them.
         </div>
       </section>
 
-      <section class="block">
-        <div class="block-label-row">
-          <span class="block-label">Authentication</span>
-          <span class="hint">optional</span>
-        </div>
-        <input type="text" id="cfg-user" placeholder="username" autocomplete="off" />
-        <input type="password" id="cfg-pass" placeholder="password" autocomplete="off" />
-      </section>
+      <div id="manual-blocks">
+        <section class="block">
+          <div class="block-label">Protocol</div>
+          <div class="pill-group" id="scheme-pills">
+            <button type="button" data-scheme="auto" class="pill pill-auto">&#x2725; Auto</button>
+            <button type="button" data-scheme="http"   class="pill">HTTP</button>
+            <button type="button" data-scheme="https"  class="pill">HTTPS</button>
+            <button type="button" data-scheme="socks5" class="pill">SOCKS5</button>
+            <button type="button" data-scheme="socks4" class="pill">SOCKS4</button>
+          </div>
+        </section>
+
+        <section class="block">
+          <div class="row">
+            <div class="field grow">
+              <div class="block-label">Host</div>
+              <input type="text" id="cfg-host" autocomplete="off" />
+            </div>
+            <div class="field port">
+              <div class="block-label">Port</div>
+              <input type="text" id="cfg-port" autocomplete="off" inputmode="numeric" />
+            </div>
+          </div>
+        </section>
+
+        <section class="block">
+          <div class="block-label-row">
+            <span class="block-label">Authentication</span>
+            <span class="hint">optional</span>
+          </div>
+          <input type="text" id="cfg-user" placeholder="username" autocomplete="off" />
+          <input type="password" id="cfg-pass" placeholder="password" autocomplete="off" />
+        </section>
+      </div>
 
       <section class="block">
         <div class="row">

@@ -524,3 +524,49 @@ html, body {
   transition: transform 0.1s;
 }
 .cta:active { transform: translateY(1px); }
+
+/* Free proxy pool — settings screen */
+.free-block .free-current {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  padding: 8px 10px;
+  background: var(--surface-2, #f6f7f9);
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+.free-block .free-pool-meta {
+  font-size: 11px;
+  color: var(--text-muted, #6b7280);
+  margin-bottom: 10px;
+}
+.free-block .free-warning {
+  font-size: 11px;
+  color: var(--text-muted, #6b7280);
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: rgba(245, 158, 11, 0.08);
+  border-left: 3px solid #f59e0b;
+  border-radius: 4px;
+}
+.free-block #rotate-free {
+  width: 100%;
+}
+
+/* AI banner — main screen */
+.ai-free-banner {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  margin: 8px 0;
+  background: rgba(245, 158, 11, 0.12);
+  border-left: 3px solid #f59e0b;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.ai-free-banner .ai-free-icon {
+  flex: 0 0 auto;
+  font-size: 14px;
+}
+.ai-free-banner[hidden] { display: none; }

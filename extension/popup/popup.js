@@ -1,6 +1,6 @@
 import { loadState, saveState } from '../lib/storage.js';
 import { parseEntry, ValidationError } from '../lib/domain.js';
-import { PRESET_DEFINITIONS, PRESET_ORDER } from '../lib/presets.js';
+import { PRESET_DEFINITIONS, PRESET_ORDER, AI_PRESET_KEYS } from '../lib/presets.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -65,7 +65,9 @@ function routeInitialScreen() {
   const screens = ['main', 'settings', 'firstrun'];
   for (const s of screens) $(`#screen-${s}`).hidden = true;
 
-  if (!state.proxy || !state.proxy.host) {
+  const hasManual = state.proxySource === 'manual' && state.proxy?.host;
+  const hasFree = state.proxySource === 'free' && state.freeProxy?.selected;
+  if (!hasManual && !hasFree) {
     $('#screen-firstrun').hidden = false;
   } else {
     showMain();
@@ -159,6 +161,13 @@ function renderMain() {
     `;
     item.querySelector('.remove').addEventListener('click', () => removeCustom(entry));
     list.appendChild(item);
+  }
+
+  // AI-free banner
+  const aiBanner = $('#ai-free-banner');
+  if (aiBanner) {
+    const aiOn = AI_PRESET_KEYS.some((k) => state.presets[k]?.enabled);
+    aiBanner.hidden = !(aiOn && state.proxySource === 'free' && state.enabled);
   }
 }
 
@@ -298,11 +307,13 @@ function bindSettings() {
       ensureProxyObject();
       if (scheme === 'auto') {
         state.proxy.scheme = 'auto';
+        mirrorManual();
         await persist();
         renderSettings();
         await autoDetectScheme();
       } else {
         state.proxy.scheme = scheme;
+        mirrorManual();
         await persist();
         renderSettings();
       }
@@ -325,6 +336,7 @@ function bindSettings() {
       if (!parsed.scheme) {
         state.proxy.scheme = 'auto';
       }
+      mirrorManual();
       await persist();
       renderSettings();
       if (state.proxy.scheme === 'auto' && state.proxy.host && state.proxy.port) {
@@ -332,6 +344,7 @@ function bindSettings() {
       }
     } else {
       state.proxy.host = raw;
+      mirrorManual();
       await persist();
     }
   });
@@ -346,9 +359,45 @@ function bindSettings() {
     el.addEventListener('blur', async () => {
       ensureProxyObject();
       state.proxy[key] = parse(el.value);
+      mirrorManual();
       await persist();
     });
   }
+
+  // Source toggle (Manual / Free pool)
+  for (const pill of document.querySelectorAll('#source-pills .pill')) {
+    pill.addEventListener('click', async () => {
+      const source = pill.dataset.source;
+      if (state.proxySource === source) return;
+
+      // Disable both pills while switching
+      for (const p of document.querySelectorAll('#source-pills .pill')) p.disabled = true;
+      $('#rotate-free').disabled = true;
+      $('#free-current').textContent = source === 'free' ? 'Searching for working proxy…' : 'Switching…';
+
+      try {
+        const res = await chrome.runtime.sendMessage({ type: 'SWITCH_SOURCE', source });
+        state = res.state;
+        renderSettings();
+      } finally {
+        for (const p of document.querySelectorAll('#source-pills .pill')) p.disabled = false;
+        $('#rotate-free').disabled = false;
+      }
+    });
+  }
+
+  $('#rotate-free').addEventListener('click', async () => {
+    const btn = $('#rotate-free');
+    btn.disabled = true;
+    $('#free-current').textContent = 'Searching for working proxy…';
+    try {
+      const res = await chrome.runtime.sendMessage({ type: 'ROTATE_FREE' });
+      state = res.state;
+      renderSettings();
+    } finally {
+      btn.disabled = false;
+    }
+  });
 
   $('#test-proxy').addEventListener('click', () => runTest('TEST_PROXY'));
   $('#test-gemini').addEventListener('click', () => runTest('TEST_GEMINI'));
@@ -356,17 +405,53 @@ function bindSettings() {
 
 function renderSettings() {
   ensureProxyObject();
-  $('#cfg-host').value = state.proxy.host || '';
-  $('#cfg-port').value = state.proxy.port || '';
-  $('#cfg-user').value = state.proxy.user || '';
-  $('#cfg-pass').value = state.proxy.pass || '';
 
-  for (const pill of document.querySelectorAll('#scheme-pills .pill')) {
-    pill.classList.toggle('active', pill.dataset.scheme === state.proxy.scheme);
+  // Source pills
+  for (const pill of document.querySelectorAll('#source-pills .pill')) {
+    pill.classList.toggle('active', pill.dataset.source === (state.proxySource || 'manual'));
   }
-  renderThemePills();
 
+  const isFree = state.proxySource === 'free';
+  $('#manual-blocks').hidden = isFree;
+  $('#free-block').hidden = !isFree;
+
+  // Manual fields
+  $('#cfg-host').value = state.proxy?.host || '';
+  $('#cfg-port').value = state.proxy?.port || '';
+  $('#cfg-user').value = state.proxy?.user || '';
+  $('#cfg-pass').value = state.proxy?.pass || '';
+  for (const pill of document.querySelectorAll('#scheme-pills .pill')) {
+    pill.classList.toggle('active', pill.dataset.scheme === state.proxy?.scheme);
+  }
+
+  // Free-block render
+  if (isFree) {
+    const sel = state.freeProxy?.selected;
+    if (sel) {
+      const flag = sel.country ? `${countryFlag(sel.country)} ${sel.country}` : '—';
+      $('#free-current').textContent = `${sel.host}:${sel.port}  ${flag}  ${sel.latencyMs}ms`;
+    } else if (state.freeProxy?.lastError) {
+      $('#free-current').textContent = `No working proxy: ${state.freeProxy.lastError}`;
+    } else {
+      $('#free-current').textContent = 'No proxy selected';
+    }
+    const fetchedAt = state.freeProxy?.poolFetchedAt;
+    if (fetchedAt) {
+      const ageMin = Math.floor((Date.now() - fetchedAt) / 60_000);
+      $('#free-pool-meta').textContent = `Pool refreshed ${ageMin}m ago`;
+    } else {
+      $('#free-pool-meta').textContent = '';
+    }
+  }
+
+  renderThemePills();
   $('#test-result').hidden = true;
+}
+
+function countryFlag(cc) {
+  if (!cc || cc.length !== 2) return '';
+  const A = 0x41, base = 0x1F1E6;
+  return String.fromCodePoint(base + cc.charCodeAt(0) - A, base + cc.charCodeAt(1) - A);
 }
 
 /**
@@ -540,6 +625,13 @@ function bindFirstRun() {
     ensureProxyObject();
     showSettings();
   });
+}
+
+function mirrorManual() {
+  if (state.proxySource !== 'manual') return;
+  if (!state.proxy) return;
+  state.manualProxy = { ...state.proxy };
+  delete state.manualProxy.lastTest; // lastTest belongs on active proxy only
 }
 
 init();
