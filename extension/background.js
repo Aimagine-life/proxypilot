@@ -80,18 +80,19 @@ async function refreshActiveTabIcon(state) {
 }
 
 async function refreshTabIcon(tabId, state) {
+  const theme = state?.resolvedTheme === 'dark' ? 'dark' : 'light';
   if (!state || !state.enabled) {
-    await setIconState(tabId, 'off');
+    await setIconState(tabId, 'off', { theme });
     return;
   }
   if (!state.proxy || !state.proxy.host) {
-    await setIconState(tabId, 'error', { reason: 'not configured' });
+    await setIconState(tabId, 'error', { reason: 'not configured', theme });
     return;
   }
 
   const tab = await chrome.tabs.get(tabId).catch(() => null);
   if (!tab || !tab.url || !tab.url.startsWith('http')) {
-    await setIconState(tabId, 'direct', { host: '(internal)' });
+    await setIconState(tabId, 'direct', { host: '(internal)', theme });
     return;
   }
 
@@ -102,9 +103,10 @@ async function refreshTabIcon(tabId, state) {
       host,
       country: state.proxy.lastTest?.country,
       latencyMs: state.proxy.lastTest?.latencyMs,
+      theme,
     });
   } else {
-    await setIconState(tabId, 'direct', { host });
+    await setIconState(tabId, 'direct', { host, theme });
   }
 }
 

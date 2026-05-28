@@ -8,10 +8,57 @@ let state = null;
 
 async function init() {
   state = await loadState();
+  applyTheme();
+  await syncResolvedTheme();
   routeInitialScreen();
   bindMain();
   bindSettings();
   bindFirstRun();
+  bindThemeSwitcher();
+}
+
+const systemDarkMedia = matchMedia('(prefers-color-scheme: dark)');
+
+function applyTheme() {
+  const pick = state.theme === 'auto'
+    ? (systemDarkMedia.matches ? 'dark' : 'light')
+    : (state.theme || 'auto');
+  const resolved = pick === 'dark' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', resolved);
+}
+
+async function syncResolvedTheme() {
+  const resolved = state.theme === 'auto'
+    ? (systemDarkMedia.matches ? 'dark' : 'light')
+    : (state.theme === 'dark' ? 'dark' : 'light');
+  if (state.resolvedTheme !== resolved) {
+    state.resolvedTheme = resolved;
+    await persist();
+  }
+}
+
+function bindThemeSwitcher() {
+  for (const pill of document.querySelectorAll('#theme-pills .pill')) {
+    pill.addEventListener('click', async () => {
+      state.theme = pill.dataset.theme;
+      applyTheme();
+      await syncResolvedTheme();
+      await persist();
+      renderThemePills();
+    });
+  }
+  systemDarkMedia.addEventListener('change', async () => {
+    if (state.theme !== 'auto') return;
+    applyTheme();
+    await syncResolvedTheme();
+  });
+}
+
+function renderThemePills() {
+  const active = state.theme || 'auto';
+  for (const pill of document.querySelectorAll('#theme-pills .pill')) {
+    pill.classList.toggle('active', pill.dataset.theme === active);
+  }
 }
 
 function routeInitialScreen() {
@@ -317,6 +364,7 @@ function renderSettings() {
   for (const pill of document.querySelectorAll('#scheme-pills .pill')) {
     pill.classList.toggle('active', pill.dataset.scheme === state.proxy.scheme);
   }
+  renderThemePills();
 
   $('#test-result').hidden = true;
 }
@@ -430,6 +478,8 @@ chrome.storage.onChanged.addListener((changes, area) => {
   const newState = changes.state.newValue;
   if (!newState) return;
   state = newState;
+  applyTheme();
+  renderThemePills();
 
   const ds = state.detectStatus;
   const result = $('#test-result');

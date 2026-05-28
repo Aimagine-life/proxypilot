@@ -7,6 +7,8 @@ export function getDefaultState() {
     schemaVersion: 1,
     enabled: false,
     proxy: null,
+    theme: 'auto',
+    resolvedTheme: 'light',
     presets: {
       gemini:     { enabled: true,  domains: ['gemini.google.com'] },
       aiStudio:   { enabled: true,  domains: ['aistudio.google.com', 'alkalimakersuite-pa.clients6.google.com'] },
@@ -36,6 +38,9 @@ export async function loadState() {
       saved.presets[key] = def;
     }
   }
+  // Backfill theme fields for users upgrading from pre-0.4.3.
+  if (!saved.theme) saved.theme = defaults.theme;
+  if (!saved.resolvedTheme) saved.resolvedTheme = defaults.resolvedTheme;
   return saved;
 }
 
