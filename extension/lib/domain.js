@@ -14,7 +14,7 @@ export class ValidationError extends Error {
  */
 export function normalizeDomain(input) {
   let s = String(input ?? '').trim().toLowerCase();
-  if (!s) throw new ValidationError('empty input');
+  if (!s) throw new ValidationError('пустой ввод');
 
   // Strip scheme: anything matching scheme:// or just //
   s = s.replace(/^[a-z][a-z0-9+.\-]*:\/\//, '');
@@ -37,21 +37,21 @@ export function normalizeDomain(input) {
   // Trailing dot
   s = s.replace(/\.+$/, '');
 
-  if (!s) throw new ValidationError('empty after normalization');
+  if (!s) throw new ValidationError('пусто после нормализации');
 
   // IDN to punycode via the URL parser
   try {
     const u = new URL('http://' + s + '/');
     s = u.hostname;
   } catch {
-    throw new ValidationError(`not a valid hostname: ${input}`);
+    throw new ValidationError(`не похоже на домен: ${input}`);
   }
 
   // The URL parser accepts IPv6 literals and returns them in bracket form
   // (e.g. "[::1]"). We don't support IPv6 in v1 — reject explicitly so the
   // caller doesn't see a bracketed string sneak through as "normalized".
   if (s.startsWith('[')) {
-    throw new ValidationError('IPv6 literals are not supported');
+    throw new ValidationError('IPv6-адреса не поддерживаются');
   }
 
   return s;
@@ -106,7 +106,7 @@ export function validateNormalized(domain) {
  */
 export function parseEntry(input) {
   let raw = String(input ?? '').trim();
-  if (!raw) throw new ValidationError('empty input');
+  if (!raw) throw new ValidationError('пустой ввод');
 
   let mode = 'suffix';
   if (raw.startsWith('*.')) {
@@ -119,7 +119,7 @@ export function parseEntry(input) {
 
   const value = normalizeDomain(raw);
   if (!validateNormalized(value)) {
-    throw new ValidationError(`invalid hostname: ${input}`);
+    throw new ValidationError(`некорректный домен: ${input}`);
   }
   return { value, mode };
 }

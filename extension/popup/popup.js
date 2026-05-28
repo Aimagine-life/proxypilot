@@ -92,15 +92,15 @@ function renderMain() {
   // Status line
   const status = $('#status-line');
   if (!state.enabled) {
-    status.textContent = 'Disabled';
+    status.textContent = 'Выключено';
     status.classList.add('no-dot');
   } else {
     status.classList.remove('no-dot');
     const t = state.proxy?.lastTest;
     if (t?.ok) {
-      status.textContent = `Active · ${t.ip} · ${t.country || ''} · ${t.latencyMs} ms`;
+      status.textContent = `Активно · ${t.ip} · ${t.country || ''} · ${t.latencyMs} мс`;
     } else {
-      status.textContent = `Active · ${state.proxy?.host}:${state.proxy?.port}`;
+      status.textContent = `Активно · ${state.proxy?.host}:${state.proxy?.port}`;
     }
   }
 
@@ -117,7 +117,7 @@ function renderMain() {
   const banner = $('#rkn-banner');
   if (blockedNames.length) {
     $('#rkn-text').textContent =
-      `${blockedNames.join(', ')} — blocked by Roskomnadzor. Routing disabled to comply with Russian law.`;
+      `${blockedNames.join(', ')} — в реестре Роскомнадзора. Маршрутизация отключена согласно 149-ФЗ.`;
     banner.hidden = false;
   } else {
     banner.hidden = true;
@@ -204,27 +204,27 @@ function bindMain() {
       (x) => x.value === entry.value && x.mode === entry.mode
     );
     if (exists) {
-      errEl.textContent = 'Already in list';
+      errEl.textContent = '\u0423\u0436\u0435 \u0432 \u0441\u043f\u0438\u0441\u043a\u0435';
       errEl.hidden = false;
       return;
     }
 
     // RKN compliance check
     btn.disabled = true;
-    btn.textContent = 'Checking\u2026';
+    btn.textContent = '\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430\u2026';
     try {
       const result = await chrome.runtime.sendMessage({
         type: 'CHECK_DOMAIN',
         domain: entry.value,
       });
       if (result?.blocked) {
-        errEl.textContent = `\u26d4 ${entry.value} is blocked by Roskomnadzor \u2014 cannot add (149-FZ)`;
+        errEl.textContent = `\u26d4 ${entry.value} \u0432 \u0440\u0435\u0435\u0441\u0442\u0440\u0435 \u0420\u043e\u0441\u043a\u043e\u043c\u043d\u0430\u0434\u0437\u043e\u0440\u0430 \u2014 \u0434\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u043d\u0435\u043b\u044c\u0437\u044f (149-\u0424\u0417)`;
         errEl.hidden = false;
         return;
       }
     } finally {
       btn.disabled = false;
-      btn.textContent = '+ Add';
+      btn.textContent = '+ \u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c';
     }
 
     state.customDomains = state.customDomains || [];
@@ -234,7 +234,7 @@ function bindMain() {
     renderMain();
 
     // Success toast + confetti
-    showToast(`\u2713 ${entry.value} added \u2014 not blocked by RKN`);
+    showToast(`\u2713 ${entry.value} \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d \u2014 \u043d\u0435 \u0432 \u0440\u0435\u0435\u0441\u0442\u0440\u0435 \u0420\u041a\u041d`);
     launchConfetti();
   });
 }
@@ -373,7 +373,7 @@ function bindSettings() {
       // Disable both pills while switching
       for (const p of document.querySelectorAll('#source-pills .pill')) p.disabled = true;
       $('#rotate-free').disabled = true;
-      $('#free-current').textContent = 'Switching…';
+      $('#free-current').textContent = 'Переключение…';
 
       try {
         const res = await chrome.runtime.sendMessage({ type: 'SWITCH_SOURCE', source });
@@ -384,7 +384,7 @@ function bindSettings() {
           // Background returned an error without state — re-render with current state so UI stays consistent
           renderSettings();
           if (res?.error) {
-            $('#free-current').textContent = `Error: ${res.error}`;
+            $('#free-current').textContent = `Ошибка: ${res.error}`;
           }
         }
       } finally {
@@ -397,7 +397,7 @@ function bindSettings() {
   $('#rotate-free').addEventListener('click', async () => {
     const btn = $('#rotate-free');
     btn.disabled = true;
-    $('#free-current').textContent = 'Searching for working proxy…';
+    $('#free-current').textContent = 'Ищем рабочий прокси…';
     try {
       const res = await chrome.runtime.sendMessage({ type: 'ROTATE_FREE' });
       if (res?.state) {
@@ -407,7 +407,7 @@ function bindSettings() {
         // Background returned an error without state — re-render with current state so UI stays consistent
         renderSettings();
         if (res?.error) {
-          $('#free-current').textContent = `Error: ${res.error}`;
+          $('#free-current').textContent = `Ошибка: ${res.error}`;
         }
       }
     } finally {
@@ -445,16 +445,16 @@ function renderSettings() {
     const sel = state.freeProxy?.selected;
     if (sel) {
       const flag = sel.country ? `${countryFlag(sel.country)} ${sel.country}` : '—';
-      $('#free-current').textContent = `${sel.host}:${sel.port}  ${flag}  ${sel.latencyMs}ms`;
+      $('#free-current').textContent = `${sel.host}:${sel.port}  ${flag}  ${sel.latencyMs} мс`;
     } else if (state.freeProxy?.lastError) {
-      $('#free-current').textContent = `No working proxy: ${state.freeProxy.lastError}`;
+      $('#free-current').textContent = `Нет рабочего прокси: ${state.freeProxy.lastError}`;
     } else {
-      $('#free-current').textContent = 'No proxy selected';
+      $('#free-current').textContent = 'Прокси не выбран';
     }
     const fetchedAt = state.freeProxy?.poolFetchedAt;
     if (fetchedAt) {
       const ageMin = Math.floor((Date.now() - fetchedAt) / 60_000);
-      $('#free-pool-meta').textContent = `Pool refreshed ${ageMin}m ago`;
+      $('#free-pool-meta').textContent = `Список обновлён ${ageMin} мин назад`;
     } else {
       $('#free-pool-meta').textContent = '';
     }
@@ -561,7 +561,7 @@ async function autoDetectScheme() {
   const autoPill = document.querySelector('.pill[data-scheme="auto"]');
   result.hidden = false;
   result.className = 'result-block detecting';
-  result.innerHTML = '\u25f7 Detecting\u2026 HTTP';
+  result.innerHTML = '\u25f7 \u041e\u043f\u0440\u0435\u0434\u0435\u043b\u044f\u0435\u043c\u2026 HTTP';
   if (autoPill) autoPill.classList.add('detecting');
 
   // Fire-and-forget to background. Popup watches storage for live updates.
@@ -590,18 +590,18 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (ds?.running) {
     result.hidden = false;
     result.className = 'result-block detecting';
-    result.innerHTML = `\u25f7 Detecting\u2026 ${ds.trying?.toUpperCase() || ''}`;
+    result.innerHTML = `\u25f7 \u041e\u043f\u0440\u0435\u0434\u0435\u043b\u044f\u0435\u043c\u2026 ${ds.trying?.toUpperCase() || ''}`;
     if (autoPill) autoPill.classList.add('detecting');
   } else if (ds && !ds.running) {
     if (autoPill) autoPill.classList.remove('detecting');
     result.hidden = false;
     if (ds.ok) {
       result.className = 'result-block ok';
-      result.textContent = `\u2713 Detected: ${ds.scheme.toUpperCase()}`;
+      result.textContent = `\u2713 \u041d\u0430\u0439\u0434\u0435\u043d: ${ds.scheme.toUpperCase()}`;
       renderSettings();
     } else {
       result.className = 'result-block err';
-      result.textContent = `\u2717 ${ds.error || 'Detection failed'}`;
+      result.textContent = `\u2717 ${ds.error || '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u043f\u0440\u0435\u0434\u0435\u043b\u0438\u0442\u044c'}`;
     }
   }
 });
@@ -620,9 +620,9 @@ async function runTest(type) {
     if (res.ok) {
       result.className = 'result-block ok';
       if (type === 'TEST_PROXY') {
-        result.innerHTML = `\u2713 Proxy reachable<br>IP: ${res.ip || '?'}<br>Country: ${res.country || '?'}<br>Latency: ${res.latencyMs} ms`;
+        result.innerHTML = `\u2713 \u041f\u0440\u043e\u043a\u0441\u0438 \u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d<br>IP: ${res.ip || '?'}<br>\u0421\u0442\u0440\u0430\u043d\u0430: ${res.country || '?'}<br>\u0417\u0430\u0434\u0435\u0440\u0436\u043a\u0430: ${res.latencyMs} \u043c\u0441`;
       } else {
-        result.innerHTML = `\u2713 Gemini reachable<br>HTTP ${res.httpStatus}<br>Latency: ${res.latencyMs} ms`;
+        result.innerHTML = `\u2713 Gemini \u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d<br>HTTP ${res.httpStatus}<br>\u0417\u0430\u0434\u0435\u0440\u0436\u043a\u0430: ${res.latencyMs} \u043c\u0441`;
       }
       state = await loadState();
     } else {

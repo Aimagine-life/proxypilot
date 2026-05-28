@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -20,7 +20,7 @@
           <input type="checkbox" id="master-toggle" />
           <span class="slider"></span>
         </label>
-        <button type="button" class="gear" id="open-settings" title="Settings">⚙</button>
+        <button type="button" class="gear" id="open-settings" title="Настройки">⚙</button>
       </header>
 
       <div class="rkn-banner" id="rkn-banner" hidden>
@@ -31,22 +31,22 @@
       <div class="ai-free-banner" id="ai-free-banner" hidden>
         <span class="ai-free-icon">⚠</span>
         <span class="ai-free-text">
-          Free proxy active with AI services — Google may flag this account.
-          Use a private proxy for Google account access.
+          Бесплатный прокси с AI-сервисами — Google может пометить аккаунт.
+          Для входа в Google используй свой прокси.
         </span>
       </div>
 
       <section class="block">
-        <div class="block-label">Routed services</div>
+        <div class="block-label">Маршрутизируемые сервисы</div>
         <div class="preset-grid" id="preset-grid"></div>
       </section>
 
       <section class="block">
-        <div class="block-label">Custom domains</div>
+        <div class="block-label">Свои домены</div>
         <div class="custom-list" id="custom-list"></div>
         <form class="add-row" id="add-domain-form">
-          <input type="text" id="add-domain-input" placeholder="example.com or *.example.com" autocomplete="off" />
-          <button type="submit" id="add-domain-btn">+ Add</button>
+          <input type="text" id="add-domain-input" placeholder="example.com или *.example.com" autocomplete="off" />
+          <button type="submit" id="add-domain-btn">+ Добавить</button>
         </form>
         <div class="error-text" id="add-domain-error" hidden></div>
       </section>
@@ -56,36 +56,36 @@
     <!-- Settings screen -->
     <section id="screen-settings" class="screen" hidden>
       <header class="header">
-        <button type="button" class="back" id="back-to-main" title="Back">←</button>
+        <button type="button" class="back" id="back-to-main" title="Назад">←</button>
         <div class="header-text">
-          <div class="title">Proxy settings</div>
+          <div class="title">Настройки прокси</div>
         </div>
       </header>
 
       <section class="block">
-        <div class="block-label">Proxy source</div>
+        <div class="block-label">Источник прокси</div>
         <div class="pill-group" id="source-pills">
-          <button type="button" data-source="manual" class="pill">Manual</button>
-          <button type="button" data-source="free"   class="pill">Free pool</button>
+          <button type="button" data-source="manual" class="pill">Свой</button>
+          <button type="button" data-source="free"   class="pill">Бесплатный пул</button>
         </div>
       </section>
 
       <section class="block free-block" id="free-block" hidden>
-        <div class="block-label">Free proxy pool</div>
-        <div class="free-current" id="free-current">No proxy selected</div>
+        <div class="block-label">Бесплатный пул прокси</div>
+        <div class="free-current" id="free-current">Прокси не выбран</div>
         <div class="free-pool-meta" id="free-pool-meta"></div>
-        <button type="button" class="action" id="rotate-free">↻ Rotate now</button>
+        <button type="button" class="action" id="rotate-free">↻ Сменить</button>
         <div class="free-warning">
-          ⚠ Free proxies are public and untrusted. Avoid logging into accounts
-          you care about while routed through them.
+          ⚠ Бесплатные прокси публичные и не доверенные. Не входи в важные
+          аккаунты, пока трафик идёт через них.
         </div>
       </section>
 
       <div id="manual-blocks">
         <section class="block">
-          <div class="block-label">Protocol</div>
+          <div class="block-label">Протокол</div>
           <div class="pill-group" id="scheme-pills">
-            <button type="button" data-scheme="auto" class="pill pill-auto">&#x2725; Auto</button>
+            <button type="button" data-scheme="auto" class="pill pill-auto">&#x2725; Авто</button>
             <button type="button" data-scheme="http"   class="pill">HTTP</button>
             <button type="button" data-scheme="https"  class="pill">HTTPS</button>
             <button type="button" data-scheme="socks5" class="pill">SOCKS5</button>
@@ -96,11 +96,11 @@
         <section class="block">
           <div class="row">
             <div class="field grow">
-              <div class="block-label">Host</div>
+              <div class="block-label">Хост</div>
               <input type="text" id="cfg-host" autocomplete="off" />
             </div>
             <div class="field port">
-              <div class="block-label">Port</div>
+              <div class="block-label">Порт</div>
               <input type="text" id="cfg-port" autocomplete="off" inputmode="numeric" />
             </div>
           </div>
@@ -108,33 +108,33 @@
 
         <section class="block">
           <div class="block-label-row">
-            <span class="block-label">Authentication</span>
-            <span class="hint">optional</span>
+            <span class="block-label">Авторизация</span>
+            <span class="hint">опц.</span>
           </div>
-          <input type="text" id="cfg-user" placeholder="username" autocomplete="off" />
-          <input type="password" id="cfg-pass" placeholder="password" autocomplete="off" />
+          <input type="text" id="cfg-user" placeholder="логин" autocomplete="off" />
+          <input type="password" id="cfg-pass" placeholder="пароль" autocomplete="off" />
         </section>
       </div>
 
       <section class="block">
         <div class="row">
-          <button type="button" class="action" id="test-proxy">Test proxy</button>
-          <button type="button" class="action" id="test-gemini">Test Gemini</button>
+          <button type="button" class="action" id="test-proxy">Проверить прокси</button>
+          <button type="button" class="action" id="test-gemini">Проверить Gemini</button>
         </div>
         <div class="result-block" id="test-result" hidden></div>
       </section>
 
       <section class="block">
-        <div class="block-label">Theme</div>
+        <div class="block-label">Тема</div>
         <div class="pill-group" id="theme-pills">
-          <button type="button" data-theme="light" class="pill">Light</button>
-          <button type="button" data-theme="dark"  class="pill">Dark</button>
-          <button type="button" data-theme="auto"  class="pill">Auto</button>
+          <button type="button" data-theme="light" class="pill">Светлая</button>
+          <button type="button" data-theme="dark"  class="pill">Тёмная</button>
+          <button type="button" data-theme="auto"  class="pill">Авто</button>
         </div>
       </section>
 
       <footer class="footer" id="settings-footer">
-        <span class="dot ok"></span> Saved automatically
+        <span class="dot ok"></span> Сохраняется автоматически
       </footer>
     </section>
 
@@ -144,14 +144,14 @@
         <div class="logo amber">🌐</div>
         <div class="header-text">
           <div class="title">Gemini Unblock</div>
-          <div class="status amber">⚠ Setup needed</div>
+          <div class="status amber">⚠ Нужна настройка</div>
         </div>
       </header>
       <section class="block centered">
         <div class="big-icon">⚙</div>
-        <div class="cta-title">Connect a proxy to get started</div>
-        <div class="cta-sub">Enter the host, port and auth of your<br />HTTP/SOCKS proxy.</div>
-        <button type="button" class="cta" id="firstrun-open-settings">Open settings →</button>
+        <div class="cta-title">Подключи прокси для старта</div>
+        <div class="cta-sub">Введи хост, порт и авторизацию своего<br />HTTP/SOCKS прокси.</div>
+        <button type="button" class="cta" id="firstrun-open-settings">Открыть настройки →</button>
       </section>
     </section>
   </div>
