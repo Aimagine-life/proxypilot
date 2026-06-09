@@ -1,6 +1,6 @@
 import { loadState, saveState } from '../lib/storage.js';
 import { parseEntry, ValidationError } from '../lib/domain.js';
-import { PRESET_DEFINITIONS, PRESET_ORDER, AI_PRESET_KEYS } from '../lib/presets.js';
+import { PRESET_DEFINITIONS, PRESET_ORDER, AI_PRESET_KEYS, CATEGORIES } from '../lib/presets.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -123,26 +123,58 @@ function renderMain() {
     banner.hidden = true;
   }
 
-  // Preset grid
+  // Preset grid — grouped by category, a full-width header per group.
   const grid = $('#preset-grid');
   grid.innerHTML = '';
-  for (const key of PRESET_ORDER) {
-    const def = PRESET_DEFINITIONS[key];
-    const stored = state.presets[key];
-    const isBlocked = (def.domains || []).some((d) => rknResults[d]?.blocked);
-    const card = document.createElement('div');
-    card.className = 'preset-card'
-      + (stored?.enabled ? ' on' : '')
-      + (isBlocked ? ' rkn-blocked' : '');
-    card.dataset.key = key;
-    card.innerHTML = `
-      <div class="icon">${def.icon}</div>
-      <div class="label">${def.label}</div>
-    `;
-    if (!isBlocked) {
-      card.addEventListener('click', () => togglePreset(key));
+  for (const cat of CATEGORIES) {
+    const keys = PRESET_ORDER.filter((k) => PRESET_DEFINITIONS[k].category === cat.key);
+    if (!keys.length) continue;
+
+    const header = document.createElement('div');
+    header.className = 'cat-header';
+    header.textContent = cat.label;
+    grid.appendChild(header);
+
+    for (const key of keys) {
+      const def = PRESET_DEFINITIONS[key];
+      const stored = state.presets[key];
+      const isBlocked = (def.domains || []).some((d) => rknResults[d]?.blocked);
+      const card = document.createElement('div');
+      card.className = 'preset-card'
+        + (stored?.enabled ? ' on' : '')
+        + (isBlocked ? ' rkn-blocked' : '');
+      card.dataset.key = key;
+
+      // Full-colour brand logo with an emoji glyph fallback (CSP-safe: no inline
+      // handlers, listener attached via JS).
+      let mark;
+      if (def.logo) {
+        mark = document.createElement('img');
+        mark.className = 'logo';
+        mark.src = `../icons/brands/${def.logo}`;
+        mark.alt = '';
+        mark.draggable = false;
+        mark.addEventListener('error', () => {
+          const fb = document.createElement('div');
+          fb.className = 'icon';
+          fb.textContent = def.icon;
+          mark.replaceWith(fb);
+        });
+      } else {
+        mark = document.createElement('div');
+        mark.className = 'icon';
+        mark.textContent = def.icon;
+      }
+      const label = document.createElement('div');
+      label.className = 'label';
+      label.textContent = def.label;
+      card.append(mark, label);
+
+      if (!isBlocked) {
+        card.addEventListener('click', () => togglePreset(key));
+      }
+      grid.appendChild(card);
     }
-    grid.appendChild(card);
   }
 
   // Custom domains list

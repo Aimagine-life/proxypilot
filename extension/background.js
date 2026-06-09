@@ -7,7 +7,7 @@ import { applyProxy, registerAuthListener } from './lib/proxy.js';
 import { setIconState } from './lib/icon.js';
 import { buildPacScript } from './lib/pac.js';
 import { checkAllPresets, isCheckDue, checkDomain } from './lib/rkn-check.js';
-import { pickAndValidate, DEAD_HOST_TTL_MS } from './lib/free-pool.js';
+import { pickAndValidate, fetchPool, DEAD_HOST_TTL_MS } from './lib/free-pool.js';
 
 // 1. Auth listener — must be top-level for sleep/wake survival.
 registerAuthListener();
@@ -44,12 +44,28 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, _tab) => {
   await maybeRunRknCheck(state);
 })();
 
-// 6. Periodic RKN check — runs on chrome.alarms every 24h.
-chrome.alarms.create('rkn-check', { periodInMinutes: 24 * 60 });
+// 6. Periodic alarms. ensureAlarm() only creates an alarm if it doesn't already
+// exist — re-creating with the same name RESETS the schedule, and the MV3 worker
+// is evicted/restarted often, so an unconditional create on every wake could push
+// a short-period alarm out forever and it would never fire.
+const FREE_REFRESH_MINUTES = 5;
+function ensureAlarm(name, periodInMinutes) {
+  chrome.alarms.get(name, (existing) => {
+    if (!existing) chrome.alarms.create(name, { periodInMinutes });
+  });
+}
+ensureAlarm('rkn-check', 24 * 60);
+ensureAlarm('free-pool-refresh', FREE_REFRESH_MINUTES);
+
 chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name !== 'rkn-check') return;
-  const state = await loadState();
-  await runRknCheck(state);
+  if (alarm.name === 'rkn-check') {
+    const state = await loadState();
+    await runRknCheck(state);
+  } else if (alarm.name === 'free-pool-refresh') {
+    await refreshFreeProxy().catch((err) => {
+      console.warn('[bg] free-pool refresh failed:', err.message);
+    });
+  }
 });
 
 async function maybeRunRknCheck(state) {
@@ -343,6 +359,38 @@ async function rotateFreeProxy(state, { markCurrentDead = true } = {}) {
   } finally {
     rotationInProgress = false;
   }
+}
+
+/**
+ * Periodic free-pool refresh (chrome.alarms 'free-pool-refresh', every 5 min =
+ * the Proxifly list TTL). No-op unless enabled and on the free pool.
+ *
+ * Deliberately does NOT actively re-validate a *working* selected proxy: that
+ * would require hijacking chrome.proxy.settings (validateProxy routes traffic
+ * through the candidate), blipping every routed domain — including an active
+ * stream — every 5 minutes, and briefly exposing non-preset traffic to an
+ * untrusted free proxy. Instead:
+ *   - no working proxy selected → pick one now (settings hijack during the pick
+ *     is harmless: routing is already DIRECT, nothing live to disrupt). This
+ *     auto-recovers a pool that dropped while the user was idle.
+ *   - working proxy selected    → just refresh the Proxifly list (a plain GET,
+ *     no proxy hijack) and bump poolFetchedAt so "Список обновлён N мин назад" is
+ *     honest. A proxy that dies mid-use is rotated reactively by handleProxyError
+ *     the moment a routed request fails.
+ */
+async function refreshFreeProxy() {
+  const state = await loadState();
+  if (!state.enabled || state.proxySource !== 'free') return;
+  if (rotationInProgress) return;
+
+  if (!state.freeProxy?.selected) {
+    await rotateFreeProxy(state, { markCurrentDead: false });
+    return;
+  }
+
+  await fetchPool({ force: true });
+  state.freeProxy.poolFetchedAt = Date.now();
+  await saveState(state);
 }
 
 function registerProxyErrorListener() {

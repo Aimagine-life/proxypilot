@@ -77,7 +77,7 @@ html, body {
   gap: 12px;
 }
 
-.logo {
+.logo-app {
   width: 34px;
   height: 34px;
   border-radius: 9px;
@@ -90,7 +90,7 @@ html, body {
   box-shadow: 0 2px 6px rgba(99, 102, 241, 0.25);
 }
 
-.logo.amber {
+.logo-app.amber {
   background: linear-gradient(135deg, var(--amber), #fbbf24);
   box-shadow: 0 2px 6px rgba(245, 158, 11, 0.25);
 }
@@ -176,6 +176,16 @@ html, body {
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
 }
+.cat-header {
+  grid-column: 1 / -1;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+  margin: 9px 2px 0;
+}
+.cat-header:first-child { margin-top: 0; }
 .preset-card {
   background: var(--bg-3);
   border: 1px solid var(--border);
@@ -190,6 +200,25 @@ html, body {
 }
 .preset-card:hover { background: var(--bg-hover); }
 .preset-card .icon { font-size: 22px; line-height: 1; margin-bottom: 5px; color: var(--text-dim); }
+/* Brand logo: white chip keeps dark logos visible in dark theme too.
+   Off = greyscale + dimmed, On = full colour. */
+.preset-card .logo {
+  width: 30px;
+  height: 30px;
+  padding: 4px;
+  box-sizing: border-box;
+  margin: 0 auto 6px;
+  display: block;
+  border-radius: 7px;
+  background: #fff;
+  border: 1px solid var(--border);
+  object-fit: contain;
+  filter: grayscale(1);
+  opacity: 0.55;
+  transition: filter 0.15s ease, opacity 0.15s ease;
+}
+.preset-card:hover .logo { opacity: 0.8; }
+.preset-card.on .logo { filter: none; opacity: 1; }
 .preset-card .label { font-size: 10px; font-weight: 600; color: var(--text-dim); }
 .preset-card.on {
   background: rgba(16, 185, 129, 0.06);
