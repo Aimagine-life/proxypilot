@@ -35,23 +35,33 @@ const BLOCKED_NAME_TO_ISO = { Russia: 'RU', Belarus: 'BY', China: 'CN', Iran: 'I
 
 /** Валидирует и нормализует одну запись. Возвращает NormalizedProxy или null. */
 export function makeProxy({ host, port, protocol, country = null, score = 0, anonymity = null, https = false }) {
+  const h = String(host == null ? '' : host).trim();
   const p = Number(port);
-  if (!host || !Number.isInteger(p) || p < 1 || p > 65535) return null;
+  if (!h || !Number.isInteger(p) || p < 1 || p > 65535) return null;
   const proto = String(protocol || '').toLowerCase();
   if (!VALID_PROTOCOLS.includes(proto)) return null;
   // SOCKS туннелирует любой TCP → HTTPS-способен; http — только если фид это явно подтвердил.
   const httpsCapable = https === true || proto === 'socks4' || proto === 'socks5';
   return {
-    host: String(host), port: p, protocol: proto,
+    host: h, port: p, protocol: proto,
     country: country || null, score: Number(score) || 0,
     anonymity: anonymity || null, httpsCapable,
   };
 }
 
-/** JSON-массив ИЛИ NDJSON (по объекту на строку) → массив объектов. */
+/** JSON-массив ИЛИ объект ИЛИ NDJSON (по объекту на строку) → массив объектов. */
 function parseJsonOrNdjson(text) {
+  if (typeof text !== 'string') return [];
   const trimmed = text.trim();
-  if (trimmed.startsWith('[')) return JSON.parse(trimmed);
+  if (!trimmed) return [];
+  if (trimmed.startsWith('[')) {
+    try { const v = JSON.parse(trimmed); return Array.isArray(v) ? v : [v]; }
+    catch { return []; }
+  }
+  if (trimmed.startsWith('{')) {
+    // Одиночный объект-обёртка — попробовать как цельный JSON; при неудаче — NDJSON.
+    try { return [JSON.parse(trimmed)]; } catch { /* fall through to NDJSON */ }
+  }
   const out = [];
   for (const line of trimmed.split('\n')) {
     const s = line.trim();
@@ -79,8 +89,12 @@ export function parseProxifly(text) {
 
 /** ProxyScrape (GitHub CDN): country=полное имя, ISO в country_code; ssl→https, uptime_percent→score. */
 export function parseProxyscrape(text) {
-  const data = parseJsonOrNdjson(text);
-  const arr = Array.isArray(data) ? data : (data?.proxies || data?.data || []);
+  let data = parseJsonOrNdjson(text);
+  // Развернуть обёртку {proxies:[...]} / {data:[...]}, если она пришла как единственный объект.
+  if (data.length === 1 && !data[0]?.ip && (Array.isArray(data[0]?.proxies) || Array.isArray(data[0]?.data))) {
+    data = data[0].proxies || data[0].data;
+  }
+  const arr = Array.isArray(data) ? data : [];
   const out = [];
   for (const e of arr) {
     const p = makeProxy({
@@ -134,8 +148,8 @@ export function parseTxt(text, proto) {
   for (const line of text.split('\n')) {
     const s = line.trim();
     if (!s || !s.includes(':')) continue;
-    const host = s.split(':')[0];
-    const port = s.split(':')[1].split(/[\s#]/)[0];
+    const [host, rawPort = ''] = s.split(':');
+    const port = rawPort.split(/[\s#]/)[0];
     const p = makeProxy({ host, port, protocol: proto });
     if (p) out.push(p);
   }

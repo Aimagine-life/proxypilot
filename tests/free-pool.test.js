@@ -499,3 +499,25 @@ test('parseTxt: чистый ip:port, proto из аргумента, country nul
   assert.equal(pool[0].protocol, 'socks5');
   assert.equal(pool[0].country, null);
 });
+
+test('parseProxyscrape: разворачивает обёртку {proxies:[...]}', () => {
+  const wrapped = JSON.stringify({ proxies: [{ protocol: 'socks5', ip: '8.8.8.8', port: 1080, country_code: 'US' }] });
+  const pool = parseProxyscrape(wrapped);
+  assert.equal(pool.length, 1);
+  assert.equal(pool[0].host, '8.8.8.8');
+  assert.equal(pool[0].country, 'US');
+});
+
+test('makeProxy: host из пробелов → null', () => {
+  assert.equal(makeProxy({ host: '   ', port: 80, protocol: 'http' }), null);
+});
+
+test('parseTxt: стрипает inline-комментарий и пустые строки', () => {
+  const pool = parseTxt('1.2.3.4:8080 # fast\n\n9.9.9.9:1080\n', 'http');
+  assert.equal(pool.length, 2);
+  assert.equal(pool[0].port, 8080);
+});
+
+test('parseProxifly: битый JSON-массив → пусто, не throw', () => {
+  assert.deepEqual(parseProxifly('[{bad json'), []);
+});
