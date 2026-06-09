@@ -1,10 +1,12 @@
 import { loadState, saveState } from '../lib/storage.js';
 import { parseEntry, ValidationError } from '../lib/domain.js';
-import { PRESET_DEFINITIONS, PRESET_ORDER, AI_PRESET_KEYS } from '../lib/presets.js';
+import { PRESET_DEFINITIONS, PRESET_ORDER, CATEGORIES } from '../lib/presets.js';
 
 const $ = (sel) => document.querySelector(sel);
 
 let state = null;
+let searchQuery = '';            // live preset filter (popup-session only)
+const collapsedCats = {};        // { categoryKey: true } — collapsed groups
 
 async function init() {
   state = await loadState();
@@ -67,7 +69,8 @@ function routeInitialScreen() {
 
   const hasManual = state.proxySource === 'manual' && state.proxy?.host;
   const hasFree = state.proxySource === 'free' && state.freeProxy?.selected;
-  if (!hasManual && !hasFree) {
+  const hasOwn = state.proxySource === 'own' && state.ownPool?.selected;
+  if (!hasManual && !hasFree && !hasOwn) {
     $('#screen-firstrun').hidden = false;
   } else {
     showMain();
@@ -123,27 +126,67 @@ function renderMain() {
     banner.hidden = true;
   }
 
-  // Preset grid
+  // Preset grid — grouped by category. Search filters live; enabled presets sort
+  // to the top of each group; group headers collapse.
   const grid = $('#preset-grid');
   grid.innerHTML = '';
-  for (const key of PRESET_ORDER) {
-    const def = PRESET_DEFINITIONS[key];
-    const stored = state.presets[key];
-    const isBlocked = (def.domains || []).some((d) => rknResults[d]?.blocked);
-    const card = document.createElement('div');
-    card.className = 'preset-card'
-      + (stored?.enabled ? ' on' : '')
-      + (isBlocked ? ' rkn-blocked' : '');
-    card.dataset.key = key;
-    card.innerHTML = `
-      <div class="icon">${def.icon}</div>
-      <div class="label">${def.label}</div>
-    `;
-    if (!isBlocked) {
-      card.addEventListener('click', () => togglePreset(key));
+  const q = searchQuery.trim().toLowerCase();
+  let totalShown = 0;
+  let enabledTotal = 0;
+
+  for (const cat of CATEGORIES) {
+    let keys = PRESET_ORDER.filter((k) => PRESET_DEFINITIONS[k].category === cat.key);
+    if (!keys.length) continue;
+
+    const catEnabled = keys.filter((k) => state.presets[k]?.enabled).length;
+    enabledTotal += catEnabled;
+
+    // Enabled first, then original preset order.
+    keys = keys.slice().sort((a, b) =>
+      (state.presets[b]?.enabled ? 1 : 0) - (state.presets[a]?.enabled ? 1 : 0));
+
+    const matched = q
+      ? keys.filter((k) => {
+          const d = PRESET_DEFINITIONS[k];
+          return d.label.toLowerCase().includes(q)
+            || (d.domains || []).some((dm) => dm.toLowerCase().includes(q));
+        })
+      : keys;
+    if (!matched.length) continue;
+
+    const collapsed = !q && !!collapsedCats[cat.key];
+
+    const header = document.createElement('button');
+    header.type = 'button';
+    header.className = 'cat-header' + (collapsed ? ' collapsed' : '');
+    const caret = document.createElement('span');
+    caret.className = 'cat-caret';
+    caret.textContent = '▾';
+    const name = document.createElement('span');
+    name.className = 'cat-name';
+    name.textContent = cat.label;
+    const count = document.createElement('span');
+    count.className = 'cat-count';
+    count.textContent = catEnabled ? `${catEnabled} вкл` : '';
+    header.append(caret, name, count);
+    header.addEventListener('click', () => {
+      collapsedCats[cat.key] = !collapsedCats[cat.key];
+      renderMain();
+    });
+    grid.appendChild(header);
+
+    if (collapsed) continue;
+    for (const key of matched) {
+      grid.appendChild(makeCard(key, rknResults));
+      totalShown++;
     }
-    grid.appendChild(card);
   }
+
+  $('#preset-empty').hidden = totalShown > 0 || !q;
+  const countEl = $('#enabled-count');
+  if (countEl) countEl.textContent = enabledTotal ? ` · ${enabledTotal} включено` : '';
+  const resetBtn = $('#reset-presets');
+  if (resetBtn) resetBtn.hidden = enabledTotal === 0;
 
   // Custom domains list
   const list = $('#custom-list');
@@ -163,11 +206,14 @@ function renderMain() {
     list.appendChild(item);
   }
 
-  // AI-free banner
+  // Free-pool danger banner — public free proxies are untrusted. Warn whenever
+  // ANYTHING is actually routed through one (any preset or custom domain), not
+  // just Google-AI services.
   const aiBanner = $('#ai-free-banner');
   if (aiBanner) {
-    const aiOn = AI_PRESET_KEYS.some((k) => state.presets[k]?.enabled);
-    aiBanner.hidden = !(aiOn && state.proxySource === 'free' && state.enabled);
+    const anyRouted = PRESET_ORDER.some((k) => state.presets[k]?.enabled)
+      || (state.customDomains || []).length > 0;
+    aiBanner.hidden = !(state.proxySource === 'free' && state.enabled && anyRouted);
   }
 }
 
@@ -179,6 +225,19 @@ function bindMain() {
   });
 
   $('#open-settings').addEventListener('click', () => showSettings());
+
+  $('#preset-search').addEventListener('input', (e) => {
+    searchQuery = e.target.value;
+    renderMain();
+  });
+
+  $('#reset-presets').addEventListener('click', async () => {
+    for (const k of PRESET_ORDER) {
+      if (state.presets[k]) state.presets[k].enabled = false;
+    }
+    await persist();
+    renderMain();
+  });
 
   $('#add-domain-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -233,10 +292,47 @@ function bindMain() {
     input.value = '';
     renderMain();
 
-    // Success toast + confetti
     showToast(`\u2713 ${entry.value} \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d \u2014 \u043d\u0435 \u0432 \u0440\u0435\u0435\u0441\u0442\u0440\u0435 \u0420\u041a\u041d`);
-    launchConfetti();
   });
+}
+
+// Build one preset card. Full-colour brand logo with an emoji glyph fallback
+// (CSP-safe: listener attached via JS, no inline handlers).
+function makeCard(key, rknResults) {
+  const def = PRESET_DEFINITIONS[key];
+  const stored = state.presets[key];
+  const isBlocked = (def.domains || []).some((d) => rknResults[d]?.blocked);
+  const card = document.createElement('div');
+  card.className = 'preset-card'
+    + (stored?.enabled ? ' on' : '')
+    + (isBlocked ? ' rkn-blocked' : '');
+  card.dataset.key = key;
+
+  let mark;
+  if (def.logo) {
+    mark = document.createElement('img');
+    mark.className = 'logo';
+    mark.src = `../icons/brands/${def.logo}`;
+    mark.alt = '';
+    mark.draggable = false;
+    mark.addEventListener('error', () => {
+      const fb = document.createElement('div');
+      fb.className = 'icon';
+      fb.textContent = def.icon;
+      mark.replaceWith(fb);
+    });
+  } else {
+    mark = document.createElement('div');
+    mark.className = 'icon';
+    mark.textContent = def.icon;
+  }
+  const label = document.createElement('div');
+  label.className = 'label';
+  label.textContent = def.label;
+  card.append(mark, label);
+
+  if (!isBlocked) card.addEventListener('click', () => togglePreset(key));
+  return card;
 }
 
 function showToast(msg) {
@@ -253,24 +349,6 @@ function showToast(msg) {
   }, 2400);
 }
 
-function launchConfetti() {
-  const container = document.createElement('div');
-  container.className = 'confetti';
-  document.body.appendChild(container);
-
-  const colors = ['#10b981', '#06b6d4', '#6366f1', '#f59e0b', '#ec4899'];
-  for (let i = 0; i < 40; i++) {
-    const p = document.createElement('div');
-    p.className = 'confetti-piece';
-    p.style.left = Math.random() * 100 + '%';
-    p.style.background = colors[Math.floor(Math.random() * colors.length)];
-    p.style.animationDelay = (Math.random() * 0.3) + 's';
-    p.style.animationDuration = (1 + Math.random() * 0.8) + 's';
-    p.style.transform = `rotate(${Math.random() * 360}deg)`;
-    container.appendChild(p);
-  }
-  setTimeout(() => container.remove(), 2200);
-}
 
 function escapeHtml(s) {
   return s.replace(/[&<>"']/g, (c) => ({
@@ -364,32 +442,32 @@ function bindSettings() {
     });
   }
 
-  // Source toggle (Manual / Free pool)
+  // Source toggle (Manual / Free pool). Switch the tab OPTIMISTICALLY so the UI
+  // reacts instantly: picking a working free proxy (pickAndValidate) can take tens
+  // of seconds, and we must never leave the pills disabled/unresponsive while it
+  // runs (that's what looked like "Бесплатный пул doesn't click").
   for (const pill of document.querySelectorAll('#source-pills .pill')) {
     pill.addEventListener('click', async () => {
       const source = pill.dataset.source;
       if (state.proxySource === source) return;
 
-      // Disable both pills while switching
-      for (const p of document.querySelectorAll('#source-pills .pill')) p.disabled = true;
-      $('#rotate-free').disabled = true;
-      $('#free-current').textContent = 'Переключение…';
+      // Instant feedback — flip the active tab and show the right block now.
+      state.proxySource = source;
+      renderSettings();
+      if (source === 'free' && !state.freeProxy?.selected) {
+        $('#free-current').textContent = 'Подбираем рабочий прокси…';
+      }
 
       try {
         const res = await chrome.runtime.sendMessage({ type: 'SWITCH_SOURCE', source });
         if (res?.state) {
           state = res.state;
           renderSettings();
-        } else {
-          // Background returned an error without state — re-render with current state so UI stays consistent
-          renderSettings();
-          if (res?.error) {
-            $('#free-current').textContent = `Ошибка: ${res.error}`;
-          }
+        } else if (res?.error) {
+          $('#free-current').textContent = `Ошибка: ${res.error}`;
         }
-      } finally {
-        for (const p of document.querySelectorAll('#source-pills .pill')) p.disabled = false;
-        $('#rotate-free').disabled = false;
+      } catch (err) {
+        $('#free-current').textContent = `Не удалось переключиться: ${err.message}`;
       }
     });
   }
@@ -416,7 +494,25 @@ function bindSettings() {
   });
 
   $('#test-proxy').addEventListener('click', () => runTest('TEST_PROXY'));
-  $('#test-gemini').addEventListener('click', () => runTest('TEST_GEMINI'));
+  $('#test-service').addEventListener('click', () => runTest('TEST_SERVICE'));
+
+  // Own pool: save the list (parsed in the popup) and connect to the first one.
+  $('#save-own').addEventListener('click', async () => {
+    const raw = $('#own-list').value;
+    const proxies = parseProxyList(raw);
+    $('#own-meta').textContent = proxies.length
+      ? `${proxies.length} прокси распознано`
+      : 'Не распознал ни одного прокси — проверь формат';
+    const res = await chrome.runtime.sendMessage({ type: 'SET_OWN_POOL', raw, proxies });
+    if (res?.state) { state = res.state; renderSettings(); }
+  });
+
+  $('#rotate-own').addEventListener('click', async () => {
+    $('#own-current').textContent = 'Переключаю…';
+    const res = await chrome.runtime.sendMessage({ type: 'ROTATE_OWN' });
+    if (res?.state) { state = res.state; renderSettings(); }
+    else if (res?.error) { $('#own-current').textContent = `Ошибка: ${res.error}`; }
+  });
 }
 
 function renderSettings() {
@@ -428,8 +524,10 @@ function renderSettings() {
   }
 
   const isFree = state.proxySource === 'free';
-  $('#manual-blocks').hidden = isFree;
+  const isOwn = state.proxySource === 'own';
+  $('#manual-blocks').hidden = isFree || isOwn;
   $('#free-block').hidden = !isFree;
+  $('#own-block').hidden = !isOwn;
 
   // Manual fields
   $('#cfg-host').value = state.proxy?.host || '';
@@ -460,6 +558,22 @@ function renderSettings() {
     }
   }
 
+  // Own-pool render
+  if (isOwn) {
+    const op = state.ownPool || {};
+    $('#own-list').value = op.raw || '';
+    const n = (op.proxies || []).length;
+    $('#own-meta').textContent = n ? `${n} прокси в списке` : 'Список пуст — вставь свои прокси';
+    if (op.selected) {
+      $('#own-current').textContent =
+        `Активен: ${op.selected.host}:${op.selected.port} (${op.selected.scheme || 'http'})`;
+    } else if (op.lastError) {
+      $('#own-current').textContent = op.lastError;
+    } else {
+      $('#own-current').textContent = 'Прокси не выбран';
+    }
+  }
+
   renderThemePills();
   $('#test-result').hidden = true;
 }
@@ -469,6 +583,19 @@ function countryFlag(cc) {
   const upper = cc.toUpperCase();
   const A = 0x41, base = 0x1F1E6;
   return String.fromCodePoint(base + upper.charCodeAt(0) - A, base + upper.charCodeAt(1) - A);
+}
+
+// Country code → Russian name, e.g. 'NL' → 'Нидерланды'. Falls back to '' on
+// unknown/invalid codes.
+let _regionNames;
+function regionName(cc) {
+  if (!cc || cc.length !== 2) return '';
+  try {
+    _regionNames = _regionNames || new Intl.DisplayNames(['ru'], { type: 'region' });
+    return _regionNames.of(cc.toUpperCase()) || '';
+  } catch {
+    return '';
+  }
 }
 
 /**
@@ -548,6 +675,27 @@ function tryParseProxyUrl(input) {
   return result;
 }
 
+// Parse a textarea of proxies (one per line) into [{host,port,scheme,user,pass}].
+// Skips blank/unparseable lines. No scheme → defaults to http.
+function parseProxyList(raw) {
+  const out = [];
+  for (const line of String(raw || '').split('\n')) {
+    const s = line.trim();
+    if (!s) continue;
+    const p = tryParseProxyUrl(s);
+    if (p && p.host && p.port) {
+      out.push({
+        host: p.host,
+        port: Number(p.port),
+        scheme: p.scheme || 'http',
+        user: p.user || '',
+        pass: p.pass || '',
+      });
+    }
+  }
+  return out;
+}
+
 function ensureProxyObject() {
   if (!state.proxy) {
     state.proxy = { host: '', port: 0, scheme: 'auto', user: '', pass: '' };
@@ -616,21 +764,49 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
 async function runTest(type) {
   const btnProxy = $('#test-proxy');
-  const btnGemini = $('#test-gemini');
+  const btnService = $('#test-service');
   const result = $('#test-result');
+
+  // \u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u0441\u0435\u0440\u0432\u0438\u0441\u0430 \u2014 \u0431\u0435\u0440\u0451\u043c \u043f\u0435\u0440\u0432\u044b\u0439 \u0432\u043a\u043b\u044e\u0447\u0451\u043d\u043d\u044b\u0439 \u043f\u0440\u0435\u0441\u0435\u0442 \u0438 \u0442\u0435\u0441\u0442\u0438\u043c \u0435\u0433\u043e \u0434\u043e\u043c\u0435\u043d.
+  let target = null;
+  if (type === 'TEST_SERVICE') {
+    const key = PRESET_ORDER.find((k) => state.presets[k]?.enabled);
+    if (!key) {
+      result.hidden = false;
+      result.className = 'result-block err';
+      result.textContent = '\u2717 \u0421\u043d\u0430\u0447\u0430\u043b\u0430 \u0432\u043a\u043b\u044e\u0447\u0438\u0442\u0435 \u0445\u043e\u0442\u044f \u0431\u044b \u043e\u0434\u0438\u043d \u0441\u0435\u0440\u0432\u0438\u0441';
+      return;
+    }
+    const def = PRESET_DEFINITIONS[key];
+    target = { domain: def.domains[0], label: def.label };
+  }
+
   btnProxy.disabled = true;
-  btnGemini.disabled = true;
+  btnService.disabled = true;
   result.hidden = true;
 
   try {
-    const res = await chrome.runtime.sendMessage({ type });
+    const res = await chrome.runtime.sendMessage(
+      type === 'TEST_SERVICE' ? { type, domain: target.domain } : { type },
+    );
     result.hidden = false;
     if (res.ok) {
-      result.className = 'result-block ok';
       if (type === 'TEST_PROXY') {
-        result.innerHTML = `\u2713 \u041f\u0440\u043e\u043a\u0441\u0438 \u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d<br>IP: ${res.ip || '?'}<br>\u0421\u0442\u0440\u0430\u043d\u0430: ${res.country || '?'}<br>\u0417\u0430\u0434\u0435\u0440\u0436\u043a\u0430: ${res.latencyMs} \u043c\u0441`;
+        const cc = String(res.country || '').toUpperCase();
+        const place = `${countryFlag(cc)} ${regionName(cc) || cc || '\u2014'}`.trim();
+        const localProxy = cc === 'RU'; // \u0440\u043e\u0441\u0441\u0438\u0439\u0441\u043a\u0438\u0439 \u043f\u0440\u043e\u043a\u0441\u0438 \u2014 \u0420\u0424 \u0433\u0435\u043e-\u0431\u043b\u043e\u043a \u0438\u043c \u043d\u0435 \u043e\u0431\u043e\u0439\u0442\u0438
+        result.className = 'result-block ' + (localProxy ? 'warn' : 'ok');
+        result.innerHTML = localProxy
+          ? `\u26a0\ufe0f \u042d\u0442\u043e \u0440\u043e\u0441\u0441\u0438\u0439\u0441\u043a\u0438\u0439 \u043f\u0440\u043e\u043a\u0441\u0438<br>`
+            + `\u0413\u0435\u043e-\u0431\u043b\u043e\u043a \u0438\u043c \u043d\u0435 \u043e\u0431\u043e\u0439\u0442\u0438 \u2014 \u043d\u0443\u0436\u0435\u043d \u043f\u0440\u043e\u043a\u0441\u0438 \u0434\u0440\u0443\u0433\u043e\u0439 \u0441\u0442\u0440\u0430\u043d\u044b.<br>`
+            + `<span class="muted">${escapeHtml(place)} \u00b7 \u043e\u0442\u043a\u043b\u0438\u043a ${res.latencyMs} \u043c\u0441 \u00b7 IP ${escapeHtml(res.ip || '?')}</span>`
+          : `\u2713 \u041f\u0440\u043e\u043a\u0441\u0438 \u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442 \u2014 ${escapeHtml(place)}<br>`
+            + `\u0417\u0430\u0431\u043b\u043e\u043a\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u044b\u0435 \u0441\u0435\u0440\u0432\u0438\u0441\u044b \u043e\u0442\u043a\u0440\u043e\u044e\u0442\u0441\u044f.<br>`
+            + `<span class="muted">\u043e\u0442\u043a\u043b\u0438\u043a ${res.latencyMs} \u043c\u0441 \u00b7 IP ${escapeHtml(res.ip || '?')}</span>`;
       } else {
-        result.innerHTML = `\u2713 Gemini \u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d<br>HTTP ${res.httpStatus}<br>\u0417\u0430\u0434\u0435\u0440\u0436\u043a\u0430: ${res.latencyMs} \u043c\u0441`;
+        result.className = 'result-block ok';
+        result.innerHTML = `\u2713 ${escapeHtml(target.label)} \u043e\u0442\u0432\u0435\u0447\u0430\u0435\u0442<br>`
+          + `<span class="muted">HTTP ${res.httpStatus} \u00b7 \u043e\u0442\u043a\u043b\u0438\u043a ${res.latencyMs} \u043c\u0441</span>`;
       }
       state = await loadState();
     } else {
@@ -639,7 +815,7 @@ async function runTest(type) {
     }
   } finally {
     btnProxy.disabled = false;
-    btnGemini.disabled = false;
+    btnService.disabled = false;
   }
 }
 

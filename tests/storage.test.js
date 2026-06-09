@@ -27,10 +27,11 @@ test('getDefaultState: proxy is null', () => {
   assert.equal(getDefaultState().proxy, null);
 });
 
-test('getDefaultState: gemini and aiStudio presets enabled by default', () => {
+test('getDefaultState: all presets disabled by default (neutral universal router)', () => {
   const s = getDefaultState();
-  assert.equal(s.presets.gemini.enabled, true);
-  assert.equal(s.presets.aiStudio.enabled, true);
+  assert.equal(s.presets.gemini.enabled, false);
+  assert.equal(s.presets.aiStudio.enabled, false);
+  assert.equal(s.presets.googleAuth.enabled, false);
   assert.equal(s.presets.chatgpt.enabled, false);
 });
 
@@ -197,4 +198,36 @@ test('loadState: v2 state with missing freeProxy.deadHosts gets backfilled', asy
   };
   const s = await loadState();
   assert.deepEqual(s.freeProxy.deadHosts, {});
+});
+
+test('loadState: backfills every current preset (disabled) when none stored', async () => {
+  await chrome.storage.local.clear();
+  await saveState({
+    schemaVersion: 2, enabled: false, proxy: null, proxySource: 'manual',
+    manualProxy: null, freeProxy: { selected: null, lastError: null, deadHosts: {}, poolFetchedAt: 0 },
+    theme: 'auto', resolvedTheme: 'light', presets: {}, customDomains: [],
+  });
+  const s = await loadState();
+  const defaults = getDefaultState();
+  const keys = Object.keys(defaults.presets);
+  assert.ok(keys.length >= 40); // 39 visible presets + hidden googleAuth
+  for (const key of keys) {
+    assert.ok(s.presets[key], `preset ${key} backfilled`);
+    assert.equal(s.presets[key].enabled, false, `preset ${key} backfilled disabled`);
+    assert.deepEqual(s.presets[key].domains, defaults.presets[key].domains, `preset ${key} domains match`);
+  }
+});
+
+test('loadState: backfills ownPool for users upgrading from before 0.9.0', async () => {
+  await chrome.storage.local.clear();
+  await saveState({
+    schemaVersion: 2, enabled: false, proxy: null, proxySource: 'manual',
+    manualProxy: null, freeProxy: { selected: null, lastError: null, deadHosts: {}, poolFetchedAt: 0 },
+    theme: 'auto', resolvedTheme: 'light', presets: {}, customDomains: [],
+    // no ownPool (pre-0.9.0 state)
+  });
+  const s = await loadState();
+  assert.ok(s.ownPool, 'ownPool backfilled');
+  assert.ok(Array.isArray(s.ownPool.proxies));
+  assert.deepEqual(s.ownPool.deadHosts, {});
 });

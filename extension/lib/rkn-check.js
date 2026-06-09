@@ -1,9 +1,9 @@
 // RKN compliance check. Uses a hosted mirror of the official RKN registry
 // (updated daily from zapret-info/z-i via our GitHub Action).
 //
-// Legal: geo-restriction by a service (Google blocking Gemini in RU) is not
-// a government ban — using a proxy is legal. An RKN block IS a government ban —
-// circumventing it may violate 149-FZ.
+// Legal: geo-restriction by a service (e.g. Netflix/Spotify/Gemini refusing RU
+// IPs) is not a government ban — using a proxy is legal. An RKN block IS a
+// government ban — circumventing it may violate 149-FZ.
 
 const LIST_URL = 'https://raw.githubusercontent.com/Aimagine-life/proxypilot/main/data/rkn-domains.txt';
 const CACHE_KEY = 'rknListCache';
@@ -95,16 +95,25 @@ export async function checkDomain(domain) {
   }
 }
 
+/**
+ * Check every preset domain against the RKN registry.
+ * Returns a { domain: { blocked, reason } } map, or NULL if the list could not be
+ * loaded. Null means "no data to decide on" — the caller MUST keep the last known
+ * state (don't disable everything, don't clear prior blocks). Add-time checks
+ * (checkDomain) stay fail-closed because that's a one-off user action; periodic
+ * monitoring must not flip presets on a transient fetch failure.
+ */
 export async function checkAllPresets(presets) {
   let set = null;
   try { set = await loadRknList(); } catch {}
+  if (!set) return null;
   const results = {};
   for (const [_key, preset] of Object.entries(presets)) {
     for (const domain of preset.domains || []) {
       if (results[domain]) continue;
-      results[domain] = set && isHostInSet(domain, set)
+      results[domain] = isHostInSet(domain, set)
         ? { blocked: true, reason: 'in RKN registry' }
-        : { blocked: false, reason: set ? 'not in registry' : 'list unavailable' };
+        : { blocked: false, reason: 'not in registry' };
     }
   }
   return results;

@@ -1,6 +1,9 @@
-// Pure module — no chrome.* APIs allowed.
+// Pure module — no chrome.* APIs allowed. presets.js is pure data, safe to import.
+// GOOGLE_AUTH_PRESET_KEYS is the single source of truth (derived from the
+// couplesGoogleAuth flag) for which presets pull in the hidden googleAuth
+// (accounts.google.com) coupling.
 
-const AI_PRESET_KEYS = ['gemini', 'aiStudio', 'notebookLM'];
+import { GOOGLE_AUTH_PRESET_KEYS } from './presets.js';
 
 function pacDirective(scheme, host, port) {
   switch (scheme) {
@@ -19,10 +22,10 @@ function collectDomains(state) {
   const exacts = [];
 
   const presets = state.presets || {};
-  const anyAiEnabled = AI_PRESET_KEYS.some((k) => presets[k]?.enabled);
+  const googleAuthNeeded = GOOGLE_AUTH_PRESET_KEYS.some((k) => presets[k]?.enabled);
 
   for (const [key, preset] of Object.entries(presets)) {
-    const isCoupledGoogleAuth = key === 'googleAuth' && anyAiEnabled;
+    const isCoupledGoogleAuth = key === 'googleAuth' && googleAuthNeeded;
     if (!preset.enabled && !isCoupledGoogleAuth) continue;
     for (const d of preset.domains || []) suffixes.push(d);
   }
@@ -76,4 +79,19 @@ export function buildPacScript(state) {
     '  return "DIRECT";',
     '}',
   ].join('\n');
+}
+
+/**
+ * Does `host` get routed through the proxy under the current state? Used for
+ * toolbar icon state in non-PAC (regular JS) contexts. Shares collectDomains()
+ * with buildPacScript so the googleAuth coupling and host matching can never
+ * drift from the actual PAC — one source of routing truth.
+ */
+export function isHostRouted(host, state) {
+  if (!buildPacScript(state)) return false; // disabled / no proxy / nothing routed
+  const { suffixes, wildcards, exacts } = collectDomains(state);
+  for (const s of suffixes) if (host === s || host.endsWith('.' + s)) return true;
+  for (const w of wildcards) if (host !== w && host.endsWith('.' + w)) return true;
+  for (const e of exacts) if (host === e) return true;
+  return false;
 }

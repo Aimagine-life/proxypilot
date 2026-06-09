@@ -1,6 +1,23 @@
 // Wraps chrome.storage.local. Tested in node by mocking globalThis.chrome.
 
+import { PRESET_DEFINITIONS } from './presets.js';
+
 const STORAGE_KEY = 'state';
+
+// Presets enabled on a fresh install. Empty = neutral universal router: nothing
+// routes until the user opts in. (googleAuth is coupled in by pac.js whenever a
+// Google-AI preset is on, so it never needs to be default-enabled.)
+const DEFAULT_ENABLED = new Set([]);
+
+// Derive the default presets map from PRESET_DEFINITIONS — the single source of
+// truth — so domains are never duplicated/divergent between the two files.
+function buildDefaultPresets() {
+  const presets = {};
+  for (const [key, def] of Object.entries(PRESET_DEFINITIONS)) {
+    presets[key] = { enabled: DEFAULT_ENABLED.has(key), domains: def.domains.slice() };
+  }
+  return presets;
+}
 
 export function getDefaultState() {
   return {
@@ -10,21 +27,13 @@ export function getDefaultState() {
     proxySource: 'manual',
     manualProxy: null,
     freeProxy: { selected: null, lastError: null, deadHosts: {}, poolFetchedAt: 0 },
+    // User's own pool of proxies (proxySource === 'own'). `raw` is the textarea
+    // text; `proxies` is the parsed list [{host,port,scheme,user,pass}]. Picked
+    // optimistically (no upfront validation) and rotated reactively on error.
+    ownPool: { raw: '', proxies: [], selected: null, lastError: null, deadHosts: {} },
     theme: 'auto',
     resolvedTheme: 'light',
-    presets: {
-      gemini:     { enabled: true,  domains: ['gemini.google.com'] },
-      aiStudio:   { enabled: true,  domains: ['aistudio.google.com', 'alkalimakersuite-pa.clients6.google.com'] },
-      googleAuth: { enabled: true,  domains: ['accounts.google.com', 'ogs.google.com'] },
-      notebookLM: { enabled: false, domains: ['notebooklm.google.com'] },
-      googleLabs: { enabled: false, domains: ['labs.google', 'labs.google.com'] },
-      chatgpt:    { enabled: false, domains: ['chatgpt.com', 'chat.openai.com'] },
-      claude:     { enabled: false, domains: ['claude.ai'] },
-      perplexity: { enabled: false, domains: ['perplexity.ai', 'www.perplexity.ai'] },
-      grok:       { enabled: false, domains: ['grok.com', 'www.grok.com', 'x.ai'] },
-      elevenlabs: { enabled: false, domains: ['elevenlabs.io', 'www.elevenlabs.io', 'api.elevenlabs.io'] },
-      youtube:    { enabled: false, domains: ['youtube.com', 'www.youtube.com', 'youtu.be', 'googlevideo.com'] },
-    },
+    presets: buildDefaultPresets(),
     customDomains: [],
   };
 }
@@ -46,9 +55,11 @@ export async function loadState() {
   }
 
   // Merge: add any new presets that didn't exist when the user first installed.
+  // Always backfill DISABLED — a preset reappearing must never silently start
+  // routing traffic the user didn't choose.
   for (const [key, def] of Object.entries(defaults.presets)) {
     if (!saved.presets[key]) {
-      saved.presets[key] = def;
+      saved.presets[key] = { ...def, enabled: false };
     }
   }
   // Backfill theme fields for users upgrading from pre-0.4.3.
@@ -58,6 +69,11 @@ export async function loadState() {
   // Defensive freeProxy backfill.
   if (!saved.freeProxy) saved.freeProxy = { ...defaults.freeProxy };
   if (!saved.freeProxy.deadHosts) saved.freeProxy.deadHosts = {};
+
+  // ownPool backfill (added in 0.9.0).
+  if (!saved.ownPool) saved.ownPool = { ...defaults.ownPool };
+  if (!Array.isArray(saved.ownPool.proxies)) saved.ownPool.proxies = [];
+  if (!saved.ownPool.deadHosts) saved.ownPool.deadHosts = {};
 
   return saved;
 }

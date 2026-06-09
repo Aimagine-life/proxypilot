@@ -5,9 +5,9 @@
 import { loadState, saveState } from './lib/storage.js';
 import { applyProxy, registerAuthListener } from './lib/proxy.js';
 import { setIconState } from './lib/icon.js';
-import { buildPacScript } from './lib/pac.js';
+import { buildPacScript, isHostRouted } from './lib/pac.js';
 import { checkAllPresets, isCheckDue, checkDomain } from './lib/rkn-check.js';
-import { pickAndValidate, DEAD_HOST_TTL_MS } from './lib/free-pool.js';
+import { pickAndValidate, fetchPool, nextLiveProxy, DEAD_HOST_TTL_MS } from './lib/free-pool.js';
 
 // 1. Auth listener — must be top-level for sleep/wake survival.
 registerAuthListener();
@@ -44,12 +44,28 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, _tab) => {
   await maybeRunRknCheck(state);
 })();
 
-// 6. Periodic RKN check — runs on chrome.alarms every 24h.
-chrome.alarms.create('rkn-check', { periodInMinutes: 24 * 60 });
+// 6. Periodic alarms. ensureAlarm() only creates an alarm if it doesn't already
+// exist — re-creating with the same name RESETS the schedule, and the MV3 worker
+// is evicted/restarted often, so an unconditional create on every wake could push
+// a short-period alarm out forever and it would never fire.
+const FREE_REFRESH_MINUTES = 5;
+function ensureAlarm(name, periodInMinutes) {
+  chrome.alarms.get(name, (existing) => {
+    if (!existing) chrome.alarms.create(name, { periodInMinutes });
+  });
+}
+ensureAlarm('rkn-check', 24 * 60);
+ensureAlarm('free-pool-refresh', FREE_REFRESH_MINUTES);
+
 chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name !== 'rkn-check') return;
-  const state = await loadState();
-  await runRknCheck(state);
+  if (alarm.name === 'rkn-check') {
+    const state = await loadState();
+    await runRknCheck(state);
+  } else if (alarm.name === 'free-pool-refresh') {
+    await refreshFreeProxy().catch((err) => {
+      console.warn('[bg] free-pool refresh failed:', err.message);
+    });
+  }
 });
 
 async function maybeRunRknCheck(state) {
@@ -59,6 +75,13 @@ async function maybeRunRknCheck(state) {
 
 async function runRknCheck(state) {
   const results = await checkAllPresets(state.presets || {});
+  if (!results) {
+    // RKN list unavailable → no data to decide on. Keep last known rknResults and
+    // preset enabled-state untouched rather than disabling everything on a
+    // transient fetch failure.
+    console.warn('[RKN] list unavailable — skipping check, state unchanged');
+    return;
+  }
   state.rknResults = results;
   state.rknLastCheckAt = Date.now();
 
@@ -114,31 +137,6 @@ async function refreshTabIcon(tabId, state) {
   }
 }
 
-// Mirror of pac.js routing logic for icon state checks. Kept tiny on purpose.
-function isHostRouted(host, state) {
-  const pac = buildPacScript(state);
-  if (!pac) return false;
-  const presets = state.presets || {};
-  const aiOn = ['gemini', 'aiStudio', 'notebookLM'].some((k) => presets[k]?.enabled);
-  for (const [key, p] of Object.entries(presets)) {
-    if (!p.enabled && !(key === 'googleAuth' && aiOn)) continue;
-    for (const d of p.domains || []) {
-      if (host === d || host.endsWith('.' + d)) return true;
-    }
-  }
-  for (const e of state.customDomains || []) {
-    const v = e.value;
-    if (e.mode === 'wildcard') {
-      if (host !== v && host.endsWith('.' + v)) return true;
-    } else if (e.mode === 'exact') {
-      if (host === v) return true;
-    } else {
-      if (host === v || host.endsWith('.' + v)) return true;
-    }
-  }
-  return false;
-}
-
 // --- popup messaging ------------------------------------------------------
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
@@ -146,8 +144,12 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     runProxyTest('https://ipinfo.io/json').then(sendResponse);
     return true; // async response
   }
-  if (msg?.type === 'TEST_GEMINI') {
-    runProxyTest('https://gemini.google.com/').then(sendResponse);
+  if (msg?.type === 'TEST_SERVICE') {
+    // Sanitize to a bare hostname before building the URL (defensive — domain
+    // comes from a runtime message).
+    const domain = String(msg.domain || '').replace(/[^a-z0-9.-]/gi, '');
+    if (!domain) { sendResponse({ ok: false, error: 'нет домена для проверки' }); return false; }
+    runProxyTest(`https://${domain}/`).then(sendResponse);
     return true;
   }
   if (msg?.type === 'DETECT_SCHEME') {
@@ -176,11 +178,16 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     (async () => {
       try {
         const state = await loadState();
-        state.proxySource = msg.source === 'free' ? 'free' : 'manual';
+        state.proxySource = (msg.source === 'free' || msg.source === 'own') ? msg.source : 'manual';
         if (state.proxySource === 'manual') {
           state.proxy = state.manualProxy ? { ...state.manualProxy } : null;
           await saveState(state);
           sendResponse({ ok: true, state });
+          return;
+        }
+        if (state.proxySource === 'own') {
+          const ns = await selectOwnProxy(state, { markCurrentDead: false });
+          sendResponse({ ok: !!ns.ownPool?.selected, state: ns });
           return;
         }
         // → 'free'
@@ -222,6 +229,44 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         sendResponse({ ok: !!newState.freeProxy.selected, state: newState });
       } catch (err) {
         console.error('[bg] ROTATE_FREE failed:', err);
+        sendResponse({ ok: false, error: String(err?.message || err) });
+      }
+    })();
+    return true;
+  }
+
+  if (msg?.type === 'SET_OWN_POOL') {
+    (async () => {
+      try {
+        const state = await loadState();
+        state.ownPool = state.ownPool || { proxies: [], deadHosts: {}, selected: null, lastError: null };
+        state.ownPool.raw = String(msg.raw || '');
+        state.ownPool.proxies = Array.isArray(msg.proxies) ? msg.proxies : [];
+        state.ownPool.deadHosts = {};        // fresh list → forget old dead marks
+        state.ownPool.selected = null;
+        if (state.proxySource === 'own') {
+          const ns = await selectOwnProxy(state, { markCurrentDead: false });
+          sendResponse({ ok: !!ns.ownPool?.selected, state: ns });
+        } else {
+          await saveState(state);
+          sendResponse({ ok: true, state });
+        }
+      } catch (err) {
+        console.error('[bg] SET_OWN_POOL failed:', err);
+        sendResponse({ ok: false, error: String(err?.message || err) });
+      }
+    })();
+    return true;
+  }
+
+  if (msg?.type === 'ROTATE_OWN') {
+    (async () => {
+      try {
+        const state = await loadState();
+        const ns = await selectOwnProxy(state, { markCurrentDead: true });
+        sendResponse({ ok: !!ns.ownPool?.selected, state: ns });
+      } catch (err) {
+        console.error('[bg] ROTATE_OWN failed:', err);
         sendResponse({ ok: false, error: String(err?.message || err) });
       }
     })();
@@ -345,6 +390,38 @@ async function rotateFreeProxy(state, { markCurrentDead = true } = {}) {
   }
 }
 
+/**
+ * Periodic free-pool refresh (chrome.alarms 'free-pool-refresh', every 5 min =
+ * the Proxifly list TTL). No-op unless enabled and on the free pool.
+ *
+ * Deliberately does NOT actively re-validate a *working* selected proxy: that
+ * would require hijacking chrome.proxy.settings (validateProxy routes traffic
+ * through the candidate), blipping every routed domain — including an active
+ * stream — every 5 minutes, and briefly exposing non-preset traffic to an
+ * untrusted free proxy. Instead:
+ *   - no working proxy selected → pick one now (settings hijack during the pick
+ *     is harmless: routing is already DIRECT, nothing live to disrupt). This
+ *     auto-recovers a pool that dropped while the user was idle.
+ *   - working proxy selected    → just refresh the Proxifly list (a plain GET,
+ *     no proxy hijack) and bump poolFetchedAt so "Список обновлён N мин назад" is
+ *     honest. A proxy that dies mid-use is rotated reactively by handleProxyError
+ *     the moment a routed request fails.
+ */
+async function refreshFreeProxy() {
+  const state = await loadState();
+  if (!state.enabled || state.proxySource !== 'free') return;
+  if (rotationInProgress) return;
+
+  if (!state.freeProxy?.selected) {
+    await rotateFreeProxy(state, { markCurrentDead: false });
+    return;
+  }
+
+  await fetchPool({ force: true });
+  state.freeProxy.poolFetchedAt = Date.now();
+  await saveState(state);
+}
+
 function registerProxyErrorListener() {
   chrome.webRequest.onErrorOccurred.addListener(
     (details) => {
@@ -377,8 +454,48 @@ async function handleProxyError(details) {
   globalThis.__lastRotateAt = now;
 
   const state = await loadState();
-  if (state.proxySource !== 'free') return;
-  await rotateFreeProxy(state, { markCurrentDead: true });
+  if (state.proxySource === 'free') {
+    await rotateFreeProxy(state, { markCurrentDead: true });
+  } else if (state.proxySource === 'own') {
+    await selectOwnProxy(state, { markCurrentDead: true });
+  }
+}
+
+// Pick the next live proxy from the user's own pool (proxySource === 'own').
+// Optimistic — no upfront validation: private proxies need auth that only kicks
+// in via onAuthRequired on state.proxy. A dead pick is rotated reactively by
+// handleProxyError; "Проверить прокси" verifies the current one (with auth).
+async function selectOwnProxy(state, { markCurrentDead = true } = {}) {
+  if (state.proxySource !== 'own') return state;
+  const pool = state.ownPool = state.ownPool
+    || { raw: '', proxies: [], deadHosts: {}, selected: null, lastError: null };
+  pool.deadHosts = pool.deadHosts || {};
+  const now = Date.now();
+  for (const k of Object.keys(pool.deadHosts)) if (pool.deadHosts[k] < now) delete pool.deadHosts[k];
+  if (markCurrentDead && pool.selected) {
+    pool.deadHosts[`${pool.selected.host}:${pool.selected.port}`] = now + DEAD_HOST_TTL_MS;
+  }
+  const next = nextLiveProxy(pool.proxies, pool.deadHosts, now);
+  if (next) {
+    pool.selected = { ...next };
+    pool.lastError = null;
+    state.proxy = {
+      host: next.host,
+      port: Number(next.port),
+      scheme: next.scheme || 'http',
+      user: next.user || '',
+      pass: next.pass || '',
+      lastTest: null,
+    };
+  } else {
+    pool.selected = null;
+    pool.lastError = (pool.proxies || []).length
+      ? 'Все твои прокси временно недоступны — подожди или проверь адреса.'
+      : 'Список пуст — вставь свои прокси.';
+    state.proxy = null;
+  }
+  await saveState(state);
+  return state;
 }
 
 // Auto-detect which protocol the proxy speaks.

@@ -11,7 +11,7 @@
     <!-- Main screen -->
     <section id="screen-main" class="screen" hidden>
       <header class="header">
-        <div class="logo">🌐</div>
+        <div class="logo-app">🌐</div>
         <div class="header-text">
           <div class="title">ProxyPilot</div>
           <div class="status" id="status-line">—</div>
@@ -31,14 +31,19 @@
       <div class="ai-free-banner" id="ai-free-banner" hidden>
         <span class="ai-free-icon">⚠</span>
         <span class="ai-free-text">
-          Бесплатный прокси с AI-сервисами — Google может пометить аккаунт.
-          Для входа в Google используй свой прокси.
+          Бесплатный публичный прокси не доверенный — не входи в важные аккаунты,
+          пока трафик идёт через него. Некоторые сервисы могут заблокировать аккаунт.
         </span>
       </div>
 
       <section class="block">
-        <div class="block-label">Маршрутизируемые сервисы</div>
+        <div class="block-label-row">
+          <div class="block-label">Сервисы<span class="enabled-count" id="enabled-count"></span></div>
+          <button type="button" class="link-btn" id="reset-presets" hidden>Сбросить</button>
+        </div>
+        <input type="search" class="preset-search" id="preset-search" placeholder="Поиск сервиса…" autocomplete="off" />
         <div class="preset-grid" id="preset-grid"></div>
+        <div class="preset-empty" id="preset-empty" hidden>Ничего не найдено</div>
       </section>
 
       <section class="block">
@@ -66,8 +71,22 @@
         <div class="block-label">Источник прокси</div>
         <div class="pill-group" id="source-pills">
           <button type="button" data-source="manual" class="pill">Свой</button>
-          <button type="button" data-source="free"   class="pill">Бесплатный пул</button>
+          <button type="button" data-source="own"    class="pill">Свой пул</button>
+          <button type="button" data-source="free"   class="pill">Бесплатный</button>
         </div>
+      </section>
+
+      <section class="block" id="own-block" hidden>
+        <div class="block-label">Свой пул прокси</div>
+        <textarea id="own-list" class="own-list" rows="5" spellcheck="false" autocomplete="off"
+          placeholder="По одному прокси на строку:&#10;socks5://user:pass@host:port&#10;http://host:port&#10;host:port:user:pass"></textarea>
+        <div class="own-meta" id="own-meta"></div>
+        <div class="own-current" id="own-current">Прокси не выбран</div>
+        <div class="row">
+          <button type="button" class="action" id="save-own">Сохранить и подключить</button>
+          <button type="button" class="action" id="rotate-own">↻ Следующий</button>
+        </div>
+        <div class="hint">Если выбранный прокси перестанет отвечать — переключусь на следующий. Без протокола строка считается http. Проверить текущий — кнопкой «Проверить прокси».</div>
       </section>
 
       <section class="block free-block" id="free-block" hidden>
@@ -119,7 +138,7 @@
       <section class="block">
         <div class="row">
           <button type="button" class="action" id="test-proxy">Проверить прокси</button>
-          <button type="button" class="action" id="test-gemini">Проверить Gemini</button>
+          <button type="button" class="action" id="test-service">Проверить сервис</button>
         </div>
         <div class="result-block" id="test-result" hidden></div>
       </section>
@@ -141,7 +160,7 @@
     <!-- First-run screen -->
     <section id="screen-firstrun" class="screen" hidden>
       <header class="header">
-        <div class="logo amber">🌐</div>
+        <div class="logo-app amber">🌐</div>
         <div class="header-text">
           <div class="title">ProxyPilot</div>
           <div class="status amber">⚠ Нужна настройка</div>
