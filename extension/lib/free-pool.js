@@ -419,3 +419,18 @@ export async function pickAndValidate(state, { onProgress } = {}) {
       : `Рабочий прокси не найден (проверено ${attempted.length}). Попробуй позже или укажи свой.`,
   };
 }
+
+/** Дедуп по protocol:host:port. При дубле: max score, OR httpsCapable, первое непустое country/anonymity. */
+export function dedupePool(list) {
+  const map = new Map();
+  for (const p of list) {
+    const key = `${p.protocol}:${p.host}:${p.port}`;
+    const existing = map.get(key);
+    if (!existing) { map.set(key, { ...p }); continue; }
+    existing.score = Math.max(existing.score || 0, p.score || 0);
+    existing.httpsCapable = existing.httpsCapable || p.httpsCapable;
+    if (!existing.country && p.country) existing.country = p.country;
+    if (!existing.anonymity && p.anonymity) existing.anonymity = p.anonymity;
+  }
+  return [...map.values()];
+}

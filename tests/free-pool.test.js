@@ -518,6 +518,30 @@ test('parseTxt: стрипает inline-комментарий и пустые �
   assert.equal(pool[0].port, 8080);
 });
 
+import { dedupePool } from '../extension/lib/free-pool.js';
+
+test('dedupePool: дубль protocol:host:port сливается (max score, OR httpsCapable, первое непустое country)', () => {
+  const merged = dedupePool([
+    { host: '1.1.1.1', port: 80, protocol: 'http', country: null, score: 10, anonymity: null, httpsCapable: false },
+    { host: '1.1.1.1', port: 80, protocol: 'http', country: 'NL', score: 50, anonymity: 'elite', httpsCapable: true },
+    { host: '2.2.2.2', port: 1080, protocol: 'socks5', country: 'US', score: 0, anonymity: null, httpsCapable: true },
+  ]);
+  assert.equal(merged.length, 2);
+  const first = merged.find((p) => p.host === '1.1.1.1');
+  assert.equal(first.score, 50);
+  assert.equal(first.httpsCapable, true);
+  assert.equal(first.country, 'NL');
+  assert.equal(first.anonymity, 'elite');
+});
+
+test('dedupePool: разные протоколы на одном host:port — это разные записи', () => {
+  const merged = dedupePool([
+    { host: '1.1.1.1', port: 80, protocol: 'http', country: null, score: 0, anonymity: null, httpsCapable: false },
+    { host: '1.1.1.1', port: 80, protocol: 'socks5', country: null, score: 0, anonymity: null, httpsCapable: true },
+  ]);
+  assert.equal(merged.length, 2);
+});
+
 test('parseProxifly: битый JSON-массив → пусто, не throw', () => {
   assert.deepEqual(parseProxifly('[{bad json'), []);
 });
