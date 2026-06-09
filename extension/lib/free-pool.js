@@ -8,7 +8,6 @@
 //
 // Three-tier cache (memory → chrome.storage → network) mirrors lib/rkn-check.js.
 
-const POOL_URL = 'https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/all/data.json';
 const POOL_TTL_MS = 5 * 60 * 1000;
 const POOL_CACHE_KEY = 'freeProxyPoolCache';
 const FETCH_TIMEOUT_MS = 15_000;
@@ -157,9 +156,9 @@ export function parseTxt(text, proto) {
 }
 
 /**
- * Fetch the Proxifly pool. Three-tier cache: memory → chrome.storage → network.
- * Returns normalized array of { host, port, protocol, country, score, anonymity }.
- * `force: true` skips both caches.
+ * Объединённый пул из всех SOURCES. Трёхуровневый кэш: память → chrome.storage
+ * → сеть. Кэш хранит УЖЕ нормализованный объединённый массив (не сырой JSON).
+ * `force: true` пропускает оба кэша.
  */
 export async function fetchPool({ force = false } = {}) {
   const now = Date.now();
@@ -171,8 +170,9 @@ export async function fetchPool({ force = false } = {}) {
   if (!force) {
     try {
       const cached = (await chrome.storage.local.get(POOL_CACHE_KEY))[POOL_CACHE_KEY];
-      if (cached && (now - cached.at) < POOL_TTL_MS) {
-        memoryPool = normalizePool(cached.raw);
+      // Принимаем только новый формат {pool, at}; старый {raw, at} игнорируем.
+      if (cached && Array.isArray(cached.pool) && (now - cached.at) < POOL_TTL_MS) {
+        memoryPool = cached.pool;
         memoryFetchedAt = cached.at;
         return memoryPool;
       }
@@ -181,18 +181,12 @@ export async function fetchPool({ force = false } = {}) {
     }
   }
 
-  const res = await fetch(POOL_URL, {
-    cache: 'no-store',
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-  });
-  if (!res.ok) throw new Error(`Proxifly fetch failed: HTTP ${res.status}`);
-  const text = await res.text();
-  const raw = parseRaw(text);
-  memoryPool = normalizePool(raw);
+  const pool = await fetchAllSources();
+  memoryPool = pool;
   memoryFetchedAt = now;
 
   try {
-    await chrome.storage.local.set({ [POOL_CACHE_KEY]: { raw, at: now } });
+    await chrome.storage.local.set({ [POOL_CACHE_KEY]: { pool, at: now } });
   } catch (err) {
     console.warn('[FreePool] Cache write failed:', err.message);
   }
@@ -200,43 +194,46 @@ export async function fetchPool({ force = false } = {}) {
   return memoryPool;
 }
 
-/**
- * Parse Proxifly response. Supports JSON array OR NDJSON (one JSON object per line).
- */
-function parseRaw(text) {
-  const trimmed = text.trim();
-  if (trimmed.startsWith('[')) {
-    return JSON.parse(trimmed);
-  }
-  // NDJSON
-  const out = [];
-  for (const line of trimmed.split('\n')) {
-    const s = line.trim();
-    if (!s) continue;
-    try { out.push(JSON.parse(s)); } catch { /* skip malformed */ }
-  }
-  return out;
-}
+export const SOURCES = [
+  { name: 'proxifly',    kind: 'proxifly',    url: 'https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/all/data.json' },
+  { name: 'proxyscrape', kind: 'proxyscrape', url: 'https://cdn.jsdelivr.net/gh/proxyscrape/free-proxy-list@main/proxies/all/data.json' },
+  { name: 'monosans',    kind: 'monosans',    url: 'https://raw.githubusercontent.com/monosans/proxy-list/main/proxies.json',          defaultScore: 60 },
+  { name: 'zloi-http',   kind: 'hideip', proto: 'http',   url: 'https://raw.githubusercontent.com/zloi-user/hideip.me/main/http.txt',   defaultScore: 55 },
+  { name: 'zloi-socks5', kind: 'hideip', proto: 'socks5', url: 'https://raw.githubusercontent.com/zloi-user/hideip.me/main/socks5.txt', defaultScore: 70 },
+  { name: 'hookzof',     kind: 'txt',    proto: 'socks5', url: 'https://raw.githubusercontent.com/hookzof/socks5_list/master/proxy.txt', defaultScore: 50 },
+];
 
-function normalizePool(raw) {
-  if (!Array.isArray(raw)) return [];
-  const out = [];
-  for (const entry of raw) {
-    const host = entry?.ip;
-    const port = Number(entry?.port);
-    const protocol = entry?.protocol;
-    const country = entry?.geolocation?.country || entry?.country || null;
-    const score = Number(entry?.score) || 0;
-    const anonymity = entry?.anonymity || null;
-    // Can this proxy tunnel HTTPS? Every routed site is HTTPS, so a proxy with
-    // https:false is useless for us even when it's "alive". SOCKS proxies tunnel
-    // any TCP, so treat them as HTTPS-capable regardless of the flag.
-    const httpsCapable = entry?.https === true || protocol === 'socks4' || protocol === 'socks5';
-    if (!host || !port || !Number.isInteger(port) || port < 1 || port > 65535) continue;
-    if (!['http', 'https', 'socks4', 'socks5'].includes(protocol)) continue;
-    out.push({ host, port, protocol, country, score, anonymity, httpsCapable });
+const ADAPTERS = {
+  proxifly: parseProxifly,
+  proxyscrape: parseProxyscrape,
+  monosans: parseMonosans,
+  hideip: parseHideip,
+  txt: parseTxt,
+};
+
+/**
+ * Тянет все SOURCES параллельно (Promise.allSettled — падение одного фида не
+ * роняет остальные), нормализует адаптером, применяет дефолтный score фида к
+ * записям без score, сливает с дедупом. Бросает, только если упали ВСЕ источники.
+ */
+export async function fetchAllSources() {
+  const settled = await Promise.allSettled(SOURCES.map(async (src) => {
+    const res = await fetch(src.url, { cache: 'no-store', signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    if (!res.ok) throw new Error(`${src.name}: HTTP ${res.status}`);
+    const text = await res.text();
+    const parsed = ADAPTERS[src.kind](text, src.proto);
+    if (src.defaultScore) for (const p of parsed) if (!p.score) p.score = src.defaultScore;
+    return parsed;
+  }));
+
+  const merged = [];
+  let okCount = 0;
+  for (let i = 0; i < settled.length; i++) {
+    if (settled[i].status === 'fulfilled') { okCount++; merged.push(...settled[i].value); }
+    else console.warn(`[FreePool] источник ${SOURCES[i].name} недоступен:`, settled[i].reason?.message || settled[i].reason);
   }
-  return out;
+  if (okCount === 0) throw new Error('все источники недоступны');
+  return dedupePool(merged);
 }
 
 // Reset memory cache — used by tests. Not exported in production usage.

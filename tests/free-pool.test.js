@@ -50,7 +50,7 @@ function ok204() {
   return mockResponse({ ok: true, status: 204, text: '' });
 }
 
-import { fetchPool, __resetMemoryCache } from '../extension/lib/free-pool.js';
+import { fetchPool, __resetMemoryCache, fetchAllSources, SOURCES } from '../extension/lib/free-pool.js';
 
 const SAMPLE_POOL = [
   { proxy: 'socks5://1.2.3.4:1080', protocol: 'socks5', ip: '1.2.3.4', port: 1080, anonymity: 'elite',  score: 100, geolocation: { country: 'NL' } },
@@ -58,78 +58,83 @@ const SAMPLE_POOL = [
   { proxy: 'socks4://9.9.9.9:1234', protocol: 'socks4', ip: '9.9.9.9', port: 1234, anonymity: 'elite',  score: 50,  geolocation: { country: 'US' } },
 ];
 
-test('fetchPool: parses Proxifly JSON array', async () => {
+test('SOURCES: 6 источников с обязательными полями', () => {
+  assert.equal(SOURCES.length, 6);
+  for (const s of SOURCES) {
+    assert.ok(s.name && s.url && s.kind, `источник без обязательных полей: ${JSON.stringify(s)}`);
+  }
+});
+
+test('fetchAllSources: склеивает успешные, дефолтный score применяется', async () => {
+  const proxiflyOne = [{ protocol: 'socks5', ip: '1.2.3.4', port: 1080, anonymity: 'elite', score: 0, geolocation: { country: 'NL' } }];
+  const monosansOne = [{ protocol: 'socks5', host: '5.6.7.8', port: 1080, geolocation: { country: { iso_code: 'US' } } }];
+  mockFetchResponses.push(mockResponse({ text: JSON.stringify(proxiflyOne) }));   // proxifly
+  mockFetchResponses.push(mockResponse({ text: '[]' }));                          // proxyscrape
+  mockFetchResponses.push(mockResponse({ text: JSON.stringify(monosansOne) }));   // monosans (defaultScore)
+  mockFetchResponses.push(mockResponse({ text: '' }));                            // zloi-http
+  mockFetchResponses.push(mockResponse({ text: '' }));                            // zloi-socks5
+  mockFetchResponses.push(mockResponse({ text: '' }));                            // hookzof
+  const pool = await fetchAllSources();
+  const mono = pool.find((p) => p.host === '5.6.7.8');
+  assert.ok(mono, 'monosans запись присутствует');
+  assert.ok(mono.score > 0, 'дефолтный score применён к фиду без score');
+  assert.ok(pool.find((p) => p.host === '1.2.3.4'), 'proxifly запись присутствует');
+});
+
+test('fetchAllSources: один источник падает — пул собирается из остальных', async () => {
+  mockFetchResponses.push(new Error('proxifly down'));                            // proxifly падает
+  for (let i = 1; i < SOURCES.length - 1; i++) mockFetchResponses.push(mockResponse({ text: '[]' }));
+  mockFetchResponses.push(mockResponse({ text: '9.9.9.9:1080\n' }));              // hookzof (txt socks5)
+  const pool = await fetchAllSources();
+  assert.ok(pool.find((p) => p.host === '9.9.9.9'));
+});
+
+test('fetchAllSources: все источники упали → throw', async () => {
+  for (let i = 0; i < SOURCES.length; i++) mockFetchResponses.push(new Error('down'));
+  await assert.rejects(() => fetchAllSources(), /источник/i);
+});
+
+// Хелпер: ставит ответы так, что только proxifly (1-й источник) отдаёт пул,
+// остальные 5 «падают». Итоговый пул fetchPool === переданные записи.
+function queuePool(poolArrayOrText) {
+  const text = typeof poolArrayOrText === 'string' ? poolArrayOrText : JSON.stringify(poolArrayOrText);
+  mockFetchResponses.push(mockResponse({ text }));                 // proxifly
+  for (let i = 1; i < SOURCES.length; i++) mockFetchResponses.push(new Error('source down'));
+}
+
+test('fetchPool: память-кэш отдаёт те же данные без повторной сети', async () => {
   __resetMemoryCache();
-  mockFetchResponses.push(mockResponse({ text: JSON.stringify(SAMPLE_POOL) }));
-  const pool = await fetchPool({ force: true });
-  assert.equal(pool.length, 3);
+  queuePool(SAMPLE_POOL);
+  const first = await fetchPool({ force: true });
+  const callsAfterFirst = mockFetchCalls.length;
+  const second = await fetchPool();
+  assert.equal(mockFetchCalls.length, callsAfterFirst);
+  assert.equal(second.length, first.length);
+});
+
+test('fetchPool: chrome.storage кэш (формат {pool, at}) при холодной памяти', async () => {
+  __resetMemoryCache();
+  const cachedPool = [{ host: '1.2.3.4', port: 1080, protocol: 'socks5', country: 'NL', score: 100, anonymity: 'elite', httpsCapable: true }];
+  mockStorage['freeProxyPoolCache'] = { pool: cachedPool, at: Date.now() - 60_000 };
+  const pool = await fetchPool();
+  assert.equal(mockFetchCalls.length, 0);
   assert.equal(pool[0].host, '1.2.3.4');
-  assert.equal(pool[0].port, 1080);
-  assert.equal(pool[0].protocol, 'socks5');
-  assert.equal(pool[0].country, 'NL');
-  assert.equal(pool[0].score, 100);
-  assert.equal(pool[0].anonymity, 'elite');
 });
 
-test('fetchPool: parses NDJSON', async () => {
+test('fetchPool: протухший storage-кэш → сеть', async () => {
   __resetMemoryCache();
-  const ndjson = SAMPLE_POOL.map((e) => JSON.stringify(e)).join('\n');
-  mockFetchResponses.push(mockResponse({ text: ndjson }));
-  const pool = await fetchPool({ force: true });
-  assert.equal(pool.length, 3);
-  assert.equal(pool[0].host, '1.2.3.4');
+  mockStorage['freeProxyPoolCache'] = { pool: [], at: Date.now() - (6 * 60 * 1000) };
+  queuePool(SAMPLE_POOL);
+  await fetchPool();
+  assert.ok(mockFetchCalls.length > 0);
 });
 
-test('fetchPool: drops entries missing ip or port', async () => {
-  __resetMemoryCache();
-  const data = [
-    { protocol: 'http', port: 80, geolocation: { country: 'US' } },                              // no ip
-    { protocol: 'http', ip: '1.2.3.4', geolocation: { country: 'US' } },                          // no port
-    { protocol: 'http', ip: '1.2.3.4', port: 'abc', geolocation: { country: 'US' } },             // invalid port
-    { protocol: 'http', ip: '1.2.3.4', port: 99999, geolocation: { country: 'US' } },             // port out of range
-    { protocol: 'http', ip: '1.2.3.4', port: 8080, geolocation: { country: 'US' } },              // valid
-  ];
-  mockFetchResponses.push(mockResponse({ text: JSON.stringify(data) }));
-  const pool = await fetchPool({ force: true });
-  assert.equal(pool.length, 1);
-  assert.equal(pool[0].host, '1.2.3.4');
-});
-
-test('fetchPool: drops unknown protocol', async () => {
-  __resetMemoryCache();
-  const data = [
-    { protocol: 'foobar', ip: '1.2.3.4', port: 80, geolocation: { country: 'US' } },
-    { protocol: 'socks5', ip: '5.6.7.8', port: 1080, geolocation: { country: 'US' } },
-  ];
-  mockFetchResponses.push(mockResponse({ text: JSON.stringify(data) }));
-  const pool = await fetchPool({ force: true });
-  assert.equal(pool.length, 1);
-  assert.equal(pool[0].protocol, 'socks5');
-});
-
-test('fetchPool: memory cache returns same data without fetch on second call', async () => {
-  __resetMemoryCache();
-  mockFetchResponses.push(mockResponse({ text: JSON.stringify(SAMPLE_POOL) }));
-  await fetchPool({ force: true });
-  assert.equal(mockFetchCalls.length, 1);
-  await fetchPool();                      // no force, should hit memory
-  assert.equal(mockFetchCalls.length, 1); // still 1
-});
-
-test('fetchPool: chrome.storage cache used on cold memory', async () => {
+test('fetchPool: старый кэш {raw} (до 0.10.0) игнорируется → сеть', async () => {
   __resetMemoryCache();
   mockStorage['freeProxyPoolCache'] = { raw: SAMPLE_POOL, at: Date.now() - 60_000 };
-  const pool = await fetchPool();          // no force
-  assert.equal(mockFetchCalls.length, 0);  // didn't hit network
-  assert.equal(pool.length, 3);
-});
-
-test('fetchPool: expired chrome.storage cache → network fetch', async () => {
-  __resetMemoryCache();
-  mockStorage['freeProxyPoolCache'] = { raw: SAMPLE_POOL, at: Date.now() - (6 * 60 * 1000) }; // 6 min > 5 min TTL
-  mockFetchResponses.push(mockResponse({ text: JSON.stringify(SAMPLE_POOL) }));
+  queuePool(SAMPLE_POOL);
   await fetchPool();
-  assert.equal(mockFetchCalls.length, 1);
+  assert.ok(mockFetchCalls.length > 0);
 });
 
 import { filterPool } from '../extension/lib/free-pool.js';
@@ -252,7 +257,7 @@ import { pickAndValidate } from '../extension/lib/free-pool.js';
 test('pickAndValidate: first candidate alive → returns it with cand.country', async () => {
   __resetMemoryCache();
   const onePool = [{ protocol: 'socks5', ip: '1.2.3.4', port: 1080, anonymity: 'elite', score: 100, geolocation: { country: 'NL' } }];
-  mockFetchResponses.push(mockResponse({ text: JSON.stringify(onePool) }));  // pool fetch
+  queuePool(onePool);                                                          // pool fetch
   mockFetchResponses.push(ok204());                                           // validate
   const result = await pickAndValidate({ freeProxy: { deadHosts: {} } });
   assert.equal(result.pick.host, '1.2.3.4');
@@ -274,7 +279,7 @@ test('pickAndValidate: first 2 dead, 3rd alive → returns 3rd', async () => {
       { protocol: 'socks5', ip: '2.2.2.2', port: 1080, anonymity: 'elite', score: 50, geolocation: { country: 'NL' } },
       { protocol: 'socks5', ip: '3.3.3.3', port: 1080, anonymity: 'elite', score: 50, geolocation: { country: 'NL' } },
     ];
-    mockFetchResponses.push(mockResponse({ text: JSON.stringify(pool) }));
+    queuePool(pool);
     mockFetchResponses.push(new Error('dead 1'));
     mockFetchResponses.push(new Error('dead 2'));
     mockFetchResponses.push(ok204());
@@ -292,7 +297,7 @@ test('pickAndValidate: all dead → null pick with Russian error', async () => {
     { protocol: 'socks5', ip: '1.1.1.1', port: 1080, anonymity: 'elite', score: 10, geolocation: { country: 'NL' } },
     { protocol: 'socks5', ip: '2.2.2.2', port: 1080, anonymity: 'elite', score: 10, geolocation: { country: 'NL' } },
   ];
-  mockFetchResponses.push(mockResponse({ text: JSON.stringify(pool) }));
+  queuePool(pool);
   mockFetchResponses.push(new Error('dead'));
   mockFetchResponses.push(new Error('dead'));
   const result = await pickAndValidate({ freeProxy: { deadHosts: {} } });
@@ -306,7 +311,7 @@ test('pickAndValidate: empty filtered pool → null pick with specific error', a
   const pool = [
     { protocol: 'socks5', ip: '1.1.1.1', port: 1080, anonymity: 'elite', score: 100, geolocation: { country: 'RU' } }, // all blocked
   ];
-  mockFetchResponses.push(mockResponse({ text: JSON.stringify(pool) }));
+  queuePool(pool);
   const result = await pickAndValidate({ freeProxy: { deadHosts: {} } });
   assert.equal(result.pick, null);
   assert.match(result.error, /нет подходящих прокси/);
@@ -314,7 +319,7 @@ test('pickAndValidate: empty filtered pool → null pick with specific error', a
 
 test('pickAndValidate: pool fetch fails → null pick with fetch error', async () => {
   __resetMemoryCache();
-  mockFetchResponses.push(new Error('network down'));
+  for (let i = 0; i < SOURCES.length; i++) mockFetchResponses.push(new Error('network down'));
   const result = await pickAndValidate({ freeProxy: { deadHosts: {} } });
   assert.equal(result.pick, null);
   assert.match(result.error, /не удалось загрузить список/);
@@ -327,7 +332,7 @@ test('pickAndValidate: iterates ALL filtered candidates (no hard cap)', async ()
   for (let i = 0; i < 20; i++) {
     pool.push({ protocol: 'socks5', ip: `10.0.0.${i + 1}`, port: 1080, anonymity: 'elite', score: 50, geolocation: { country: 'NL' } });
   }
-  mockFetchResponses.push(mockResponse({ text: JSON.stringify(pool) }));
+  queuePool(pool);
   for (let i = 0; i < 20; i++) mockFetchResponses.push(new Error('dead'));
   const result = await pickAndValidate({ freeProxy: { deadHosts: {} } });
   assert.equal(result.pick, null);
@@ -344,7 +349,7 @@ test('pickAndValidate: invokes onProgress before each validation', async () => {
   const origRandom = Math.random;
   Math.random = () => 0.999;
   try {
-    mockFetchResponses.push(mockResponse({ text: JSON.stringify(pool) }));
+    queuePool(pool);
     mockFetchResponses.push(new Error('dead'));
     mockFetchResponses.push(new Error('dead'));
     mockFetchResponses.push(ok204());
@@ -370,7 +375,7 @@ test('pickAndValidate: throwing onProgress does not break validation', async () 
   const pool = [
     { protocol: 'socks5', ip: '1.1.1.1', port: 1080, anonymity: 'elite', score: 50, geolocation: { country: 'NL' } },
   ];
-  mockFetchResponses.push(mockResponse({ text: JSON.stringify(pool) }));
+  queuePool(pool);
   mockFetchResponses.push(ok204());
   const result = await pickAndValidate(
     { freeProxy: { deadHosts: {} } },
@@ -394,7 +399,7 @@ test('pickAndValidate: caps probes at MAX_VALIDATION_ATTEMPTS', async () => {
   const n = MAX_VALIDATION_ATTEMPTS + 10;
   const pool = Array.from({ length: n }, (_, i) =>
     ({ protocol: 'socks5', ip: `9.9.9.${i}`, port: 1080, anonymity: 'elite', score: 1, geolocation: { country: 'NL' } }));
-  mockFetchResponses.push(mockResponse({ text: JSON.stringify(pool) }));
+  queuePool(pool);
   for (let i = 0; i < n; i++) mockFetchResponses.push(new Error('dead'));
   const result = await pickAndValidate({ freeProxy: { deadHosts: {} } });
   assert.equal(result.pick, null);
