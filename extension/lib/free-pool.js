@@ -24,7 +24,7 @@ export const DEAD_HOST_TTL_MS = 30 * 60 * 1000;
 // Cap how many candidates we probe per pick. Public free lists can have hundreds
 // of dead entries; at 5s each, probing them all would take ~30 min. Stop early
 // and tell the user honestly instead.
-export const MAX_VALIDATION_ATTEMPTS = 30;
+export const MAX_VALIDATION_ATTEMPTS = 40;
 
 let memoryPool = null;
 let memoryFetchedAt = 0;
