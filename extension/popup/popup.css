@@ -573,19 +573,132 @@ html, body {
 .cta:active { transform: translateY(1px); }
 
 /* Free proxy pool — settings screen */
-.free-block .free-current {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 13px;
-  padding: 8px 10px;
+
+/* Status card: one calm surface that morphs through idle → searching → found → error. */
+.free-state {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 12px;
   background: var(--bg-2);
-  color: var(--text);
-  border-radius: 6px;
-  margin-bottom: 6px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  margin-bottom: 10px;
+  transition: background 0.25s ease, border-color 0.25s ease;
 }
+.free-state[data-state="found"] {
+  background: rgba(16, 185, 129, 0.07);
+  border-color: rgba(16, 185, 129, 0.40);
+}
+.free-state[data-state="error"] {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.38);
+}
+
+.free-icon {
+  width: 36px; height: 36px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  background: var(--bg-group);
+  color: var(--text-dim);
+  transition: background 0.25s ease;
+}
+.free-state[data-state="found"] .free-icon {
+  background: var(--green);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+  animation: free-pop 0.42s cubic-bezier(.2, .9, .3, 1.4);
+}
+.free-state[data-state="error"] .free-icon {
+  background: rgba(245, 158, 11, 0.16);
+}
+/* Searching: replace the glyph with a brand-gradient spinner. */
+.free-state[data-state="searching"] .free-icon { color: transparent; position: relative; }
+.free-state[data-state="searching"] .free-icon::after {
+  content: '';
+  position: absolute;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  border: 2.5px solid var(--border);
+  border-top-color: var(--indigo);
+  border-right-color: var(--cyan);
+  animation: free-spin 0.7s linear infinite;
+}
+@keyframes free-spin { to { transform: rotate(360deg); } }
+@keyframes free-pop {
+  0%   { transform: scale(0);    }
+  60%  { transform: scale(1.18); }
+  100% { transform: scale(1);    }
+}
+
+.free-body { flex: 1; min-width: 0; }
+.free-title { font-size: 13px; font-weight: 650; color: var(--text); line-height: 1.3; }
+.free-state[data-state="found"] .free-title { color: var(--green-ink); }
+.free-sub {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  margin-top: 3px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+/* Found state shows host:port — monospace reads better; other states are prose. */
+.free-state[data-state="found"] .free-sub {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Live progress while searching. */
+.free-progress { margin-top: 9px; }
+.free-progress[hidden] { display: none; }
+.free-bar {
+  height: 6px;
+  background: var(--bg-group);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.free-bar-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--indigo), var(--cyan));
+  transition: width 0.35s cubic-bezier(.3, .8, .3, 1);
+}
+.free-progress-text {
+  font-size: 10.5px;
+  color: var(--text-mute);
+  margin-top: 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Found-state detail chips: country, speed, protocol. */
+.free-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
+.free-badges[hidden] { display: none; }
+.free-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 99px;
+  background: var(--bg-group);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.free-badge.speed-fast { background: rgba(16, 185, 129, 0.14); color: var(--green-ink); }
+.free-badge.speed-mid  { background: rgba(245, 158, 11, 0.14); color: var(--amber-ink); }
+.free-badge.speed-slow { background: rgba(239, 68, 68, 0.12);  color: var(--red-ink); }
+
 .free-block .free-pool-meta {
   font-size: 11px;
   color: var(--text-mute);
-  margin-bottom: 10px;
+  margin-top: 8px;
 }
 .free-block .free-warning {
   font-size: 11px;
@@ -596,8 +709,24 @@ html, body {
   border-left: 3px solid #f59e0b;
   border-radius: 4px;
 }
-.free-block #rotate-free {
-  width: 100%;
+.free-block #rotate-free { width: 100%; }
+.free-block #rotate-free:disabled { cursor: wait; }
+
+/* Confetti overlay — celebratory burst when a live proxy is found. */
+#confetti {
+  position: fixed;
+  inset: 0;
+  width: 360px;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2000;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .free-state[data-state="found"] .free-icon { animation: none; }
+  .free-state[data-state="searching"] .free-icon::after { animation: none; }
+  .free-bar-fill { transition: none; }
 }
 
 /* Own pool */

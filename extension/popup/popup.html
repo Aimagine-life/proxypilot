@@ -91,9 +91,23 @@
 
       <section class="block free-block" id="free-block" hidden>
         <div class="block-label">Бесплатный пул прокси</div>
-        <div class="free-current" id="free-current">Прокси не выбран</div>
+
+        <div class="free-state" id="free-state" data-state="idle">
+          <div class="free-icon" id="free-icon" aria-hidden="true">🔍</div>
+          <div class="free-body">
+            <div class="free-title" id="free-title">Прокси ещё не подобран</div>
+            <div class="free-sub" id="free-sub">Нажми кнопку — найду рабочий за пару секунд.</div>
+            <div class="free-progress" id="free-progress" hidden>
+              <div class="free-bar"><div class="free-bar-fill" id="free-bar-fill"></div></div>
+              <div class="free-progress-text" id="free-progress-text"></div>
+            </div>
+            <div class="free-badges" id="free-badges" hidden></div>
+          </div>
+        </div>
+
+        <button type="button" class="action free-action" id="rotate-free">Подобрать прокси</button>
         <div class="free-pool-meta" id="free-pool-meta"></div>
-        <button type="button" class="action" id="rotate-free">↻ Сменить</button>
+
         <div class="free-warning">
           ⚠ Бесплатные прокси публичные и не доверенные. Не входи в важные
           аккаунты, пока трафик идёт через них.
@@ -174,6 +188,8 @@
       </section>
     </section>
   </div>
+
+  <canvas id="confetti" aria-hidden="true"></canvas>
 
   <script type="module" src="popup.js"></script>
 </body>

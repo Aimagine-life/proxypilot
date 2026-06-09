@@ -12,7 +12,7 @@
 const POOL_TTL_MS = 5 * 60 * 1000;
 const POOL_CACHE_KEY = 'freeProxyPoolCache';
 const FETCH_TIMEOUT_MS = 15_000;
-const VALIDATE_TIMEOUT_MS = 5_000;
+const VALIDATE_TIMEOUT_MS = 4_000;
 // Provider-neutral captive-portal probe (tiny 200 body, no rate limit). We
 // deliberately avoid Google's generate_204 (biases the pool toward proxies that
 // can reach Google specifically — a universal router routes many non-Google
@@ -21,10 +21,11 @@ const VALIDATE_TIMEOUT_MS = 5_000;
 const VALIDATE_URL = 'https://detectportal.firefox.com/success.txt';
 const BLOCKED_COUNTRIES = new Set(['RU', 'BY', 'CN', 'IR']);
 export const DEAD_HOST_TTL_MS = 30 * 60 * 1000;
-// Cap how many candidates we probe per pick. Public free lists can have hundreds
-// of dead entries; at 5s each, probing them all would take ~30 min. Stop early
-// and tell the user honestly instead.
-export const MAX_VALIDATION_ATTEMPTS = 40;
+// Cap how many candidates we probe per pick. Public free lists have hundreds of
+// dead entries; at 4s each, probing them all would take many minutes. Candidates
+// are pre-sorted (HTTPS-capable + trusted feeds first), so a live one is usually
+// found early — this cap just bounds the worst case and lets us stop honestly.
+export const MAX_VALIDATION_ATTEMPTS = 100;
 
 let memoryPool = null;
 let memoryFetchedAt = 0;
@@ -341,9 +342,9 @@ function buildAllThroughPac({ host, port, protocol }) {
 }
 
 /**
- * Fetch pool, filter by deadHosts from state.freeProxy, validate ALL filtered
- * candidates sequentially until one passes. No hard cap on attempts — caller
- * can interrupt by ignoring the response (popup closes, etc.).
+ * Fetch pool, filter by deadHosts from state.freeProxy, validate candidates
+ * sequentially until one passes or MAX_VALIDATION_ATTEMPTS is reached. Caller
+ * can also interrupt by ignoring the response (popup closes, etc.).
  *
  * Does NOT mutate the passed-in state. Caller is responsible for writing
  * state.freeProxy.selected / deadHosts / poolFetchedAt based on the return value.

@@ -7,6 +7,9 @@ const $ = (sel) => document.querySelector(sel);
 let state = null;
 let searchQuery = '';            // live preset filter (popup-session only)
 const collapsedCats = {};        // { categoryKey: true } — collapsed groups
+let pickingFree = false;         // true while a free-pool pick/rotate is running
+let lastFreeStateKey = '';       // last rendered free state (drives confetti-on-success)
+let confettiRunning = false;     // guards against overlapping confetti bursts
 
 async function init() {
   state = await loadState();
@@ -453,43 +456,43 @@ function bindSettings() {
 
       // Instant feedback — flip the active tab and show the right block now.
       state.proxySource = source;
+      // A real pick only runs when switching to the free pool with nothing chosen
+      // yet — drive the searching state for that case (renderFreeBlock reads it).
+      if (source === 'free' && !state.freeProxy?.selected) pickingFree = true;
       renderSettings();
-      if (source === 'free' && !state.freeProxy?.selected) {
-        $('#free-current').textContent = 'Подбираем рабочий прокси…';
-      }
 
       try {
         const res = await chrome.runtime.sendMessage({ type: 'SWITCH_SOURCE', source });
-        if (res?.state) {
-          state = res.state;
-          renderSettings();
-        } else if (res?.error) {
-          $('#free-current').textContent = `Ошибка: ${res.error}`;
-        }
+        pickingFree = false;
+        if (res?.state) state = res.state;
+        else if (res?.error && source === 'free' && state.freeProxy) state.freeProxy.lastError = res.error;
+        renderSettings();
       } catch (err) {
-        $('#free-current').textContent = `Не удалось переключиться: ${err.message}`;
+        pickingFree = false;
+        if (source === 'free' && state.freeProxy) state.freeProxy.lastError = err.message;
+        renderSettings();
       }
     });
   }
 
   $('#rotate-free').addEventListener('click', async () => {
-    const btn = $('#rotate-free');
-    btn.disabled = true;
-    $('#free-current').textContent = 'Ищем рабочий прокси…';
+    if (pickingFree) return;            // a pick is already running
+    pickingFree = true;
+    renderSettings();                   // show the searching state immediately
     try {
       const res = await chrome.runtime.sendMessage({ type: 'ROTATE_FREE' });
+      pickingFree = false;
       if (res?.state) {
         state = res.state;
-        renderSettings();
-      } else {
-        // Background returned an error without state — re-render with current state so UI stays consistent
-        renderSettings();
-        if (res?.error) {
-          $('#free-current').textContent = `Ошибка: ${res.error}`;
-        }
+      } else if (res?.error && state.freeProxy) {
+        state.freeProxy.lastError = res.error;
+        state.freeProxy.selected = null;
       }
-    } finally {
-      btn.disabled = false;
+      renderSettings();
+    } catch (err) {
+      pickingFree = false;
+      if (state.freeProxy) state.freeProxy.lastError = err.message;
+      renderSettings();
     }
   });
 
@@ -539,24 +542,7 @@ function renderSettings() {
   }
 
   // Free-block render
-  if (isFree) {
-    const sel = state.freeProxy?.selected;
-    if (sel) {
-      const flag = sel.country ? `${countryFlag(sel.country)} ${sel.country}` : '—';
-      $('#free-current').textContent = `${sel.host}:${sel.port}  ${flag}  ${sel.latencyMs} мс`;
-    } else if (state.freeProxy?.lastError) {
-      $('#free-current').textContent = `Нет рабочего прокси: ${state.freeProxy.lastError}`;
-    } else {
-      $('#free-current').textContent = 'Прокси не выбран';
-    }
-    const fetchedAt = state.freeProxy?.poolFetchedAt;
-    if (fetchedAt) {
-      const ageMin = Math.floor((Date.now() - fetchedAt) / 60_000);
-      $('#free-pool-meta').textContent = `Список обновлён ${ageMin} мин назад`;
-    } else {
-      $('#free-pool-meta').textContent = '';
-    }
-  }
+  if (isFree) renderFreeBlock();
 
   // Own-pool render
   if (isOwn) {
@@ -583,6 +569,167 @@ function countryFlag(cc) {
   const upper = cc.toUpperCase();
   const A = 0x41, base = 0x1F1E6;
   return String.fromCodePoint(base + upper.charCodeAt(0) - A, base + upper.charCodeAt(1) - A);
+}
+
+// Render the free-pool status card as a small state machine:
+// idle → searching → found (confetti) → error. Reads pickingFree + state.freeProxy.
+function renderFreeBlock() {
+  const rotate = $('#rotate-free');
+  const sel = state.freeProxy?.selected;
+  const err = state.freeProxy?.lastError;
+
+  if (pickingFree) {
+    setFreeState('searching', {
+      title: 'Подбираю рабочий прокси…',
+      sub: 'Проверяю кандидатов вживую — это пара секунд.',
+      progress: { pct: 0, text: 'Запускаю проверку…' },
+    });
+    if (rotate) { rotate.disabled = true; rotate.textContent = 'Идёт подбор…'; }
+    lastFreeStateKey = 'searching';
+  } else if (sel) {
+    const country = sel.country
+      ? `${countryFlag(sel.country)} ${regionName(sel.country) || sel.country}`
+      : null;
+    const ms = sel.latencyMs;
+    const speed = typeof ms === 'number'
+      ? (ms < 600 ? { cls: 'speed-fast', label: 'быстрый' }
+        : ms < 1800 ? { cls: 'speed-mid', label: 'средний' }
+        : { cls: 'speed-slow', label: 'медленный' })
+      : null;
+    const proto = ({ http: 'HTTP', https: 'HTTPS', socks5: 'SOCKS5', socks4: 'SOCKS4' })[sel.scheme] || sel.scheme;
+    const badges = [];
+    if (country) badges.push({ text: country });
+    if (speed) badges.push({ text: `⚡ ${ms} мс · ${speed.label}`, cls: speed.cls });
+    if (proto) badges.push({ text: proto });
+
+    setFreeState('found', {
+      title: 'Готово — прокси подключён',
+      sub: `${sel.host}:${sel.port}`,
+      badges,
+    });
+    if (rotate) { rotate.disabled = false; rotate.textContent = '↻ Сменить прокси'; }
+
+    const key = `found:${sel.host}:${sel.port}`;
+    // Celebrate only on a real transition INTO a found proxy (after a search, or a
+    // rotate to a different one) — never on plain settings re-renders / reopen.
+    if (lastFreeStateKey === 'searching' ||
+        (lastFreeStateKey.startsWith('found:') && lastFreeStateKey !== key)) {
+      burstConfetti();
+    }
+    lastFreeStateKey = key;
+  } else if (err) {
+    setFreeState('error', { title: 'Живой прокси пока не нашёлся', sub: err });
+    if (rotate) { rotate.disabled = false; rotate.textContent = '↻ Попробовать ещё раз'; }
+    lastFreeStateKey = 'error';
+  } else {
+    setFreeState('idle', {
+      title: 'Прокси ещё не подобран',
+      sub: 'Нажми кнопку — найду рабочий за пару секунд.',
+    });
+    if (rotate) { rotate.disabled = false; rotate.textContent = 'Подобрать прокси'; }
+    lastFreeStateKey = 'idle';
+  }
+
+  const fetchedAt = state.freeProxy?.poolFetchedAt;
+  $('#free-pool-meta').textContent = fetchedAt
+    ? `Список обновлён ${Math.floor((Date.now() - fetchedAt) / 60_000)} мин назад`
+    : '';
+}
+
+// Apply a state to the free-pool card: data-state + icon + texts + optional
+// progress bar and detail badges.
+function setFreeState(stateName, { title = '', sub = '', progress = null, badges = null } = {}) {
+  const root = $('#free-state');
+  if (!root) return;
+  root.dataset.state = stateName;
+
+  const icon = $('#free-icon');
+  const titleEl = $('#free-title');
+  const subEl = $('#free-sub');
+  const prog = $('#free-progress');
+  const wrap = $('#free-badges');
+
+  if (icon) icon.textContent = { idle: '🔍', searching: '', found: '✓', error: '😕' }[stateName] ?? '';
+  if (titleEl) titleEl.textContent = title;
+  if (subEl) subEl.textContent = sub;
+
+  if (prog) {
+    if (progress) {
+      prog.hidden = false;
+      const fill = $('#free-bar-fill');
+      const txt = $('#free-progress-text');
+      if (fill) fill.style.width = `${progress.pct}%`;
+      if (txt) txt.textContent = progress.text;
+    } else {
+      prog.hidden = true;
+    }
+  }
+
+  if (wrap) {
+    if (badges && badges.length) {
+      wrap.hidden = false;
+      wrap.textContent = '';
+      for (const b of badges) {
+        const el = document.createElement('span');
+        el.className = b.cls ? `free-badge ${b.cls}` : 'free-badge';
+        el.textContent = b.text;
+        wrap.appendChild(el);
+      }
+    } else {
+      wrap.hidden = true;
+    }
+  }
+}
+
+// Celebratory confetti burst when a fresh live proxy is found. Pure canvas, no
+// deps; respects reduced-motion; self-clears after the animation.
+function burstConfetti() {
+  if (confettiRunning || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const canvas = $('#confetti');
+  if (!canvas) return;
+  confettiRunning = true;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width = canvas.offsetWidth || 360;
+  const H = canvas.height = canvas.offsetHeight || 560;
+  const colors = ['#10b981', '#6366f1', '#06b6d4', '#f59e0b', '#34d399'];
+  const N = 90;
+  const parts = [];
+  for (let i = 0; i < N; i++) {
+    const speed = 5 + (i % 7);
+    parts.push({
+      x: W / 2 + (i % 11 - 5) * 4,
+      y: H * 0.40,
+      vx: (i % 2 ? 1 : -1) * (1 + (i % 6)) * 0.7,
+      vy: -speed - (i % 4),
+      g: 0.22 + (i % 5) * 0.02,
+      size: 4 + (i % 4),
+      rot: (i / N) * Math.PI * 2,
+      vr: (i % 2 ? 1 : -1) * 0.18,
+      color: colors[i % colors.length],
+      rect: i % 2 === 0,
+    });
+  }
+  canvas.style.opacity = '1';
+  const start = performance.now();
+  const DUR = 1400;
+  function frame(now) {
+    const t = now - start;
+    ctx.clearRect(0, 0, W, H);
+    ctx.globalAlpha = t > DUR * 0.6 ? Math.max(0, 1 - (t - DUR * 0.6) / (DUR * 0.4)) : 1;
+    for (const p of parts) {
+      p.vy += p.g; p.vx *= 0.99; p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = p.color;
+      if (p.rect) ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+      else { ctx.beginPath(); ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2); ctx.fill(); }
+      ctx.restore();
+    }
+    if (t < DUR) requestAnimationFrame(frame);
+    else { ctx.clearRect(0, 0, W, H); canvas.style.opacity = '0'; confettiRunning = false; }
+  }
+  requestAnimationFrame(frame);
 }
 
 // Country code → Russian name, e.g. 'NL' → 'Нидерланды'. Falls back to '' on
@@ -722,12 +869,17 @@ async function autoDetectScheme() {
   });
 }
 
-// Receive live progress from background's pickAndValidate.
+// Receive live progress from background's pickAndValidate. Guarded by pickingFree
+// so a late/stray message can never overwrite the final found/error card (that
+// race is what made a successful pick look like the search had stalled).
 chrome.runtime.onMessage.addListener((msg) => {
-  if (msg?.type !== 'FREE_PROGRESS') return;
-  const el = $('#free-current');
-  if (!el) return;
-  el.textContent = `Проверка ${msg.index}/${msg.total} · ${msg.host}:${msg.port}`;
+  if (msg?.type !== 'FREE_PROGRESS' || !pickingFree) return;
+  const fill = $('#free-bar-fill');
+  const text = $('#free-progress-text');
+  const prog = $('#free-progress');
+  if (prog) prog.hidden = false;
+  if (fill) fill.style.width = `${Math.round((msg.index / msg.total) * 100)}%`;
+  if (text) text.textContent = `Проверено ${msg.index} из ${msg.total} · ${msg.host}:${msg.port}`;
 });
 
 // Watch storage changes for detect progress + general state updates.
