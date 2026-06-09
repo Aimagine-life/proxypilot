@@ -1,9 +1,10 @@
-// Free proxy pool — fetches Proxifly's public list, filters, picks one,
-// validates it by routing test traffic through Chrome's proxy. Used by the
-// background service worker when state.proxySource === 'free'.
+// Free proxy pool — fetches several public proxy lists (see SOURCES), merges +
+// dedupes them, filters, picks one, validates it by routing test traffic through
+// Chrome's proxy. Used by the background service worker when
+// state.proxySource === 'free'.
 //
 // Side effects:
-//   - network fetch to Proxifly's GitHub raw URL
+//   - network fetches to the feeds in SOURCES
 //   - temporary chrome.proxy.settings.set during validateProxy (restored on return)
 //
 // Three-tier cache (memory → chrome.storage → network) mirrors lib/rkn-check.js.
