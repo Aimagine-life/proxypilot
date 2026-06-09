@@ -414,3 +414,88 @@ test('nextLiveProxy: skips dead-marked, returns first live or null (own pool)', 
   assert.equal(nextLiveProxy(proxies, { 'a:1': now + 1, 'b:2': now + 1, 'c:3': now + 1 }, now), null);
   assert.equal(nextLiveProxy([], {}, now), null);
 });
+
+import {
+  makeProxy, parseProxifly, parseProxyscrape, parseMonosans, parseHideip, parseTxt,
+} from '../extension/lib/free-pool.js';
+
+test('makeProxy: валидная socks5 запись → httpsCapable=true', () => {
+  const p = makeProxy({ host: '1.2.3.4', port: 1080, protocol: 'socks5', country: 'NL' });
+  assert.deepEqual(p, { host: '1.2.3.4', port: 1080, protocol: 'socks5', country: 'NL', score: 0, anonymity: null, httpsCapable: true });
+});
+
+test('makeProxy: http без https-флага → httpsCapable=false', () => {
+  assert.equal(makeProxy({ host: '1.2.3.4', port: 80, protocol: 'http' }).httpsCapable, false);
+});
+
+test('makeProxy: http с https=true → httpsCapable=true', () => {
+  assert.equal(makeProxy({ host: '1.2.3.4', port: 80, protocol: 'http', https: true }).httpsCapable, true);
+});
+
+test('makeProxy: невалидный порт/хост/протокол → null', () => {
+  assert.equal(makeProxy({ host: '1.2.3.4', port: 99999, protocol: 'http' }), null);
+  assert.equal(makeProxy({ host: '', port: 80, protocol: 'http' }), null);
+  assert.equal(makeProxy({ host: '1.2.3.4', port: 80, protocol: 'foobar' }), null);
+});
+
+test('parseProxifly: JSON array', () => {
+  const pool = parseProxifly(JSON.stringify(SAMPLE_POOL));
+  assert.equal(pool.length, 3);
+  assert.equal(pool[0].host, '1.2.3.4');
+  assert.equal(pool[0].country, 'NL');
+  assert.equal(pool[0].score, 100);
+  assert.equal(pool[0].anonymity, 'elite');
+});
+
+test('parseProxifly: NDJSON', () => {
+  const ndjson = SAMPLE_POOL.map((e) => JSON.stringify(e)).join('\n');
+  assert.equal(parseProxifly(ndjson).length, 3);
+});
+
+test('parseProxifly: отбрасывает без ip/port, невалидный порт, неизвестный протокол', () => {
+  const data = [
+    { protocol: 'http', port: 80, geolocation: { country: 'US' } },
+    { protocol: 'http', ip: '1.2.3.4', geolocation: { country: 'US' } },
+    { protocol: 'http', ip: '1.2.3.4', port: 99999, geolocation: { country: 'US' } },
+    { protocol: 'foobar', ip: '1.2.3.4', port: 80, geolocation: { country: 'US' } },
+    { protocol: 'http', ip: '1.2.3.4', port: 8080, geolocation: { country: 'US' } },
+  ];
+  const pool = parseProxifly(JSON.stringify(data));
+  assert.equal(pool.length, 1);
+  assert.equal(pool[0].host, '1.2.3.4');
+});
+
+test('parseProxyscrape: берёт country_code (ISO), ssl→httpsCapable, uptime_percent→score', () => {
+  const data = [{ protocol: 'http', ip: '9.9.9.9', port: 8080, country: 'Germany', country_code: 'DE', anonymity: 'elite', ssl: true, uptime_percent: 88 }];
+  const pool = parseProxyscrape(JSON.stringify(data));
+  assert.equal(pool[0].country, 'DE');
+  assert.equal(pool[0].httpsCapable, true);
+  assert.equal(pool[0].score, 88);
+});
+
+test('parseMonosans: host + geolocation.country.iso_code, RU-запись остаётся (отсев — в filterPool)', () => {
+  const data = [{ protocol: 'socks5', host: '147.45.146.97', port: 1080, geolocation: { country: { iso_code: 'RU' } } }];
+  const pool = parseMonosans(JSON.stringify(data));
+  assert.equal(pool[0].host, '147.45.146.97');
+  assert.equal(pool[0].protocol, 'socks5');
+  assert.equal(pool[0].country, 'RU');
+  assert.equal(pool[0].anonymity, null);
+});
+
+test('parseHideip: ip:port:Name, блокируемое имя→ISO, прочее→null, proto из аргумента', () => {
+  const text = '1.2.3.4:8080:United States\n9.9.9.9:1080:Russia\n5.5.5.5:3128:Guatemala';
+  const pool = parseHideip(text, 'http');
+  assert.equal(pool.length, 3);
+  assert.equal(pool[0].country, null);
+  assert.equal(pool[1].country, 'RU');
+  assert.equal(pool[2].country, null);
+  assert.equal(pool[0].protocol, 'http');
+});
+
+test('parseTxt: чистый ip:port, proto из аргумента, country null', () => {
+  const pool = parseTxt('31.131.248.51:3129\n46.62.214.3:1080\nгрязь\n', 'socks5');
+  assert.equal(pool.length, 2);
+  assert.equal(pool[0].host, '31.131.248.51');
+  assert.equal(pool[0].protocol, 'socks5');
+  assert.equal(pool[0].country, null);
+});

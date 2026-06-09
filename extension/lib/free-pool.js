@@ -29,6 +29,119 @@ export const MAX_VALIDATION_ATTEMPTS = 30;
 let memoryPool = null;
 let memoryFetchedAt = 0;
 
+const VALID_PROTOCOLS = ['http', 'https', 'socks4', 'socks5'];
+// Полные имена стран → ISO только для блокируемых (hideip отдаёт страну именем).
+const BLOCKED_NAME_TO_ISO = { Russia: 'RU', Belarus: 'BY', China: 'CN', Iran: 'IR' };
+
+/** Валидирует и нормализует одну запись. Возвращает NormalizedProxy или null. */
+export function makeProxy({ host, port, protocol, country = null, score = 0, anonymity = null, https = false }) {
+  const p = Number(port);
+  if (!host || !Number.isInteger(p) || p < 1 || p > 65535) return null;
+  const proto = String(protocol || '').toLowerCase();
+  if (!VALID_PROTOCOLS.includes(proto)) return null;
+  // SOCKS туннелирует любой TCP → HTTPS-способен; http — только если фид это явно подтвердил.
+  const httpsCapable = https === true || proto === 'socks4' || proto === 'socks5';
+  return {
+    host: String(host), port: p, protocol: proto,
+    country: country || null, score: Number(score) || 0,
+    anonymity: anonymity || null, httpsCapable,
+  };
+}
+
+/** JSON-массив ИЛИ NDJSON (по объекту на строку) → массив объектов. */
+function parseJsonOrNdjson(text) {
+  const trimmed = text.trim();
+  if (trimmed.startsWith('[')) return JSON.parse(trimmed);
+  const out = [];
+  for (const line of trimmed.split('\n')) {
+    const s = line.trim();
+    if (!s) continue;
+    try { out.push(JSON.parse(s)); } catch { /* skip malformed */ }
+  }
+  return out;
+}
+
+/** Proxifly: ip/port/protocol, geolocation.country||country (уже ISO), https, anonymity, score. */
+export function parseProxifly(text) {
+  const out = [];
+  for (const e of parseJsonOrNdjson(text)) {
+    const p = makeProxy({
+      host: e?.ip, port: e?.port, protocol: e?.protocol,
+      country: e?.geolocation?.country || e?.country || null,
+      score: Number(e?.score) || 0,
+      anonymity: e?.anonymity || null,
+      https: e?.https === true,
+    });
+    if (p) out.push(p);
+  }
+  return out;
+}
+
+/** ProxyScrape (GitHub CDN): country=полное имя, ISO в country_code; ssl→https, uptime_percent→score. */
+export function parseProxyscrape(text) {
+  const data = parseJsonOrNdjson(text);
+  const arr = Array.isArray(data) ? data : (data?.proxies || data?.data || []);
+  const out = [];
+  for (const e of arr) {
+    const p = makeProxy({
+      host: e?.ip, port: e?.port, protocol: e?.protocol,
+      country: e?.country_code || null,
+      score: Number(e?.uptime_percent) || 0,
+      anonymity: e?.anonymity || null,
+      https: e?.ssl === true,
+    });
+    if (p) out.push(p);
+  }
+  return out;
+}
+
+/** monosans: host/port/protocol, ISO в geolocation.country.iso_code; нет anonymity/ssl/score. */
+export function parseMonosans(text) {
+  const data = parseJsonOrNdjson(text);
+  const arr = Array.isArray(data) ? data : [];
+  const out = [];
+  for (const e of arr) {
+    const p = makeProxy({
+      host: e?.host, port: e?.port, protocol: e?.protocol,
+      country: e?.geolocation?.country?.iso_code || null,
+    });
+    if (p) out.push(p);
+  }
+  return out;
+}
+
+/** hideip.me: строки "ip:port:CountryName". Имя→ISO только для блокируемых, прочее→null. */
+export function parseHideip(text, proto) {
+  const out = [];
+  for (const line of text.split('\n')) {
+    const s = line.trim();
+    if (!s) continue;
+    const parts = s.split(':');
+    if (parts.length < 2) continue;
+    const name = parts.slice(2).join(':').trim();
+    const p = makeProxy({
+      host: parts[0], port: parts[1], protocol: proto,
+      country: BLOCKED_NAME_TO_ISO[name] || null,
+    });
+    if (p) out.push(p);
+  }
+  return out;
+}
+
+/** Чистый список "ip:port" (по строке). Протокол из аргумента, страна неизвестна. */
+export function parseTxt(text, proto) {
+  const out = [];
+  for (const line of text.split('\n')) {
+    const s = line.trim();
+    if (!s || !s.includes(':')) continue;
+    const host = s.split(':')[0];
+    const port = s.split(':')[1].split(/[\s#]/)[0];
+    const p = makeProxy({ host, port, protocol: proto });
+    if (p) out.push(p);
+  }
+  return out;
+}
+
 /**
  * Fetch the Proxifly pool. Three-tier cache: memory → chrome.storage → network.
  * Returns normalized array of { host, port, protocol, country, score, anonymity }.
