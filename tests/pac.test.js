@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildPacScript } from '../extension/lib/pac.js';
+import { buildPacScript, isHostRouted } from '../extension/lib/pac.js';
 
 function makeState(overrides = {}) {
   return {
@@ -130,4 +130,57 @@ test('buildPacScript: returns null when no domains routed', () => {
     customDomains: [],
   }));
   assert.equal(pac, null);
+});
+
+// Regression: googleLabs (couplesGoogleAuth:true) must pull in accounts.google.com.
+// Before the single-source-of-truth fix, pac.js hardcoded a 3-key list missing it.
+const labsState = {
+  enabled: true,
+  proxy: { host: '1.2.3.4', port: 8080, scheme: 'http' },
+  presets: {
+    googleLabs: { enabled: true,  domains: ['labs.google', 'labs.google.com'] },
+    googleAuth: { enabled: false, domains: ['accounts.google.com', 'ogs.google.com'] },
+    netflix:    { enabled: false, domains: ['netflix.com'] },
+  },
+  customDomains: [],
+};
+
+test('buildPacScript: googleLabs alone couples accounts.google.com (regression)', () => {
+  const pac = buildPacScript(labsState);
+  assert.match(pac, /"labs\.google"/);
+  assert.match(pac, /"accounts\.google\.com"/);
+});
+
+test('buildPacScript: a non-Google preset does NOT couple accounts.google.com', () => {
+  const pac = buildPacScript({
+    enabled: true,
+    proxy: { host: '1.2.3.4', port: 8080, scheme: 'http' },
+    presets: {
+      netflix:    { enabled: true,  domains: ['netflix.com'] },
+      googleAuth: { enabled: false, domains: ['accounts.google.com'] },
+    },
+    customDomains: [],
+  });
+  assert.match(pac, /"netflix\.com"/);
+  assert.doesNotMatch(pac, /accounts\.google\.com/);
+});
+
+test('isHostRouted: matches preset domain + subdomain, not others', () => {
+  const state = {
+    enabled: true,
+    proxy: { host: '1.2.3.4', port: 8080, scheme: 'http' },
+    presets: { netflix: { enabled: true, domains: ['netflix.com'] } },
+    customDomains: [],
+  };
+  assert.equal(isHostRouted('netflix.com', state), true);
+  assert.equal(isHostRouted('www.netflix.com', state), true);
+  assert.equal(isHostRouted('example.com', state), false);
+});
+
+test('isHostRouted: googleLabs couples accounts.google.com for icon state too', () => {
+  assert.equal(isHostRouted('accounts.google.com', labsState), true);
+});
+
+test('isHostRouted: false when extension disabled', () => {
+  assert.equal(isHostRouted('netflix.com', { ...labsState, enabled: false }), false);
 });

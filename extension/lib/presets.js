@@ -147,7 +147,7 @@ export const PRESET_DEFINITIONS = {
     couplesGoogleAuth: false,
   },
   peacock: {
-    label: 'Peacock', icon: '🦚', logo: 'peacock.png', category: 'video',
+    label: 'Peacock', icon: '🦚', logo: 'peacock.ico', category: 'video',
     domains: ['peacocktv.com'],
     couplesGoogleAuth: false,
   },

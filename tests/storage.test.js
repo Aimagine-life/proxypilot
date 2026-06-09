@@ -199,3 +199,21 @@ test('loadState: v2 state with missing freeProxy.deadHosts gets backfilled', asy
   const s = await loadState();
   assert.deepEqual(s.freeProxy.deadHosts, {});
 });
+
+test('loadState: backfills every current preset (disabled) when none stored', async () => {
+  await chrome.storage.local.clear();
+  await saveState({
+    schemaVersion: 2, enabled: false, proxy: null, proxySource: 'manual',
+    manualProxy: null, freeProxy: { selected: null, lastError: null, deadHosts: {}, poolFetchedAt: 0 },
+    theme: 'auto', resolvedTheme: 'light', presets: {}, customDomains: [],
+  });
+  const s = await loadState();
+  const defaults = getDefaultState();
+  const keys = Object.keys(defaults.presets);
+  assert.ok(keys.length >= 40); // 39 visible presets + hidden googleAuth
+  for (const key of keys) {
+    assert.ok(s.presets[key], `preset ${key} backfilled`);
+    assert.equal(s.presets[key].enabled, false, `preset ${key} backfilled disabled`);
+    assert.deepEqual(s.presets[key].domains, defaults.presets[key].domains, `preset ${key} domains match`);
+  }
+});

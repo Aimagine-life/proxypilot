@@ -71,6 +71,8 @@ HTTP, HTTPS, SOCKS5, SOCKS4. Автоопределение протокола. 
 
 Manifest V3, чистый JS, без зависимостей, без сборки. Тесты: `npm test`.
 
+Упаковка: в дистрибутив кладётся **только папка `extension/`** (`cd extension && zip -r ../dist/proxypilot.zip .`) — `data/` (список РКН тянется по сети), `docs/` и dev-файлы в пакет не входят.
+
 ---
 
 # ProxyPilot (EN)
@@ -145,3 +147,5 @@ HTTP, HTTPS, SOCKS5, SOCKS4. Auto-detection supported. Authentication supported.
 ## Tech
 
 Manifest V3, vanilla JS, no dependencies, no build step. Tests: `npm test`.
+
+Packaging: ship **only the `extension/` folder** (`cd extension && zip -r ../dist/proxypilot.zip .`) — `data/` (the RKN list is fetched over the network), `docs/` and dev files stay out of the package.

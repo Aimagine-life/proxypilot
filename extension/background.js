@@ -5,8 +5,7 @@
 import { loadState, saveState } from './lib/storage.js';
 import { applyProxy, registerAuthListener } from './lib/proxy.js';
 import { setIconState } from './lib/icon.js';
-import { buildPacScript } from './lib/pac.js';
-import { GOOGLE_AUTH_PRESET_KEYS } from './lib/presets.js';
+import { buildPacScript, isHostRouted } from './lib/pac.js';
 import { checkAllPresets, isCheckDue, checkDomain } from './lib/rkn-check.js';
 import { pickAndValidate, fetchPool, DEAD_HOST_TTL_MS } from './lib/free-pool.js';
 
@@ -136,31 +135,6 @@ async function refreshTabIcon(tabId, state) {
   } else {
     await setIconState(tabId, 'direct', { host, theme });
   }
-}
-
-// Mirror of pac.js routing logic for icon state checks. Kept tiny on purpose.
-function isHostRouted(host, state) {
-  const pac = buildPacScript(state);
-  if (!pac) return false;
-  const presets = state.presets || {};
-  const aiOn = GOOGLE_AUTH_PRESET_KEYS.some((k) => presets[k]?.enabled);
-  for (const [key, p] of Object.entries(presets)) {
-    if (!p.enabled && !(key === 'googleAuth' && aiOn)) continue;
-    for (const d of p.domains || []) {
-      if (host === d || host.endsWith('.' + d)) return true;
-    }
-  }
-  for (const e of state.customDomains || []) {
-    const v = e.value;
-    if (e.mode === 'wildcard') {
-      if (host !== v && host.endsWith('.' + v)) return true;
-    } else if (e.mode === 'exact') {
-      if (host === v) return true;
-    } else {
-      if (host === v || host.endsWith('.' + v)) return true;
-    }
-  }
-  return false;
 }
 
 // --- popup messaging ------------------------------------------------------

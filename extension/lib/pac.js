@@ -80,3 +80,18 @@ export function buildPacScript(state) {
     '}',
   ].join('\n');
 }
+
+/**
+ * Does `host` get routed through the proxy under the current state? Used for
+ * toolbar icon state in non-PAC (regular JS) contexts. Shares collectDomains()
+ * with buildPacScript so the googleAuth coupling and host matching can never
+ * drift from the actual PAC — one source of routing truth.
+ */
+export function isHostRouted(host, state) {
+  if (!buildPacScript(state)) return false; // disabled / no proxy / nothing routed
+  const { suffixes, wildcards, exacts } = collectDomains(state);
+  for (const s of suffixes) if (host === s || host.endsWith('.' + s)) return true;
+  for (const w of wildcards) if (host !== w && host.endsWith('.' + w)) return true;
+  for (const e of exacts) if (host === e) return true;
+  return false;
+}
