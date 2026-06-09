@@ -1,8 +1,9 @@
 // Pure module — no chrome.* APIs allowed. presets.js is pure data, safe to import.
-// AI_PRESET_KEYS is the single source of truth (derived from the isAi flag) for
-// which presets pull in the hidden googleAuth (accounts.google.com) coupling.
+// GOOGLE_AUTH_PRESET_KEYS is the single source of truth (derived from the
+// couplesGoogleAuth flag) for which presets pull in the hidden googleAuth
+// (accounts.google.com) coupling.
 
-import { AI_PRESET_KEYS } from './presets.js';
+import { GOOGLE_AUTH_PRESET_KEYS } from './presets.js';
 
 function pacDirective(scheme, host, port) {
   switch (scheme) {
@@ -21,10 +22,10 @@ function collectDomains(state) {
   const exacts = [];
 
   const presets = state.presets || {};
-  const anyAiEnabled = AI_PRESET_KEYS.some((k) => presets[k]?.enabled);
+  const googleAuthNeeded = GOOGLE_AUTH_PRESET_KEYS.some((k) => presets[k]?.enabled);
 
   for (const [key, preset] of Object.entries(presets)) {
-    const isCoupledGoogleAuth = key === 'googleAuth' && anyAiEnabled;
+    const isCoupledGoogleAuth = key === 'googleAuth' && googleAuthNeeded;
     if (!preset.enabled && !isCoupledGoogleAuth) continue;
     for (const d of preset.domains || []) suffixes.push(d);
   }

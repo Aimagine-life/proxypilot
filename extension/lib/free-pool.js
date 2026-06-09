@@ -13,11 +13,12 @@ const POOL_TTL_MS = 5 * 60 * 1000;
 const POOL_CACHE_KEY = 'freeProxyPoolCache';
 const FETCH_TIMEOUT_MS = 15_000;
 const VALIDATE_TIMEOUT_MS = 5_000;
-// Google's generate_204 — designed for connectivity checks (Android uses it),
-// no rate limit, no body to parse, and a working proxy that passes here is
-// likely to pass google.com / gemini.google.com too. Cloudflare trace was
-// tried first but Cloudflare blocks many known free-proxy IPs at L7.
-const VALIDATE_URL = 'https://www.google.com/generate_204';
+// Provider-neutral captive-portal probe (tiny 200 body, no rate limit). We
+// deliberately avoid Google's generate_204 (biases the pool toward proxies that
+// can reach Google specifically — a universal router routes many non-Google
+// services) and Cloudflare (it L7-blocks many free-proxy IPs). This just answers
+// "is this proxy alive", which is what pool selection needs.
+const VALIDATE_URL = 'https://detectportal.firefox.com/success.txt';
 const BLOCKED_COUNTRIES = new Set(['RU', 'BY', 'CN', 'IR']);
 export const DEAD_HOST_TTL_MS = 30 * 60 * 1000;
 

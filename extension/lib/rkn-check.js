@@ -1,9 +1,9 @@
 // RKN compliance check. Uses a hosted mirror of the official RKN registry
 // (updated daily from zapret-info/z-i via our GitHub Action).
 //
-// Legal: geo-restriction by a service (Google blocking Gemini in RU) is not
-// a government ban — using a proxy is legal. An RKN block IS a government ban —
-// circumventing it may violate 149-FZ.
+// Legal: geo-restriction by a service (e.g. Netflix/Spotify/Gemini refusing RU
+// IPs) is not a government ban — using a proxy is legal. An RKN block IS a
+// government ban — circumventing it may violate 149-FZ.
 
 const LIST_URL = 'https://raw.githubusercontent.com/Aimagine-life/proxypilot/main/data/rkn-domains.txt';
 const CACHE_KEY = 'rknListCache';

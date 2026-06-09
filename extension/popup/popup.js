@@ -451,7 +451,7 @@ function bindSettings() {
   });
 
   $('#test-proxy').addEventListener('click', () => runTest('TEST_PROXY'));
-  $('#test-gemini').addEventListener('click', () => runTest('TEST_GEMINI'));
+  $('#test-service').addEventListener('click', () => runTest('TEST_SERVICE'));
 }
 
 function renderSettings() {
@@ -651,21 +651,38 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
 async function runTest(type) {
   const btnProxy = $('#test-proxy');
-  const btnGemini = $('#test-gemini');
+  const btnService = $('#test-service');
   const result = $('#test-result');
+
+  // \u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u0441\u0435\u0440\u0432\u0438\u0441\u0430 \u2014 \u0431\u0435\u0440\u0451\u043c \u043f\u0435\u0440\u0432\u044b\u0439 \u0432\u043a\u043b\u044e\u0447\u0451\u043d\u043d\u044b\u0439 \u043f\u0440\u0435\u0441\u0435\u0442 \u0438 \u0442\u0435\u0441\u0442\u0438\u043c \u0435\u0433\u043e \u0434\u043e\u043c\u0435\u043d.
+  let target = null;
+  if (type === 'TEST_SERVICE') {
+    const key = PRESET_ORDER.find((k) => state.presets[k]?.enabled);
+    if (!key) {
+      result.hidden = false;
+      result.className = 'result-block err';
+      result.textContent = '\u2717 \u0421\u043d\u0430\u0447\u0430\u043b\u0430 \u0432\u043a\u043b\u044e\u0447\u0438\u0442\u0435 \u0445\u043e\u0442\u044f \u0431\u044b \u043e\u0434\u0438\u043d \u0441\u0435\u0440\u0432\u0438\u0441';
+      return;
+    }
+    const def = PRESET_DEFINITIONS[key];
+    target = { domain: def.domains[0], label: def.label };
+  }
+
   btnProxy.disabled = true;
-  btnGemini.disabled = true;
+  btnService.disabled = true;
   result.hidden = true;
 
   try {
-    const res = await chrome.runtime.sendMessage({ type });
+    const res = await chrome.runtime.sendMessage(
+      type === 'TEST_SERVICE' ? { type, domain: target.domain } : { type },
+    );
     result.hidden = false;
     if (res.ok) {
       result.className = 'result-block ok';
       if (type === 'TEST_PROXY') {
         result.innerHTML = `\u2713 \u041f\u0440\u043e\u043a\u0441\u0438 \u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d<br>IP: ${res.ip || '?'}<br>\u0421\u0442\u0440\u0430\u043d\u0430: ${res.country || '?'}<br>\u0417\u0430\u0434\u0435\u0440\u0436\u043a\u0430: ${res.latencyMs} \u043c\u0441`;
       } else {
-        result.innerHTML = `\u2713 Gemini \u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d<br>HTTP ${res.httpStatus}<br>\u0417\u0430\u0434\u0435\u0440\u0436\u043a\u0430: ${res.latencyMs} \u043c\u0441`;
+        result.innerHTML = `\u2713 ${escapeHtml(target.label)} \u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d<br>HTTP ${res.httpStatus}<br>\u0417\u0430\u0434\u0435\u0440\u0436\u043a\u0430: ${res.latencyMs} \u043c\u0441`;
       }
       state = await loadState();
     } else {
@@ -674,7 +691,7 @@ async function runTest(type) {
     }
   } finally {
     btnProxy.disabled = false;
-    btnGemini.disabled = false;
+    btnService.disabled = false;
   }
 }
 

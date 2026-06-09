@@ -6,7 +6,7 @@ import { loadState, saveState } from './lib/storage.js';
 import { applyProxy, registerAuthListener } from './lib/proxy.js';
 import { setIconState } from './lib/icon.js';
 import { buildPacScript } from './lib/pac.js';
-import { AI_PRESET_KEYS } from './lib/presets.js';
+import { GOOGLE_AUTH_PRESET_KEYS } from './lib/presets.js';
 import { checkAllPresets, isCheckDue, checkDomain } from './lib/rkn-check.js';
 import { pickAndValidate, fetchPool, DEAD_HOST_TTL_MS } from './lib/free-pool.js';
 
@@ -143,7 +143,7 @@ function isHostRouted(host, state) {
   const pac = buildPacScript(state);
   if (!pac) return false;
   const presets = state.presets || {};
-  const aiOn = AI_PRESET_KEYS.some((k) => presets[k]?.enabled);
+  const aiOn = GOOGLE_AUTH_PRESET_KEYS.some((k) => presets[k]?.enabled);
   for (const [key, p] of Object.entries(presets)) {
     if (!p.enabled && !(key === 'googleAuth' && aiOn)) continue;
     for (const d of p.domains || []) {
@@ -170,8 +170,12 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     runProxyTest('https://ipinfo.io/json').then(sendResponse);
     return true; // async response
   }
-  if (msg?.type === 'TEST_GEMINI') {
-    runProxyTest('https://gemini.google.com/').then(sendResponse);
+  if (msg?.type === 'TEST_SERVICE') {
+    // Sanitize to a bare hostname before building the URL (defensive — domain
+    // comes from a runtime message).
+    const domain = String(msg.domain || '').replace(/[^a-z0-9.-]/gi, '');
+    if (!domain) { sendResponse({ ok: false, error: 'нет домена для проверки' }); return false; }
+    runProxyTest(`https://${domain}/`).then(sendResponse);
     return true;
   }
   if (msg?.type === 'DETECT_SCHEME') {

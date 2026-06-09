@@ -218,11 +218,12 @@ test('validateProxy: 200 also accepted (some proxies rewrite 204→200)', async 
   assert.equal(result.ok, true);
 });
 
-test('validateProxy: hits Google generate_204', async () => {
+test('validateProxy: hits a provider-neutral probe (not Google/Cloudflare)', async () => {
   mockFetchResponses.push(ok204());
   await validateProxy({ host: '1.2.3.4', port: 1080, protocol: 'socks5' });
   assert.equal(mockFetchCalls.length, 1);
-  assert.match(mockFetchCalls[0].url, /generate_204/);
+  assert.doesNotMatch(mockFetchCalls[0].url, /google\.com|cloudflare\.com/);
+  assert.match(mockFetchCalls[0].url, /^https:\/\//);
 });
 
 test('validateProxy: sets and clears chrome.proxy.settings', async () => {
