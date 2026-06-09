@@ -297,7 +297,7 @@ test('pickAndValidate: all dead → null pick with Russian error', async () => {
   mockFetchResponses.push(new Error('dead'));
   const result = await pickAndValidate({ freeProxy: { deadHosts: {} } });
   assert.equal(result.pick, null);
-  assert.match(result.error, /не нашли рабочий прокси/);
+  assert.match(result.error, /Рабочий прокси не найден/);
   assert.equal(result.attemptedHosts.length, 2);
 });
 
@@ -309,7 +309,7 @@ test('pickAndValidate: empty filtered pool → null pick with specific error', a
   mockFetchResponses.push(mockResponse({ text: JSON.stringify(pool) }));
   const result = await pickAndValidate({ freeProxy: { deadHosts: {} } });
   assert.equal(result.pick, null);
-  assert.match(result.error, /нет подходящих кандидатов/);
+  assert.match(result.error, /нет подходящих прокси/);
 });
 
 test('pickAndValidate: pool fetch fails → null pick with fetch error', async () => {
@@ -377,4 +377,26 @@ test('pickAndValidate: throwing onProgress does not break validation', async () 
     { onProgress: () => { throw new Error('UI gone'); } },
   );
   assert.equal(result.pick.host, '1.1.1.1');
+});
+
+import { MAX_VALIDATION_ATTEMPTS } from '../extension/lib/free-pool.js';
+
+test('filterPool: HTTPS-capable proxies sort before http-only', () => {
+  const kept = filterPool([
+    { host: 'a', port: 80, protocol: 'http', country: 'NL', score: 10, anonymity: 'elite', httpsCapable: false },
+    { host: 'b', port: 80, protocol: 'http', country: 'NL', score: 1,  anonymity: 'elite', httpsCapable: true },
+  ], { deadHosts: {} });
+  assert.equal(kept[0].host, 'b'); // https-capable first, despite lower score
+});
+
+test('pickAndValidate: caps probes at MAX_VALIDATION_ATTEMPTS', async () => {
+  __resetMemoryCache();
+  const n = MAX_VALIDATION_ATTEMPTS + 10;
+  const pool = Array.from({ length: n }, (_, i) =>
+    ({ protocol: 'socks5', ip: `9.9.9.${i}`, port: 1080, anonymity: 'elite', score: 1, geolocation: { country: 'NL' } }));
+  mockFetchResponses.push(mockResponse({ text: JSON.stringify(pool) }));
+  for (let i = 0; i < n; i++) mockFetchResponses.push(new Error('dead'));
+  const result = await pickAndValidate({ freeProxy: { deadHosts: {} } });
+  assert.equal(result.pick, null);
+  assert.equal(result.attemptedHosts.length, MAX_VALIDATION_ATTEMPTS);
 });

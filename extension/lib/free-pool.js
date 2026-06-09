@@ -21,6 +21,10 @@ const VALIDATE_TIMEOUT_MS = 5_000;
 const VALIDATE_URL = 'https://detectportal.firefox.com/success.txt';
 const BLOCKED_COUNTRIES = new Set(['RU', 'BY', 'CN', 'IR']);
 export const DEAD_HOST_TTL_MS = 30 * 60 * 1000;
+// Cap how many candidates we probe per pick. Public free lists can have hundreds
+// of dead entries; at 5s each, probing them all would take ~30 min. Stop early
+// and tell the user honestly instead.
+export const MAX_VALIDATION_ATTEMPTS = 30;
 
 let memoryPool = null;
 let memoryFetchedAt = 0;
@@ -97,9 +101,13 @@ function normalizePool(raw) {
     const country = entry?.geolocation?.country || entry?.country || null;
     const score = Number(entry?.score) || 0;
     const anonymity = entry?.anonymity || null;
+    // Can this proxy tunnel HTTPS? Every routed site is HTTPS, so a proxy with
+    // https:false is useless for us even when it's "alive". SOCKS proxies tunnel
+    // any TCP, so treat them as HTTPS-capable regardless of the flag.
+    const httpsCapable = entry?.https === true || protocol === 'socks4' || protocol === 'socks5';
     if (!host || !port || !Number.isInteger(port) || port < 1 || port > 65535) continue;
     if (!['http', 'https', 'socks4', 'socks5'].includes(protocol)) continue;
-    out.push({ host, port, protocol, country, score, anonymity });
+    out.push({ host, port, protocol, country, score, anonymity, httpsCapable });
   }
   return out;
 }
@@ -134,13 +142,16 @@ export function filterPool(pool, { deadHosts = {} } = {}) {
     if (deadHosts[key]) continue;
     kept.push(entry);
   }
-  // Shuffle first (Fisher-Yates), then stable-sort by score DESC.
-  // Result: highest-scoring proxies come first; ties are randomised across calls.
+  // Shuffle (Fisher-Yates) so equal tiers vary across runs, then stable-sort:
+  // HTTPS-capable first (a proxy that can't tunnel HTTPS is useless — every
+  // routed site is HTTPS), then score DESC.
   for (let i = kept.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [kept[i], kept[j]] = [kept[j], kept[i]];
   }
-  kept.sort((a, b) => (b.score || 0) - (a.score || 0));
+  kept.sort((a, b) =>
+    (b.httpsCapable ? 1 : 0) - (a.httpsCapable ? 1 : 0)
+    || (b.score || 0) - (a.score || 0));
   return kept;
 }
 
@@ -227,17 +238,21 @@ export async function pickAndValidate(state, { onProgress } = {}) {
       pick: null,
       attemptedHosts: [],
       poolSize: pool.length,
-      error: 'нет подходящих кандидатов после фильтрации',
+      error: 'В бесплатном списке нет подходящих прокси. Лучше укажи свой прокси.',
     };
   }
 
+  // How many candidates can actually tunnel HTTPS? If none, the free list is
+  // effectively useless right now — say so instead of probing for minutes.
+  const httpsCapable = candidates.filter((c) => c.httpsCapable).length;
+
   const attempted = [];
-  const total = candidates.length;
-  for (let i = 0; i < total; i++) {
+  const limit = Math.min(candidates.length, MAX_VALIDATION_ATTEMPTS);
+  for (let i = 0; i < limit; i++) {
     const cand = candidates[i];
     attempted.push(`${cand.host}:${cand.port}`);
     if (onProgress) {
-      try { onProgress(i + 1, total, cand); } catch { /* swallow — UI is best-effort */ }
+      try { onProgress(i + 1, limit, cand); } catch { /* swallow — UI is best-effort */ }
     }
     const result = await validateProxy(cand);
     if (result.ok) {
@@ -260,6 +275,8 @@ export async function pickAndValidate(state, { onProgress } = {}) {
     pick: null,
     attemptedHosts: attempted,
     poolSize: pool.length,
-    error: `не нашли рабочий прокси (проверено ${attempted.length} из ${pool.length})`,
+    error: httpsCapable === 0
+      ? 'В бесплатном списке сейчас нет HTTPS-прокси — он почти бесполезен. Лучше укажи свой прокси.'
+      : `Рабочий прокси не найден (проверено ${attempted.length}). Попробуй позже или укажи свой.`,
   };
 }
