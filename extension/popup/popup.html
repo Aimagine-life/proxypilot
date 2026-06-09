@@ -71,8 +71,22 @@
         <div class="block-label">Источник прокси</div>
         <div class="pill-group" id="source-pills">
           <button type="button" data-source="manual" class="pill">Свой</button>
-          <button type="button" data-source="free"   class="pill">Бесплатный пул</button>
+          <button type="button" data-source="own"    class="pill">Свой пул</button>
+          <button type="button" data-source="free"   class="pill">Бесплатный</button>
         </div>
+      </section>
+
+      <section class="block" id="own-block" hidden>
+        <div class="block-label">Свой пул прокси</div>
+        <textarea id="own-list" class="own-list" rows="5" spellcheck="false" autocomplete="off"
+          placeholder="По одному прокси на строку:&#10;socks5://user:pass@host:port&#10;http://host:port&#10;host:port:user:pass"></textarea>
+        <div class="own-meta" id="own-meta"></div>
+        <div class="own-current" id="own-current">Прокси не выбран</div>
+        <div class="row">
+          <button type="button" class="action" id="save-own">Сохранить и подключить</button>
+          <button type="button" class="action" id="rotate-own">↻ Следующий</button>
+        </div>
+        <div class="hint">Если выбранный прокси перестанет отвечать — переключусь на следующий. Без протокола строка считается http. Проверить текущий — кнопкой «Проверить прокси».</div>
       </section>
 
       <section class="block free-block" id="free-block" hidden>

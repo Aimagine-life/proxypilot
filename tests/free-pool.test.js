@@ -400,3 +400,17 @@ test('pickAndValidate: caps probes at MAX_VALIDATION_ATTEMPTS', async () => {
   assert.equal(result.pick, null);
   assert.equal(result.attemptedHosts.length, MAX_VALIDATION_ATTEMPTS);
 });
+
+import { nextLiveProxy } from '../extension/lib/free-pool.js';
+
+test('nextLiveProxy: skips dead-marked, returns first live or null (own pool)', () => {
+  const proxies = [{ host: 'a', port: 1 }, { host: 'b', port: 2 }, { host: 'c', port: 3 }];
+  const now = 1000;
+  // a,b dead (expiry in the future) → c is the first live one
+  assert.equal(nextLiveProxy(proxies, { 'a:1': now + 100, 'b:2': now + 100 }, now).host, 'c');
+  // b's dead mark expired → b is live again
+  assert.equal(nextLiveProxy(proxies, { 'a:1': now + 100, 'b:2': now - 1 }, now).host, 'b');
+  // all dead → null
+  assert.equal(nextLiveProxy(proxies, { 'a:1': now + 1, 'b:2': now + 1, 'c:3': now + 1 }, now), null);
+  assert.equal(nextLiveProxy([], {}, now), null);
+});

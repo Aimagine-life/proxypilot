@@ -217,3 +217,17 @@ test('loadState: backfills every current preset (disabled) when none stored', as
     assert.deepEqual(s.presets[key].domains, defaults.presets[key].domains, `preset ${key} domains match`);
   }
 });
+
+test('loadState: backfills ownPool for users upgrading from before 0.9.0', async () => {
+  await chrome.storage.local.clear();
+  await saveState({
+    schemaVersion: 2, enabled: false, proxy: null, proxySource: 'manual',
+    manualProxy: null, freeProxy: { selected: null, lastError: null, deadHosts: {}, poolFetchedAt: 0 },
+    theme: 'auto', resolvedTheme: 'light', presets: {}, customDomains: [],
+    // no ownPool (pre-0.9.0 state)
+  });
+  const s = await loadState();
+  assert.ok(s.ownPool, 'ownPool backfilled');
+  assert.ok(Array.isArray(s.ownPool.proxies));
+  assert.deepEqual(s.ownPool.deadHosts, {});
+});

@@ -156,6 +156,18 @@ export function filterPool(pool, { deadHosts = {} } = {}) {
 }
 
 /**
+ * First proxy from `proxies` that isn't currently marked dead in `deadHosts`
+ * (a { 'host:port': expiryTs } map). Used by the own-pool picker. Pure — no I/O.
+ */
+export function nextLiveProxy(proxies, deadHosts = {}, now = Date.now()) {
+  return (proxies || []).find((p) => {
+    if (!p || !p.host || !p.port) return false;
+    const exp = deadHosts[`${p.host}:${p.port}`];
+    return !(exp && exp > now);
+  }) || null;
+}
+
+/**
  * Validate a proxy candidate by routing test traffic through it.
  * Temporarily replaces chrome.proxy.settings with PAC=ALL→candidate, fetches
  * Google's generate_204 endpoint (returns HTTP 204, no body), then clears

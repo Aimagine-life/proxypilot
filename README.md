@@ -13,7 +13,11 @@
 
 ## Настройка
 
-Доступны два источника прокси — выбирай в **Настройки → Источник прокси**.
+Доступны три источника прокси — выбирай в **Настройки → Источник прокси**:
+**Свой** (один прокси), **Свой пул** (список своих прокси с авто-ротацией —
+вставь по строке `socks5://user:pass@host:port` / `http://host:port` /
+`host:port:user:pass`; при отказе текущего плагин сам берёт следующий) и
+**Бесплатный пул**.
 
 ### A. Свой прокси (рекомендуется)
 
@@ -90,7 +94,11 @@ Chromium extension that routes AI services and other geo-restricted sites throug
 
 ## Setup
 
-Two sources are available — pick one in **Settings → Proxy source**.
+Three sources are available — pick one in **Settings → Proxy source**:
+**Your own** (single proxy), **Own pool** (your own list with auto-rotation —
+one per line: `socks5://user:pass@host:port` / `http://host:port` /
+`host:port:user:pass`; if the current one stops responding the extension picks
+the next) and the **Free pool**.
 
 ### A. Your own proxy (recommended)
 

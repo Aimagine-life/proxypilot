@@ -69,7 +69,8 @@ function routeInitialScreen() {
 
   const hasManual = state.proxySource === 'manual' && state.proxy?.host;
   const hasFree = state.proxySource === 'free' && state.freeProxy?.selected;
-  if (!hasManual && !hasFree) {
+  const hasOwn = state.proxySource === 'own' && state.ownPool?.selected;
+  if (!hasManual && !hasFree && !hasOwn) {
     $('#screen-firstrun').hidden = false;
   } else {
     showMain();
@@ -494,6 +495,24 @@ function bindSettings() {
 
   $('#test-proxy').addEventListener('click', () => runTest('TEST_PROXY'));
   $('#test-service').addEventListener('click', () => runTest('TEST_SERVICE'));
+
+  // Own pool: save the list (parsed in the popup) and connect to the first one.
+  $('#save-own').addEventListener('click', async () => {
+    const raw = $('#own-list').value;
+    const proxies = parseProxyList(raw);
+    $('#own-meta').textContent = proxies.length
+      ? `${proxies.length} прокси распознано`
+      : 'Не распознал ни одного прокси — проверь формат';
+    const res = await chrome.runtime.sendMessage({ type: 'SET_OWN_POOL', raw, proxies });
+    if (res?.state) { state = res.state; renderSettings(); }
+  });
+
+  $('#rotate-own').addEventListener('click', async () => {
+    $('#own-current').textContent = 'Переключаю…';
+    const res = await chrome.runtime.sendMessage({ type: 'ROTATE_OWN' });
+    if (res?.state) { state = res.state; renderSettings(); }
+    else if (res?.error) { $('#own-current').textContent = `Ошибка: ${res.error}`; }
+  });
 }
 
 function renderSettings() {
@@ -505,8 +524,10 @@ function renderSettings() {
   }
 
   const isFree = state.proxySource === 'free';
-  $('#manual-blocks').hidden = isFree;
+  const isOwn = state.proxySource === 'own';
+  $('#manual-blocks').hidden = isFree || isOwn;
   $('#free-block').hidden = !isFree;
+  $('#own-block').hidden = !isOwn;
 
   // Manual fields
   $('#cfg-host').value = state.proxy?.host || '';
@@ -534,6 +555,22 @@ function renderSettings() {
       $('#free-pool-meta').textContent = `Список обновлён ${ageMin} мин назад`;
     } else {
       $('#free-pool-meta').textContent = '';
+    }
+  }
+
+  // Own-pool render
+  if (isOwn) {
+    const op = state.ownPool || {};
+    $('#own-list').value = op.raw || '';
+    const n = (op.proxies || []).length;
+    $('#own-meta').textContent = n ? `${n} прокси в списке` : 'Список пуст — вставь свои прокси';
+    if (op.selected) {
+      $('#own-current').textContent =
+        `Активен: ${op.selected.host}:${op.selected.port} (${op.selected.scheme || 'http'})`;
+    } else if (op.lastError) {
+      $('#own-current').textContent = op.lastError;
+    } else {
+      $('#own-current').textContent = 'Прокси не выбран';
     }
   }
 
@@ -636,6 +673,27 @@ function tryParseProxyUrl(input) {
   if (user) result.user = user;
   if (pass !== undefined) result.pass = pass;
   return result;
+}
+
+// Parse a textarea of proxies (one per line) into [{host,port,scheme,user,pass}].
+// Skips blank/unparseable lines. No scheme → defaults to http.
+function parseProxyList(raw) {
+  const out = [];
+  for (const line of String(raw || '').split('\n')) {
+    const s = line.trim();
+    if (!s) continue;
+    const p = tryParseProxyUrl(s);
+    if (p && p.host && p.port) {
+      out.push({
+        host: p.host,
+        port: Number(p.port),
+        scheme: p.scheme || 'http',
+        user: p.user || '',
+        pass: p.pass || '',
+      });
+    }
+  }
+  return out;
 }
 
 function ensureProxyObject() {

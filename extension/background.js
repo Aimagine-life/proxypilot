@@ -7,7 +7,7 @@ import { applyProxy, registerAuthListener } from './lib/proxy.js';
 import { setIconState } from './lib/icon.js';
 import { buildPacScript, isHostRouted } from './lib/pac.js';
 import { checkAllPresets, isCheckDue, checkDomain } from './lib/rkn-check.js';
-import { pickAndValidate, fetchPool, DEAD_HOST_TTL_MS } from './lib/free-pool.js';
+import { pickAndValidate, fetchPool, nextLiveProxy, DEAD_HOST_TTL_MS } from './lib/free-pool.js';
 
 // 1. Auth listener — must be top-level for sleep/wake survival.
 registerAuthListener();
@@ -178,11 +178,16 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     (async () => {
       try {
         const state = await loadState();
-        state.proxySource = msg.source === 'free' ? 'free' : 'manual';
+        state.proxySource = (msg.source === 'free' || msg.source === 'own') ? msg.source : 'manual';
         if (state.proxySource === 'manual') {
           state.proxy = state.manualProxy ? { ...state.manualProxy } : null;
           await saveState(state);
           sendResponse({ ok: true, state });
+          return;
+        }
+        if (state.proxySource === 'own') {
+          const ns = await selectOwnProxy(state, { markCurrentDead: false });
+          sendResponse({ ok: !!ns.ownPool?.selected, state: ns });
           return;
         }
         // → 'free'
@@ -224,6 +229,44 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         sendResponse({ ok: !!newState.freeProxy.selected, state: newState });
       } catch (err) {
         console.error('[bg] ROTATE_FREE failed:', err);
+        sendResponse({ ok: false, error: String(err?.message || err) });
+      }
+    })();
+    return true;
+  }
+
+  if (msg?.type === 'SET_OWN_POOL') {
+    (async () => {
+      try {
+        const state = await loadState();
+        state.ownPool = state.ownPool || { proxies: [], deadHosts: {}, selected: null, lastError: null };
+        state.ownPool.raw = String(msg.raw || '');
+        state.ownPool.proxies = Array.isArray(msg.proxies) ? msg.proxies : [];
+        state.ownPool.deadHosts = {};        // fresh list → forget old dead marks
+        state.ownPool.selected = null;
+        if (state.proxySource === 'own') {
+          const ns = await selectOwnProxy(state, { markCurrentDead: false });
+          sendResponse({ ok: !!ns.ownPool?.selected, state: ns });
+        } else {
+          await saveState(state);
+          sendResponse({ ok: true, state });
+        }
+      } catch (err) {
+        console.error('[bg] SET_OWN_POOL failed:', err);
+        sendResponse({ ok: false, error: String(err?.message || err) });
+      }
+    })();
+    return true;
+  }
+
+  if (msg?.type === 'ROTATE_OWN') {
+    (async () => {
+      try {
+        const state = await loadState();
+        const ns = await selectOwnProxy(state, { markCurrentDead: true });
+        sendResponse({ ok: !!ns.ownPool?.selected, state: ns });
+      } catch (err) {
+        console.error('[bg] ROTATE_OWN failed:', err);
         sendResponse({ ok: false, error: String(err?.message || err) });
       }
     })();
@@ -411,8 +454,48 @@ async function handleProxyError(details) {
   globalThis.__lastRotateAt = now;
 
   const state = await loadState();
-  if (state.proxySource !== 'free') return;
-  await rotateFreeProxy(state, { markCurrentDead: true });
+  if (state.proxySource === 'free') {
+    await rotateFreeProxy(state, { markCurrentDead: true });
+  } else if (state.proxySource === 'own') {
+    await selectOwnProxy(state, { markCurrentDead: true });
+  }
+}
+
+// Pick the next live proxy from the user's own pool (proxySource === 'own').
+// Optimistic — no upfront validation: private proxies need auth that only kicks
+// in via onAuthRequired on state.proxy. A dead pick is rotated reactively by
+// handleProxyError; "Проверить прокси" verifies the current one (with auth).
+async function selectOwnProxy(state, { markCurrentDead = true } = {}) {
+  if (state.proxySource !== 'own') return state;
+  const pool = state.ownPool = state.ownPool
+    || { raw: '', proxies: [], deadHosts: {}, selected: null, lastError: null };
+  pool.deadHosts = pool.deadHosts || {};
+  const now = Date.now();
+  for (const k of Object.keys(pool.deadHosts)) if (pool.deadHosts[k] < now) delete pool.deadHosts[k];
+  if (markCurrentDead && pool.selected) {
+    pool.deadHosts[`${pool.selected.host}:${pool.selected.port}`] = now + DEAD_HOST_TTL_MS;
+  }
+  const next = nextLiveProxy(pool.proxies, pool.deadHosts, now);
+  if (next) {
+    pool.selected = { ...next };
+    pool.lastError = null;
+    state.proxy = {
+      host: next.host,
+      port: Number(next.port),
+      scheme: next.scheme || 'http',
+      user: next.user || '',
+      pass: next.pass || '',
+      lastTest: null,
+    };
+  } else {
+    pool.selected = null;
+    pool.lastError = (pool.proxies || []).length
+      ? 'Все твои прокси временно недоступны — подожди или проверь адреса.'
+      : 'Список пуст — вставь свои прокси.';
+    state.proxy = null;
+  }
+  await saveState(state);
+  return state;
 }
 
 // Auto-detect which protocol the proxy speaks.

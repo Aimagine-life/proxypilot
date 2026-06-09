@@ -600,6 +600,37 @@ html, body {
   width: 100%;
 }
 
+/* Own pool */
+.own-list {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 92px;
+  resize: vertical;
+  padding: 8px 10px;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  outline: none;
+}
+.own-list:focus { border-color: var(--green); }
+.own-meta { font-size: 11px; color: var(--text-mute); margin: 6px 2px 4px; }
+.own-current {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  padding: 8px 10px;
+  background: var(--bg-2);
+  color: var(--text);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  word-break: break-all;
+}
+#own-block .row { gap: 8px; }
+#own-block .row .action { flex: 1; }
+
 /* AI banner — main screen */
 .ai-free-banner {
   display: flex;
