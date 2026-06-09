@@ -37,8 +37,13 @@
       </div>
 
       <section class="block">
-        <div class="block-label">Маршрутизируемые сервисы</div>
+        <div class="block-label-row">
+          <div class="block-label">Сервисы<span class="enabled-count" id="enabled-count"></span></div>
+          <button type="button" class="link-btn" id="reset-presets" hidden>Сбросить</button>
+        </div>
+        <input type="search" class="preset-search" id="preset-search" placeholder="Поиск сервиса…" autocomplete="off" />
         <div class="preset-grid" id="preset-grid"></div>
+        <div class="preset-empty" id="preset-empty" hidden>Ничего не найдено</div>
       </section>
 
       <section class="block">

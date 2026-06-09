@@ -5,6 +5,8 @@ import { PRESET_DEFINITIONS, PRESET_ORDER, CATEGORIES } from '../lib/presets.js'
 const $ = (sel) => document.querySelector(sel);
 
 let state = null;
+let searchQuery = '';            // live preset filter (popup-session only)
+const collapsedCats = {};        // { categoryKey: true } — collapsed groups
 
 async function init() {
   state = await loadState();
@@ -123,59 +125,67 @@ function renderMain() {
     banner.hidden = true;
   }
 
-  // Preset grid — grouped by category, a full-width header per group.
+  // Preset grid — grouped by category. Search filters live; enabled presets sort
+  // to the top of each group; group headers collapse.
   const grid = $('#preset-grid');
   grid.innerHTML = '';
+  const q = searchQuery.trim().toLowerCase();
+  let totalShown = 0;
+  let enabledTotal = 0;
+
   for (const cat of CATEGORIES) {
-    const keys = PRESET_ORDER.filter((k) => PRESET_DEFINITIONS[k].category === cat.key);
+    let keys = PRESET_ORDER.filter((k) => PRESET_DEFINITIONS[k].category === cat.key);
     if (!keys.length) continue;
 
-    const header = document.createElement('div');
-    header.className = 'cat-header';
-    header.textContent = cat.label;
+    const catEnabled = keys.filter((k) => state.presets[k]?.enabled).length;
+    enabledTotal += catEnabled;
+
+    // Enabled first, then original preset order.
+    keys = keys.slice().sort((a, b) =>
+      (state.presets[b]?.enabled ? 1 : 0) - (state.presets[a]?.enabled ? 1 : 0));
+
+    const matched = q
+      ? keys.filter((k) => {
+          const d = PRESET_DEFINITIONS[k];
+          return d.label.toLowerCase().includes(q)
+            || (d.domains || []).some((dm) => dm.toLowerCase().includes(q));
+        })
+      : keys;
+    if (!matched.length) continue;
+
+    const collapsed = !q && !!collapsedCats[cat.key];
+
+    const header = document.createElement('button');
+    header.type = 'button';
+    header.className = 'cat-header' + (collapsed ? ' collapsed' : '');
+    const caret = document.createElement('span');
+    caret.className = 'cat-caret';
+    caret.textContent = '▾';
+    const name = document.createElement('span');
+    name.className = 'cat-name';
+    name.textContent = cat.label;
+    const count = document.createElement('span');
+    count.className = 'cat-count';
+    count.textContent = catEnabled ? `${catEnabled} вкл` : '';
+    header.append(caret, name, count);
+    header.addEventListener('click', () => {
+      collapsedCats[cat.key] = !collapsedCats[cat.key];
+      renderMain();
+    });
     grid.appendChild(header);
 
-    for (const key of keys) {
-      const def = PRESET_DEFINITIONS[key];
-      const stored = state.presets[key];
-      const isBlocked = (def.domains || []).some((d) => rknResults[d]?.blocked);
-      const card = document.createElement('div');
-      card.className = 'preset-card'
-        + (stored?.enabled ? ' on' : '')
-        + (isBlocked ? ' rkn-blocked' : '');
-      card.dataset.key = key;
-
-      // Full-colour brand logo with an emoji glyph fallback (CSP-safe: no inline
-      // handlers, listener attached via JS).
-      let mark;
-      if (def.logo) {
-        mark = document.createElement('img');
-        mark.className = 'logo';
-        mark.src = `../icons/brands/${def.logo}`;
-        mark.alt = '';
-        mark.draggable = false;
-        mark.addEventListener('error', () => {
-          const fb = document.createElement('div');
-          fb.className = 'icon';
-          fb.textContent = def.icon;
-          mark.replaceWith(fb);
-        });
-      } else {
-        mark = document.createElement('div');
-        mark.className = 'icon';
-        mark.textContent = def.icon;
-      }
-      const label = document.createElement('div');
-      label.className = 'label';
-      label.textContent = def.label;
-      card.append(mark, label);
-
-      if (!isBlocked) {
-        card.addEventListener('click', () => togglePreset(key));
-      }
-      grid.appendChild(card);
+    if (collapsed) continue;
+    for (const key of matched) {
+      grid.appendChild(makeCard(key, rknResults));
+      totalShown++;
     }
   }
+
+  $('#preset-empty').hidden = totalShown > 0 || !q;
+  const countEl = $('#enabled-count');
+  if (countEl) countEl.textContent = enabledTotal ? ` · ${enabledTotal} включено` : '';
+  const resetBtn = $('#reset-presets');
+  if (resetBtn) resetBtn.hidden = enabledTotal === 0;
 
   // Custom domains list
   const list = $('#custom-list');
@@ -214,6 +224,19 @@ function bindMain() {
   });
 
   $('#open-settings').addEventListener('click', () => showSettings());
+
+  $('#preset-search').addEventListener('input', (e) => {
+    searchQuery = e.target.value;
+    renderMain();
+  });
+
+  $('#reset-presets').addEventListener('click', async () => {
+    for (const k of PRESET_ORDER) {
+      if (state.presets[k]) state.presets[k].enabled = false;
+    }
+    await persist();
+    renderMain();
+  });
 
   $('#add-domain-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -268,10 +291,47 @@ function bindMain() {
     input.value = '';
     renderMain();
 
-    // Success toast + confetti
     showToast(`\u2713 ${entry.value} \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d \u2014 \u043d\u0435 \u0432 \u0440\u0435\u0435\u0441\u0442\u0440\u0435 \u0420\u041a\u041d`);
-    launchConfetti();
   });
+}
+
+// Build one preset card. Full-colour brand logo with an emoji glyph fallback
+// (CSP-safe: listener attached via JS, no inline handlers).
+function makeCard(key, rknResults) {
+  const def = PRESET_DEFINITIONS[key];
+  const stored = state.presets[key];
+  const isBlocked = (def.domains || []).some((d) => rknResults[d]?.blocked);
+  const card = document.createElement('div');
+  card.className = 'preset-card'
+    + (stored?.enabled ? ' on' : '')
+    + (isBlocked ? ' rkn-blocked' : '');
+  card.dataset.key = key;
+
+  let mark;
+  if (def.logo) {
+    mark = document.createElement('img');
+    mark.className = 'logo';
+    mark.src = `../icons/brands/${def.logo}`;
+    mark.alt = '';
+    mark.draggable = false;
+    mark.addEventListener('error', () => {
+      const fb = document.createElement('div');
+      fb.className = 'icon';
+      fb.textContent = def.icon;
+      mark.replaceWith(fb);
+    });
+  } else {
+    mark = document.createElement('div');
+    mark.className = 'icon';
+    mark.textContent = def.icon;
+  }
+  const label = document.createElement('div');
+  label.className = 'label';
+  label.textContent = def.label;
+  card.append(mark, label);
+
+  if (!isBlocked) card.addEventListener('click', () => togglePreset(key));
+  return card;
 }
 
 function showToast(msg) {
@@ -288,24 +348,6 @@ function showToast(msg) {
   }, 2400);
 }
 
-function launchConfetti() {
-  const container = document.createElement('div');
-  container.className = 'confetti';
-  document.body.appendChild(container);
-
-  const colors = ['#10b981', '#06b6d4', '#6366f1', '#f59e0b', '#ec4899'];
-  for (let i = 0; i < 40; i++) {
-    const p = document.createElement('div');
-    p.className = 'confetti-piece';
-    p.style.left = Math.random() * 100 + '%';
-    p.style.background = colors[Math.floor(Math.random() * colors.length)];
-    p.style.animationDelay = (Math.random() * 0.3) + 's';
-    p.style.animationDuration = (1 + Math.random() * 0.8) + 's';
-    p.style.transform = `rotate(${Math.random() * 360}deg)`;
-    container.appendChild(p);
-  }
-  setTimeout(() => container.remove(), 2200);
-}
 
 function escapeHtml(s) {
   return s.replace(/[&<>"']/g, (c) => ({
