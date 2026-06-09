@@ -481,6 +481,12 @@ html, body {
   border: 1px solid rgba(239, 68, 68, 0.35);
   color: var(--red-ink);
 }
+.result-block.warn {
+  background: rgba(245, 158, 11, 0.10);
+  border: 1px solid rgba(245, 158, 11, 0.40);
+  color: var(--amber);
+}
+.result-block .muted { color: var(--text-mute); }
 
 .footer {
   padding: 10px 16px;

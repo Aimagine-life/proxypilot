@@ -548,6 +548,19 @@ function countryFlag(cc) {
   return String.fromCodePoint(base + upper.charCodeAt(0) - A, base + upper.charCodeAt(1) - A);
 }
 
+// Country code → Russian name, e.g. 'NL' → 'Нидерланды'. Falls back to '' on
+// unknown/invalid codes.
+let _regionNames;
+function regionName(cc) {
+  if (!cc || cc.length !== 2) return '';
+  try {
+    _regionNames = _regionNames || new Intl.DisplayNames(['ru'], { type: 'region' });
+    return _regionNames.of(cc.toUpperCase()) || '';
+  } catch {
+    return '';
+  }
+}
+
 /**
  * Try to parse a proxy string. Supported formats:
  *   - socks5://user:pass@host:port  (URL style)
@@ -720,11 +733,22 @@ async function runTest(type) {
     );
     result.hidden = false;
     if (res.ok) {
-      result.className = 'result-block ok';
       if (type === 'TEST_PROXY') {
-        result.innerHTML = `\u2713 \u041f\u0440\u043e\u043a\u0441\u0438 \u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d<br>IP: ${res.ip || '?'}<br>\u0421\u0442\u0440\u0430\u043d\u0430: ${res.country || '?'}<br>\u0417\u0430\u0434\u0435\u0440\u0436\u043a\u0430: ${res.latencyMs} \u043c\u0441`;
+        const cc = String(res.country || '').toUpperCase();
+        const place = `${countryFlag(cc)} ${regionName(cc) || cc || '\u2014'}`.trim();
+        const localProxy = cc === 'RU'; // \u0440\u043e\u0441\u0441\u0438\u0439\u0441\u043a\u0438\u0439 \u043f\u0440\u043e\u043a\u0441\u0438 \u2014 \u0420\u0424 \u0433\u0435\u043e-\u0431\u043b\u043e\u043a \u0438\u043c \u043d\u0435 \u043e\u0431\u043e\u0439\u0442\u0438
+        result.className = 'result-block ' + (localProxy ? 'warn' : 'ok');
+        result.innerHTML = localProxy
+          ? `\u26a0\ufe0f \u042d\u0442\u043e \u0440\u043e\u0441\u0441\u0438\u0439\u0441\u043a\u0438\u0439 \u043f\u0440\u043e\u043a\u0441\u0438<br>`
+            + `\u0413\u0435\u043e-\u0431\u043b\u043e\u043a \u0438\u043c \u043d\u0435 \u043e\u0431\u043e\u0439\u0442\u0438 \u2014 \u043d\u0443\u0436\u0435\u043d \u043f\u0440\u043e\u043a\u0441\u0438 \u0434\u0440\u0443\u0433\u043e\u0439 \u0441\u0442\u0440\u0430\u043d\u044b.<br>`
+            + `<span class="muted">${escapeHtml(place)} \u00b7 \u043e\u0442\u043a\u043b\u0438\u043a ${res.latencyMs} \u043c\u0441 \u00b7 IP ${escapeHtml(res.ip || '?')}</span>`
+          : `\u2713 \u041f\u0440\u043e\u043a\u0441\u0438 \u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442 \u2014 ${escapeHtml(place)}<br>`
+            + `\u0417\u0430\u0431\u043b\u043e\u043a\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u044b\u0435 \u0441\u0435\u0440\u0432\u0438\u0441\u044b \u043e\u0442\u043a\u0440\u043e\u044e\u0442\u0441\u044f.<br>`
+            + `<span class="muted">\u043e\u0442\u043a\u043b\u0438\u043a ${res.latencyMs} \u043c\u0441 \u00b7 IP ${escapeHtml(res.ip || '?')}</span>`;
       } else {
-        result.innerHTML = `\u2713 ${escapeHtml(target.label)} \u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d<br>HTTP ${res.httpStatus}<br>\u0417\u0430\u0434\u0435\u0440\u0436\u043a\u0430: ${res.latencyMs} \u043c\u0441`;
+        result.className = 'result-block ok';
+        result.innerHTML = `\u2713 ${escapeHtml(target.label)} \u043e\u0442\u0432\u0435\u0447\u0430\u0435\u0442<br>`
+          + `<span class="muted">HTTP ${res.httpStatus} \u00b7 \u043e\u0442\u043a\u043b\u0438\u043a ${res.latencyMs} \u043c\u0441</span>`;
       }
       state = await loadState();
     } else {
