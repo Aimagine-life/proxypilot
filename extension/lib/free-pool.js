@@ -295,8 +295,8 @@ export function nextLiveProxy(proxies, deadHosts = {}, now = Date.now()) {
 /**
  * Validate a proxy candidate by routing test traffic through it.
  * Temporarily replaces chrome.proxy.settings with PAC=ALL→candidate, fetches
- * Google's generate_204 endpoint (returns HTTP 204, no body), then clears
- * proxy settings.
+ * VALIDATE_URL (a neutral captive-portal probe — see its definition above),
+ * then clears proxy settings.
  *
  * CALLER must restore the user's proxy via applyProxy(state) after this returns —
  * we only clear, we don't know what was there before. (In practice, the background
@@ -316,8 +316,8 @@ export async function validateProxy(candidate) {
       signal: AbortSignal.timeout(VALIDATE_TIMEOUT_MS),
     });
     const latencyMs = Date.now() - start;
-    // generate_204 returns 204 No Content. Accept anything 2xx; some proxies
-    // may rewrite to 200 with empty body, which is still a working proxy.
+    // The probe returns a tiny 2xx body. Accept anything 2xx; some proxies
+    // may rewrite the status/body, which is still a working proxy.
     if (!res.ok) {
       return { ok: false, latencyMs, error: `HTTP ${res.status}` };
     }

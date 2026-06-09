@@ -325,9 +325,9 @@ test('pickAndValidate: pool fetch fails → null pick with fetch error', async (
   assert.match(result.error, /не удалось загрузить список/);
 });
 
-test('pickAndValidate: iterates ALL filtered candidates (no hard cap)', async () => {
+test('pickAndValidate: iterates all candidates when count < MAX_VALIDATION_ATTEMPTS', async () => {
   __resetMemoryCache();
-  // 20 candidates, all dead — must try every single one.
+  // 20 candidates (< MAX_VALIDATION_ATTEMPTS), all dead — must try every single one.
   const pool = [];
   for (let i = 0; i < 20; i++) {
     pool.push({ protocol: 'socks5', ip: `10.0.0.${i + 1}`, port: 1080, anonymity: 'elite', score: 50, geolocation: { country: 'NL' } });
