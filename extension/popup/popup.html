@@ -81,7 +81,14 @@
         <textarea id="own-list" class="own-list" rows="5" spellcheck="false" autocomplete="off"
           placeholder="По одному прокси на строку:&#10;socks5://user:pass@host:port&#10;http://host:port&#10;host:port:user:pass"></textarea>
         <div class="own-meta" id="own-meta"></div>
-        <div class="own-current" id="own-current">Прокси не выбран</div>
+        <div class="free-state" id="own-state" data-state="idle">
+          <div class="free-icon" id="own-icon" aria-hidden="true">📋</div>
+          <div class="free-body">
+            <div class="free-title" id="own-title">Список пуст</div>
+            <div class="free-sub" id="own-sub">Вставь свои прокси — по одному на строку.</div>
+            <div class="free-badges" id="own-badges" hidden></div>
+          </div>
+        </div>
         <div class="row">
           <button type="button" class="action" id="save-own">Сохранить и подключить</button>
           <button type="button" class="action" id="rotate-own">↻ Следующий</button>

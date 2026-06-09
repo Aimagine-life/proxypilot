@@ -511,10 +511,10 @@ function bindSettings() {
   });
 
   $('#rotate-own').addEventListener('click', async () => {
-    $('#own-current').textContent = 'Переключаю…';
     const res = await chrome.runtime.sendMessage({ type: 'ROTATE_OWN' });
-    if (res?.state) { state = res.state; renderSettings(); }
-    else if (res?.error) { $('#own-current').textContent = `Ошибка: ${res.error}`; }
+    if (res?.state) state = res.state;
+    else if (res?.error && state.ownPool) state.ownPool.lastError = res.error;
+    renderSettings();
   });
 }
 
@@ -545,20 +545,7 @@ function renderSettings() {
   if (isFree) renderFreeBlock();
 
   // Own-pool render
-  if (isOwn) {
-    const op = state.ownPool || {};
-    $('#own-list').value = op.raw || '';
-    const n = (op.proxies || []).length;
-    $('#own-meta').textContent = n ? `${n} прокси в списке` : 'Список пуст — вставь свои прокси';
-    if (op.selected) {
-      $('#own-current').textContent =
-        `Активен: ${op.selected.host}:${op.selected.port} (${op.selected.scheme || 'http'})`;
-    } else if (op.lastError) {
-      $('#own-current').textContent = op.lastError;
-    } else {
-      $('#own-current').textContent = 'Прокси не выбран';
-    }
-  }
+  if (isOwn) renderOwnBlock();
 
   renderThemePills();
   $('#test-result').hidden = true;
@@ -579,7 +566,7 @@ function renderFreeBlock() {
   const err = state.freeProxy?.lastError;
 
   if (pickingFree) {
-    setFreeState('searching', {
+    setStatusCard('free', 'searching', {
       title: 'Подбираю рабочий прокси…',
       sub: 'Проверяю кандидатов вживую — это пара секунд.',
       progress: { pct: 0, text: 'Запускаю проверку…' },
@@ -602,7 +589,7 @@ function renderFreeBlock() {
     if (speed) badges.push({ text: `⚡ ${ms} мс · ${speed.label}`, cls: speed.cls });
     if (proto) badges.push({ text: proto });
 
-    setFreeState('found', {
+    setStatusCard('free', 'found', {
       title: 'Готово — прокси подключён',
       sub: `${sel.host}:${sel.port}`,
       badges,
@@ -618,11 +605,11 @@ function renderFreeBlock() {
     }
     lastFreeStateKey = key;
   } else if (err) {
-    setFreeState('error', { title: 'Живой прокси пока не нашёлся', sub: err });
+    setStatusCard('free', 'error', { title: 'Живой прокси пока не нашёлся', sub: err });
     if (rotate) { rotate.disabled = false; rotate.textContent = '↻ Попробовать ещё раз'; }
     lastFreeStateKey = 'error';
   } else {
-    setFreeState('idle', {
+    setStatusCard('free', 'idle', {
       title: 'Прокси ещё не подобран',
       sub: 'Нажми кнопку — найду рабочий за пару секунд.',
     });
@@ -638,26 +625,31 @@ function renderFreeBlock() {
 
 // Apply a state to the free-pool card: data-state + icon + texts + optional
 // progress bar and detail badges.
-function setFreeState(stateName, { title = '', sub = '', progress = null, badges = null } = {}) {
-  const root = $('#free-state');
+const STATE_ICONS = { idle: '🔍', searching: '', found: '✓', error: '😕' };
+
+// Generic status card shared by the free-pool and own-pool blocks. `prefix` maps
+// to element ids (#${prefix}-state / -icon / -title / -sub / -progress / -bar-fill
+// / -progress-text / -badges). `icon` overrides the default per-state glyph.
+function setStatusCard(prefix, stateName, { title = '', sub = '', progress = null, badges = null, icon = null } = {}) {
+  const root = $(`#${prefix}-state`);
   if (!root) return;
   root.dataset.state = stateName;
 
-  const icon = $('#free-icon');
-  const titleEl = $('#free-title');
-  const subEl = $('#free-sub');
-  const prog = $('#free-progress');
-  const wrap = $('#free-badges');
+  const iconEl = $(`#${prefix}-icon`);
+  const titleEl = $(`#${prefix}-title`);
+  const subEl = $(`#${prefix}-sub`);
+  const prog = $(`#${prefix}-progress`);
+  const wrap = $(`#${prefix}-badges`);
 
-  if (icon) icon.textContent = { idle: '🔍', searching: '', found: '✓', error: '😕' }[stateName] ?? '';
+  if (iconEl) iconEl.textContent = icon != null ? icon : (STATE_ICONS[stateName] ?? '');
   if (titleEl) titleEl.textContent = title;
   if (subEl) subEl.textContent = sub;
 
   if (prog) {
     if (progress) {
       prog.hidden = false;
-      const fill = $('#free-bar-fill');
-      const txt = $('#free-progress-text');
+      const fill = $(`#${prefix}-bar-fill`);
+      const txt = $(`#${prefix}-progress-text`);
       if (fill) fill.style.width = `${progress.pct}%`;
       if (txt) txt.textContent = progress.text;
     } else {
@@ -678,6 +670,38 @@ function setFreeState(stateName, { title = '', sub = '', progress = null, badges
     } else {
       wrap.hidden = true;
     }
+  }
+}
+
+// Render the own-pool status card: empty list → idle, active proxy → found,
+// all-dead → error. Same status-card language as the free pool.
+function renderOwnBlock() {
+  const op = state.ownPool || {};
+  $('#own-list').value = op.raw || '';
+  const n = (op.proxies || []).length;
+  $('#own-meta').textContent = n ? `${n} прокси в списке` : '';
+
+  const rotate = $('#rotate-own');
+  const protoLabel = (s) => ({ http: 'HTTP', https: 'HTTPS', socks5: 'SOCKS5', socks4: 'SOCKS4' })[s] || (s || 'HTTP').toUpperCase();
+
+  if (op.selected) {
+    const badges = [{ text: protoLabel(op.selected.scheme) }];
+    if (n > 1) badges.push({ text: `1 из ${n} в пуле` });
+    setStatusCard('own', 'found', {
+      title: 'Прокси активен',
+      sub: `${op.selected.host}:${op.selected.port}`,
+      badges,
+    });
+    if (rotate) rotate.disabled = false;
+  } else if (op.lastError) {
+    setStatusCard('own', 'error', { icon: '😕', title: 'Прокси недоступен', sub: op.lastError });
+    if (rotate) rotate.disabled = false;
+  } else if (n > 0) {
+    setStatusCard('own', 'idle', { icon: '📋', title: `${n} прокси готово`, sub: 'Нажми «Сохранить и подключить».' });
+    if (rotate) rotate.disabled = false;
+  } else {
+    setStatusCard('own', 'idle', { icon: '📋', title: 'Список пуст', sub: 'Вставь свои прокси — по одному на строку.' });
+    if (rotate) rotate.disabled = true;
   }
 }
 

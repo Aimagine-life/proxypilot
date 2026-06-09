@@ -746,17 +746,8 @@ html, body {
   outline: none;
 }
 .own-list:focus { border-color: var(--green); }
-.own-meta { font-size: 11px; color: var(--text-mute); margin: 6px 2px 4px; }
-.own-current {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
-  padding: 8px 10px;
-  background: var(--bg-2);
-  color: var(--text);
-  border-radius: 6px;
-  margin-bottom: 8px;
-  word-break: break-all;
-}
+.own-meta { font-size: 11px; color: var(--text-mute); margin: 6px 2px 8px; }
+#own-block .free-state { margin-bottom: 10px; }
 #own-block .row { gap: 8px; }
 #own-block .row .action { flex: 1; }
 
