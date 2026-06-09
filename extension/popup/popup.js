@@ -673,6 +673,26 @@ function setStatusCard(prefix, stateName, { title = '', sub = '', progress = nul
   }
 }
 
+// Render the proxy/service test result as a status card (icon + title + sub +
+// badges), in the same visual language as the pool cards. kind: ok | warn | err.
+function renderTestCard(kind, { title, sub = '', badges = [] }) {
+  const result = $('#test-result');
+  if (!result) return;
+  result.hidden = false;
+  result.className = `test-card test-${kind}`;
+  const icon = { ok: '✓', warn: '⚠', err: '✗' }[kind] || '';
+  const badgeHtml = badges
+    .map((b) => `<span class="free-badge${b.cls ? ` ${b.cls}` : ''}">${escapeHtml(b.text)}</span>`)
+    .join('');
+  result.innerHTML =
+    `<div class="free-icon" aria-hidden="true">${icon}</div>`
+    + '<div class="free-body">'
+    + `<div class="free-title">${escapeHtml(title)}</div>`
+    + (sub ? `<div class="free-sub">${escapeHtml(sub)}</div>` : '')
+    + (badgeHtml ? `<div class="free-badges">${badgeHtml}</div>` : '')
+    + '</div>';
+}
+
 // Render the own-pool status card: empty list → idle, active proxy → found,
 // all-dead → error. Same status-card language as the free pool.
 function renderOwnBlock() {
@@ -965,29 +985,34 @@ async function runTest(type) {
     const res = await chrome.runtime.sendMessage(
       type === 'TEST_SERVICE' ? { type, domain: target.domain } : { type },
     );
-    result.hidden = false;
     if (res.ok) {
       if (type === 'TEST_PROXY') {
         const cc = String(res.country || '').toUpperCase();
         const place = `${countryFlag(cc)} ${regionName(cc) || cc || '\u2014'}`.trim();
         const localProxy = cc === 'RU'; // \u0440\u043e\u0441\u0441\u0438\u0439\u0441\u043a\u0438\u0439 \u043f\u0440\u043e\u043a\u0441\u0438 \u2014 \u0420\u0424 \u0433\u0435\u043e-\u0431\u043b\u043e\u043a \u0438\u043c \u043d\u0435 \u043e\u0431\u043e\u0439\u0442\u0438
-        result.className = 'result-block ' + (localProxy ? 'warn' : 'ok');
-        result.innerHTML = localProxy
-          ? `\u26a0\ufe0f \u042d\u0442\u043e \u0440\u043e\u0441\u0441\u0438\u0439\u0441\u043a\u0438\u0439 \u043f\u0440\u043e\u043a\u0441\u0438<br>`
-            + `\u0413\u0435\u043e-\u0431\u043b\u043e\u043a \u0438\u043c \u043d\u0435 \u043e\u0431\u043e\u0439\u0442\u0438 \u2014 \u043d\u0443\u0436\u0435\u043d \u043f\u0440\u043e\u043a\u0441\u0438 \u0434\u0440\u0443\u0433\u043e\u0439 \u0441\u0442\u0440\u0430\u043d\u044b.<br>`
-            + `<span class="muted">${escapeHtml(place)} \u00b7 \u043e\u0442\u043a\u043b\u0438\u043a ${res.latencyMs} \u043c\u0441 \u00b7 IP ${escapeHtml(res.ip || '?')}</span>`
-          : `\u2713 \u041f\u0440\u043e\u043a\u0441\u0438 \u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442 \u2014 ${escapeHtml(place)}<br>`
-            + `\u0417\u0430\u0431\u043b\u043e\u043a\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u044b\u0435 \u0441\u0435\u0440\u0432\u0438\u0441\u044b \u043e\u0442\u043a\u0440\u043e\u044e\u0442\u0441\u044f.<br>`
-            + `<span class="muted">\u043e\u0442\u043a\u043b\u0438\u043a ${res.latencyMs} \u043c\u0441 \u00b7 IP ${escapeHtml(res.ip || '?')}</span>`;
+        const badges = [{ text: place }, { text: `\u26a1 ${res.latencyMs} \u043c\u0441` }, { text: `IP ${res.ip || '?'}` }];
+        if (localProxy) {
+          renderTestCard('warn', {
+            title: '\u042d\u0442\u043e \u0440\u043e\u0441\u0441\u0438\u0439\u0441\u043a\u0438\u0439 \u043f\u0440\u043e\u043a\u0441\u0438',
+            sub: '\u0413\u0435\u043e-\u0431\u043b\u043e\u043a \u0438\u043c \u043d\u0435 \u043e\u0431\u043e\u0439\u0442\u0438 \u2014 \u043d\u0443\u0436\u0435\u043d \u043f\u0440\u043e\u043a\u0441\u0438 \u0434\u0440\u0443\u0433\u043e\u0439 \u0441\u0442\u0440\u0430\u043d\u044b.',
+            badges,
+          });
+        } else {
+          renderTestCard('ok', {
+            title: '\u041f\u0440\u043e\u043a\u0441\u0438 \u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442',
+            sub: '\u0417\u0430\u0431\u043b\u043e\u043a\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u044b\u0435 \u0441\u0435\u0440\u0432\u0438\u0441\u044b \u043e\u0442\u043a\u0440\u043e\u044e\u0442\u0441\u044f.',
+            badges,
+          });
+        }
       } else {
-        result.className = 'result-block ok';
-        result.innerHTML = `\u2713 ${escapeHtml(target.label)} \u043e\u0442\u0432\u0435\u0447\u0430\u0435\u0442<br>`
-          + `<span class="muted">HTTP ${res.httpStatus} \u00b7 \u043e\u0442\u043a\u043b\u0438\u043a ${res.latencyMs} \u043c\u0441</span>`;
+        renderTestCard('ok', {
+          title: `${target.label} \u043e\u0442\u0432\u0435\u0447\u0430\u0435\u0442`,
+          badges: [{ text: `HTTP ${res.httpStatus}` }, { text: `\u26a1 ${res.latencyMs} \u043c\u0441` }],
+        });
       }
       state = await loadState();
     } else {
-      result.className = 'result-block err';
-      result.textContent = `\u2717 ${res.error}`;
+      renderTestCard('err', { title: '\u041d\u0435 \u043f\u043e\u043b\u0443\u0447\u0438\u043b\u043e\u0441\u044c', sub: res.error });
     }
   } finally {
     btnProxy.disabled = false;

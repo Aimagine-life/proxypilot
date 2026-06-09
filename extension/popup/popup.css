@@ -488,6 +488,29 @@ html, body {
 }
 .result-block .muted { color: var(--text-mute); }
 
+/* Proxy/service test result rendered as a status card (matches the pool cards). */
+.test-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 11px;
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+}
+.test-card[hidden] { display: none; }
+.test-card .free-icon { font-size: 16px; }
+.test-card.test-ok   { background: rgba(16, 185, 129, 0.07); border-color: rgba(16, 185, 129, 0.40); }
+.test-card.test-ok   .free-icon  { background: var(--green); color: #fff; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35); }
+.test-card.test-ok   .free-title { color: var(--green-ink); }
+.test-card.test-warn { background: rgba(245, 158, 11, 0.09); border-color: rgba(245, 158, 11, 0.40); }
+.test-card.test-warn .free-icon  { background: rgba(245, 158, 11, 0.18); }
+.test-card.test-warn .free-title { color: var(--amber-ink); }
+.test-card.test-err  { background: rgba(239, 68, 68, 0.07); border-color: rgba(239, 68, 68, 0.35); }
+.test-card.test-err  .free-icon  { background: rgba(239, 68, 68, 0.14); color: var(--red-ink); }
+.test-card.test-err  .free-title { color: var(--red-ink); }
+
 .footer {
   padding: 10px 16px;
   border-top: 1px solid var(--border);
