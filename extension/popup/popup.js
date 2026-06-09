@@ -95,18 +95,23 @@ function showSettings() {
 }
 
 function renderMain() {
-  // Status line
+  // Status line — glanceable routing state (friendly, no raw IP in the headline).
   const status = $('#status-line');
+  status.classList.remove('no-dot', 'amber', 'error');
   if (!state.enabled) {
     status.textContent = 'Выключено';
     status.classList.add('no-dot');
+  } else if (!state.proxy?.host) {
+    status.textContent = 'Нужна настройка прокси';
+    status.classList.add('amber');
   } else {
-    status.classList.remove('no-dot');
     const t = state.proxy?.lastTest;
     if (t?.ok) {
-      status.textContent = `Активно · ${t.ip} · ${t.country || ''} · ${t.latencyMs} мс`;
+      const cc = String(t.country || '').toUpperCase();
+      const place = cc ? `${countryFlag(cc)} ${regionName(cc) || cc}` : '';
+      status.textContent = `Активно${place ? ` · ${place}` : ''}${t.latencyMs ? ` · ${t.latencyMs} мс` : ''}`;
     } else {
-      status.textContent = `Активно · ${state.proxy?.host}:${state.proxy?.port}`;
+      status.textContent = `Активно · ${state.proxy.host}:${state.proxy.port}`;
     }
   }
 
