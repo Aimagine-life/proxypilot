@@ -435,6 +435,59 @@ html, body {
   50%      { transform: scale(1.04); opacity: 1; }
 }
 
+/* Active-source anchor — the always-visible "what's live right now" card. */
+.active-source {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-left-color: var(--text-mute);
+  background: var(--bg-2);
+}
+.active-source[data-state="on"]   { border-left-color: var(--green); background: rgba(16, 185, 129, 0.06); }
+.active-source[data-state="warn"] { border-left-color: var(--amber); background: rgba(245, 158, 11, 0.07); }
+.active-source-label {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: 700;
+  color: var(--text-mute);
+  margin-bottom: 4px;
+}
+.active-source-name {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.active-source[data-state="on"] .active-source-name   { color: var(--green-ink); }
+.active-source[data-state="warn"] .active-source-name { color: var(--amber-ink); }
+.active-source[data-state="on"] .active-source-name::before,
+.active-source[data-state="warn"] .active-source-name::before {
+  content: '';
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+  flex-shrink: 0;
+}
+.active-source-detail {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  margin-top: 3px;
+  overflow-wrap: anywhere;
+}
+.active-source[data-state="on"] .active-source-detail {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* The active source tab gets a loud green check so "selected = live" is obvious. */
+#source-pills .pill.active { color: var(--green-ink); }
+#source-pills .pill.active::before { content: '✓ '; font-weight: 800; }
+
 .result-block.detecting {
   background: rgba(6, 182, 212, 0.06);
   border: 1px solid rgba(6, 182, 212, 0.3);

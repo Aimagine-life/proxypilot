@@ -68,7 +68,12 @@
       </header>
 
       <section class="block">
-        <div class="block-label">Источник прокси</div>
+        <div class="active-source" id="active-source" data-state="off">
+          <div class="active-source-label">Сейчас работает</div>
+          <div class="active-source-name" id="active-source-name">—</div>
+          <div class="active-source-detail" id="active-source-detail"></div>
+        </div>
+        <div class="block-label">Сменить источник</div>
         <div class="pill-group" id="source-pills">
           <button type="button" data-source="manual" class="pill">Свой</button>
           <button type="button" data-source="own"    class="pill">Свой пул</button>

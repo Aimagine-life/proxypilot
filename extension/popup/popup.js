@@ -11,6 +11,10 @@ let pickingFree = false;         // true while a free-pool pick/rotate is runnin
 let lastFreeStateKey = '';       // last rendered free state (drives confetti-on-success)
 let confettiRunning = false;     // guards against overlapping confetti bursts
 
+// Human names for the three proxy sources (state.proxySource).
+const SOURCE_LABEL = { manual: 'Свой прокси', own: 'Свой пул', free: 'Бесплатный пул' };
+const SOURCE_SHORT = { manual: 'Свой', own: 'Свой пул', free: 'Бесплатный' };
+
 async function init() {
   state = await loadState();
   applyTheme();
@@ -105,13 +109,14 @@ function renderMain() {
     status.textContent = 'Нужна настройка прокси';
     status.classList.add('amber');
   } else {
+    const src = SOURCE_SHORT[state.proxySource] || 'Свой';
     const t = state.proxy?.lastTest;
     if (t?.ok) {
       const cc = String(t.country || '').toUpperCase();
-      const place = cc ? `${countryFlag(cc)} ${regionName(cc) || cc}` : '';
-      status.textContent = `Активно${place ? ` · ${place}` : ''}${t.latencyMs ? ` · ${t.latencyMs} мс` : ''}`;
+      const flag = cc ? ` · ${countryFlag(cc)}` : '';
+      status.textContent = `${src}${flag}${t.latencyMs ? ` · ${t.latencyMs} мс` : ''}`;
     } else {
-      status.textContent = `Активно · ${state.proxy.host}:${state.proxy.port}`;
+      status.textContent = `${src} · ${state.proxy.host}:${state.proxy.port}`;
     }
   }
 
@@ -526,7 +531,8 @@ function bindSettings() {
 function renderSettings() {
   ensureProxyObject();
 
-  // Source pills
+  // Active-source anchor + source pills
+  renderActiveSource();
   for (const pill of document.querySelectorAll('#source-pills .pill')) {
     pill.classList.toggle('active', pill.dataset.source === (state.proxySource || 'manual'));
   }
@@ -675,6 +681,41 @@ function setStatusCard(prefix, stateName, { title = '', sub = '', progress = nul
     } else {
       wrap.hidden = true;
     }
+  }
+}
+
+// Render the always-visible "Сейчас работает" anchor at the top of settings, so
+// the active source is unambiguous no matter which tab you're configuring.
+function renderActiveSource() {
+  const card = $('#active-source');
+  if (!card) return;
+  const nameEl = $('#active-source-name');
+  const detailEl = $('#active-source-detail');
+  const src = state.proxySource || 'manual';
+  const label = SOURCE_LABEL[src] || 'Свой прокси';
+
+  if (!state.enabled) {
+    card.dataset.state = 'off';
+    nameEl.textContent = 'Выключено';
+    detailEl.textContent = `Выбран: ${label} · включи переключатель на главном экране`;
+    return;
+  }
+
+  const p = state.proxy;
+  if (p?.host) {
+    card.dataset.state = 'on';
+    nameEl.textContent = label;
+    const cc = String(p.lastTest?.country || '').toUpperCase();
+    const place = cc ? ` · ${countryFlag(cc)} ${regionName(cc) || cc}` : '';
+    detailEl.textContent = `${p.host}:${p.port}${place}`;
+  } else {
+    card.dataset.state = 'warn';
+    nameEl.textContent = label;
+    detailEl.textContent = src === 'free'
+      ? 'Прокси ещё не подобран — нажми «Подобрать» ниже'
+      : src === 'own'
+        ? 'Прокси не выбран — добавь список ниже'
+        : 'Прокси не настроен — заполни поля ниже';
   }
 }
 
