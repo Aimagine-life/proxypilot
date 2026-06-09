@@ -33,7 +33,7 @@
 ### B. Бесплатный пул (если своего прокси нет)
 
 1. **Настройки → Источник прокси → Бесплатный пул**
-2. Расширение тянет публичный список [Proxifly](https://github.com/proxifly/free-proxy-list), отфильтровывает `transparent`-анонимность, `country: ZZ` и страны `RU·BY·CN·IR`, сортирует по `score`, и последовательно проверяет кандидатов через Google `generate_204` пока не найдёт живой
+2. Расширение тянет несколько публичных списков сразу — [Proxifly](https://github.com/proxifly/free-proxy-list), [ProxyScrape](https://github.com/ProxyScrape/free-proxy-list), [monosans](https://github.com/monosans/proxy-list), [hideip.me](https://github.com/zloi-user/hideip.me) (http+socks5) и [hookzof](https://github.com/hookzof/socks5_list) — объединяет их с дедупом, отфильтровывает `transparent`-анонимность и страны `RU·BY·CN·IR`, сортирует по доверию/`score`, и последовательно проверяет кандидатов через нейтральный пробник пока не найдёт живой
 3. В реальном времени показывается прогресс: `Проверка N/M · host:port`. Если ничего живого не нашлось — сообщение с количеством проверенных
 4. Кнопка **↻ Сменить** помечает текущий как мёртвый и ищет другой
 
@@ -114,7 +114,7 @@ the next) and the **Free pool**.
 ### B. Free pool (no own proxy needed)
 
 1. **Settings → Proxy source → Free pool**
-2. The extension fetches the public [Proxifly](https://github.com/proxifly/free-proxy-list) list, filters out transparent / unknown-country / `RU·BY·CN·IR` entries, sorts by score, and validates candidates against Google's `generate_204` until one works
+2. The extension fetches several public lists at once — [Proxifly](https://github.com/proxifly/free-proxy-list), [ProxyScrape](https://github.com/ProxyScrape/free-proxy-list), [monosans](https://github.com/monosans/proxy-list), [hideip.me](https://github.com/zloi-user/hideip.me) (http+socks5) and [hookzof](https://github.com/hookzof/socks5_list) — merges and dedupes them, filters out transparent anonymity and `RU·BY·CN·IR`, sorts by trust/`score`, and validates candidates against a neutral probe until one works
 3. Live progress shows `Проверка N/M · host:port`; if everything's dead, the full pool count is reported
 4. Click **↻ Rotate** to drop the current pick and find another
 
