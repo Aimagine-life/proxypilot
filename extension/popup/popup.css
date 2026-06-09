@@ -62,12 +62,29 @@ html, body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   font-size: 13px;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden; /* clip the brief screen-transition slide */
 }
 
 #app { width: 360px; }
 
 .screen { display: block; }
 .screen[hidden] { display: none; }
+
+/* Directional screen transitions: forward (into settings) slides in from the
+   right, back (to main) from the left. Only the entering screen animates. */
+@keyframes screen-in-right {
+  from { opacity: 0; transform: translateX(22px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes screen-in-left {
+  from { opacity: 0; transform: translateX(-22px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.screen.anim-right { animation: screen-in-right 0.22s cubic-bezier(0.2, 0.7, 0.3, 1); }
+.screen.anim-left  { animation: screen-in-left  0.22s cubic-bezier(0.2, 0.7, 0.3, 1); }
+@media (prefers-reduced-motion: reduce) {
+  .screen.anim-right, .screen.anim-left { animation: none; }
+}
 
 .header {
   padding: 14px 16px;
@@ -139,18 +156,8 @@ html, body {
 .toggle input:checked + .slider { background: var(--green); }
 .toggle input:checked + .slider::before { right: 2px; }
 
-.back {
-  background: none;
-  border: 0;
-  color: var(--text-dim);
-  font-size: 17px;
-  cursor: pointer;
-  padding: 4px;
-}
-.back:hover { color: var(--text); }
-
-/* Settings gear — a clear icon-button, not a bare glyph. */
-.gear {
+/* Header icon-buttons — settings gear and back arrow share one clear style. */
+.gear, .back {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -166,14 +173,17 @@ html, body {
   line-height: 1;
   cursor: pointer;
   box-shadow: var(--shadow-sm);
-  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s, box-shadow 0.1s;
 }
-.gear:hover {
+.gear:hover, .back:hover {
   background: var(--bg-hover);
   color: var(--indigo);
   border-color: var(--indigo);
 }
-.gear:active { transform: translateY(1px); }
+.gear:active, .back:active {
+  transform: translateY(1px);
+  box-shadow: none;
+}
 
 .block { padding: 14px 16px 6px; }
 .block:last-of-type { padding-bottom: 16px; }

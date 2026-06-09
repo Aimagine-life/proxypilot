@@ -80,14 +80,24 @@ function routeInitialScreen() {
   if (!hasManual && !hasFree && !hasOwn) {
     $('#screen-firstrun').hidden = false;
   } else {
-    showMain();
+    showMain({ animate: false });
   }
 }
 
-function showMain() {
+// Replay a directional entrance animation on the screen being shown. Removing +
+// re-adding the class (with a reflow between) restarts the animation reliably.
+function animateScreen(el, dir) {
+  if (!el || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  el.classList.remove('anim-left', 'anim-right');
+  void el.offsetWidth; // force reflow so the animation restarts
+  el.classList.add(dir === 'forward' ? 'anim-right' : 'anim-left');
+}
+
+function showMain({ animate = true } = {}) {
   $('#screen-main').hidden = false;
   $('#screen-settings').hidden = true;
   $('#screen-firstrun').hidden = true;
+  if (animate) animateScreen($('#screen-main'), 'back');
   renderMain();
 }
 
@@ -95,6 +105,7 @@ function showSettings() {
   $('#screen-main').hidden = true;
   $('#screen-settings').hidden = false;
   $('#screen-firstrun').hidden = true;
+  animateScreen($('#screen-settings'), 'forward');
   renderSettings();
 }
 
