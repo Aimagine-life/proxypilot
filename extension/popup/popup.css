@@ -139,7 +139,7 @@ html, body {
 .toggle input:checked + .slider { background: var(--green); }
 .toggle input:checked + .slider::before { right: 2px; }
 
-.gear, .back {
+.back {
   background: none;
   border: 0;
   color: var(--text-dim);
@@ -147,7 +147,33 @@ html, body {
   cursor: pointer;
   padding: 4px;
 }
-.gear:hover, .back:hover { color: var(--text); }
+.back:hover { color: var(--text); }
+
+/* Settings gear — a clear icon-button, not a bare glyph. */
+.gear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  padding: 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  color: var(--text-dim);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s;
+}
+.gear:hover {
+  background: var(--bg-hover);
+  color: var(--indigo);
+  border-color: var(--indigo);
+}
+.gear:active { transform: translateY(1px); }
 
 .block { padding: 14px 16px 6px; }
 .block:last-of-type { padding-bottom: 16px; }
