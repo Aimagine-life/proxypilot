@@ -1,6 +1,6 @@
 import { loadState, saveState } from '../lib/storage.js';
 import { parseEntry, ValidationError } from '../lib/domain.js';
-import { PRESET_DEFINITIONS, PRESET_ORDER, AI_PRESET_KEYS, CATEGORIES } from '../lib/presets.js';
+import { PRESET_DEFINITIONS, PRESET_ORDER, CATEGORIES } from '../lib/presets.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -195,11 +195,14 @@ function renderMain() {
     list.appendChild(item);
   }
 
-  // AI-free banner
+  // Free-pool danger banner — public free proxies are untrusted. Warn whenever
+  // ANYTHING is actually routed through one (any preset or custom domain), not
+  // just Google-AI services.
   const aiBanner = $('#ai-free-banner');
   if (aiBanner) {
-    const aiOn = AI_PRESET_KEYS.some((k) => state.presets[k]?.enabled);
-    aiBanner.hidden = !(aiOn && state.proxySource === 'free' && state.enabled);
+    const anyRouted = PRESET_ORDER.some((k) => state.presets[k]?.enabled)
+      || (state.customDomains || []).length > 0;
+    aiBanner.hidden = !(state.proxySource === 'free' && state.enabled && anyRouted);
   }
 }
 

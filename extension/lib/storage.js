@@ -13,9 +13,12 @@ export function getDefaultState() {
     theme: 'auto',
     resolvedTheme: 'light',
     presets: {
-      gemini:     { enabled: true,  domains: ['gemini.google.com'] },
-      aiStudio:   { enabled: true,  domains: ['aistudio.google.com', 'alkalimakersuite-pa.clients6.google.com'] },
-      googleAuth: { enabled: true,  domains: ['accounts.google.com', 'ogs.google.com'] },
+      // Universal router: nothing is routed until the user opts in. (googleAuth is
+      // coupled in by pac.js whenever a Google-AI preset is on, regardless of its
+      // own enabled flag.)
+      gemini:     { enabled: false, domains: ['gemini.google.com'] },
+      aiStudio:   { enabled: false, domains: ['aistudio.google.com', 'alkalimakersuite-pa.clients6.google.com'] },
+      googleAuth: { enabled: false, domains: ['accounts.google.com', 'ogs.google.com'] },
       notebookLM: { enabled: false, domains: ['notebooklm.google.com'] },
       googleLabs: { enabled: false, domains: ['labs.google', 'labs.google.com'] },
       chatgpt:    { enabled: false, domains: ['chatgpt.com', 'chat.openai.com'] },
@@ -75,9 +78,11 @@ export async function loadState() {
   }
 
   // Merge: add any new presets that didn't exist when the user first installed.
+  // Always backfill DISABLED — a preset reappearing must never silently start
+  // routing traffic the user didn't choose.
   for (const [key, def] of Object.entries(defaults.presets)) {
     if (!saved.presets[key]) {
-      saved.presets[key] = def;
+      saved.presets[key] = { ...def, enabled: false };
     }
   }
   // Backfill theme fields for users upgrading from pre-0.4.3.

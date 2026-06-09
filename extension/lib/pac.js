@@ -1,6 +1,8 @@
-// Pure module — no chrome.* APIs allowed.
+// Pure module — no chrome.* APIs allowed. presets.js is pure data, safe to import.
+// AI_PRESET_KEYS is the single source of truth (derived from the isAi flag) for
+// which presets pull in the hidden googleAuth (accounts.google.com) coupling.
 
-const AI_PRESET_KEYS = ['gemini', 'aiStudio', 'notebookLM'];
+import { AI_PRESET_KEYS } from './presets.js';
 
 function pacDirective(scheme, host, port) {
   switch (scheme) {

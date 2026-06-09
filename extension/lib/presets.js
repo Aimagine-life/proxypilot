@@ -135,7 +135,7 @@ export const PRESET_DEFINITIONS = {
     isAi: false,
   },
   appleTv: {
-    label: 'Apple TV+', icon: '', logo: 'appleTv.svg', category: 'video',
+    label: 'Apple TV+', icon: '🍎', logo: 'appleTv.svg', category: 'video',
     domains: ['tv.apple.com'],
     isAi: false,
   },

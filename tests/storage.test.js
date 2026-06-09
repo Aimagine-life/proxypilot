@@ -27,10 +27,11 @@ test('getDefaultState: proxy is null', () => {
   assert.equal(getDefaultState().proxy, null);
 });
 
-test('getDefaultState: gemini and aiStudio presets enabled by default', () => {
+test('getDefaultState: all presets disabled by default (neutral universal router)', () => {
   const s = getDefaultState();
-  assert.equal(s.presets.gemini.enabled, true);
-  assert.equal(s.presets.aiStudio.enabled, true);
+  assert.equal(s.presets.gemini.enabled, false);
+  assert.equal(s.presets.aiStudio.enabled, false);
+  assert.equal(s.presets.googleAuth.enabled, false);
   assert.equal(s.presets.chatgpt.enabled, false);
 });
 

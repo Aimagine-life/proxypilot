@@ -6,6 +6,7 @@ import { loadState, saveState } from './lib/storage.js';
 import { applyProxy, registerAuthListener } from './lib/proxy.js';
 import { setIconState } from './lib/icon.js';
 import { buildPacScript } from './lib/pac.js';
+import { AI_PRESET_KEYS } from './lib/presets.js';
 import { checkAllPresets, isCheckDue, checkDomain } from './lib/rkn-check.js';
 import { pickAndValidate, fetchPool, DEAD_HOST_TTL_MS } from './lib/free-pool.js';
 
@@ -75,6 +76,13 @@ async function maybeRunRknCheck(state) {
 
 async function runRknCheck(state) {
   const results = await checkAllPresets(state.presets || {});
+  if (!results) {
+    // RKN list unavailable → no data to decide on. Keep last known rknResults and
+    // preset enabled-state untouched rather than disabling everything on a
+    // transient fetch failure.
+    console.warn('[RKN] list unavailable — skipping check, state unchanged');
+    return;
+  }
   state.rknResults = results;
   state.rknLastCheckAt = Date.now();
 
@@ -135,7 +143,7 @@ function isHostRouted(host, state) {
   const pac = buildPacScript(state);
   if (!pac) return false;
   const presets = state.presets || {};
-  const aiOn = ['gemini', 'aiStudio', 'notebookLM'].some((k) => presets[k]?.enabled);
+  const aiOn = AI_PRESET_KEYS.some((k) => presets[k]?.enabled);
   for (const [key, p] of Object.entries(presets)) {
     if (!p.enabled && !(key === 'googleAuth' && aiOn)) continue;
     for (const d of p.domains || []) {
