@@ -441,32 +441,32 @@ function bindSettings() {
     });
   }
 
-  // Source toggle (Manual / Free pool)
+  // Source toggle (Manual / Free pool). Switch the tab OPTIMISTICALLY so the UI
+  // reacts instantly: picking a working free proxy (pickAndValidate) can take tens
+  // of seconds, and we must never leave the pills disabled/unresponsive while it
+  // runs (that's what looked like "Бесплатный пул doesn't click").
   for (const pill of document.querySelectorAll('#source-pills .pill')) {
     pill.addEventListener('click', async () => {
       const source = pill.dataset.source;
       if (state.proxySource === source) return;
 
-      // Disable both pills while switching
-      for (const p of document.querySelectorAll('#source-pills .pill')) p.disabled = true;
-      $('#rotate-free').disabled = true;
-      $('#free-current').textContent = 'Переключение…';
+      // Instant feedback — flip the active tab and show the right block now.
+      state.proxySource = source;
+      renderSettings();
+      if (source === 'free' && !state.freeProxy?.selected) {
+        $('#free-current').textContent = 'Подбираем рабочий прокси…';
+      }
 
       try {
         const res = await chrome.runtime.sendMessage({ type: 'SWITCH_SOURCE', source });
         if (res?.state) {
           state = res.state;
           renderSettings();
-        } else {
-          // Background returned an error without state — re-render with current state so UI stays consistent
-          renderSettings();
-          if (res?.error) {
-            $('#free-current').textContent = `Ошибка: ${res.error}`;
-          }
+        } else if (res?.error) {
+          $('#free-current').textContent = `Ошибка: ${res.error}`;
         }
-      } finally {
-        for (const p of document.querySelectorAll('#source-pills .pill')) p.disabled = false;
-        $('#rotate-free').disabled = false;
+      } catch (err) {
+        $('#free-current').textContent = `Не удалось переключиться: ${err.message}`;
       }
     });
   }

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ProxyPilot",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Маршрутизация выбранных доменов через свой HTTP/SOCKS прокси или подобранный бесплатный пул прокси.",
   "homepage_url": "https://github.com/Aimagine-life/proxypilot",
   "minimum_chrome_version": "120",
