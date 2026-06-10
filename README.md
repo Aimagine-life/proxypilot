@@ -11,6 +11,8 @@
 3. Включите **Режим разработчика**
 4. Нажмите **Загрузить распакованное** → выберите папку `extension/`
 
+Подробная инструкция по ручной установке (Chrome и **Firefox**) — в [INSTALL.md](INSTALL.md).
+
 ## Настройка
 
 Доступны три источника прокси — выбирай в **Настройки → Источник прокси**:
@@ -91,6 +93,8 @@ Chromium extension that routes AI services and other geo-restricted sites throug
 2. Open `chrome://extensions`
 3. Enable **Developer mode**
 4. Click **Load unpacked** → select the `extension/` folder
+
+Full manual-install guide (Chrome and **Firefox**) — see [INSTALL.md](INSTALL.md).
 
 ## Setup
 
