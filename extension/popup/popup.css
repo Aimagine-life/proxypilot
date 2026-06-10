@@ -644,6 +644,25 @@ html, body {
 }
 .footer .dot.ok { background: var(--green); }
 
+/* Developer credit bar at the bottom of the main window. */
+.app-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-mute);
+}
+.app-footer-link {
+  color: var(--indigo);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.15s;
+}
+.app-footer-link:hover { color: var(--cyan-ink); text-decoration: underline; }
+
 .rkn-banner {
   display: flex;
   align-items: flex-start;
