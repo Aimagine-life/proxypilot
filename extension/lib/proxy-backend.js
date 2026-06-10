@@ -72,19 +72,18 @@ function chromeRegisterAuth(loadState) {
 const FF_TYPE = { http: 'http', https: 'https', socks5: 'socks', socks4: 'socks4', auto: 'http' };
 let ffState = null;
 let ffListenerAdded = false;
-let ffProbe = null; // { url, proxy } — временный override для validateProxy/probe
+const ffProbes = new Map(); // url → proxy (временные override для validateProxy/probe)
 
 export function ffDescriptor(proxy) {
   const type = FF_TYPE[proxy.scheme] || 'http';
   const d = { type, host: proxy.host, port: Number(proxy.port) };
   if (proxy.user) { d.username = proxy.user; d.password = proxy.pass || ''; }
-  if (type === 'socks' || type === 'socks4') d.proxyDNS = true;
+  if (type === 'socks') d.proxyDNS = true; // remote DNS — SOCKS5 only (SOCKS4 sends IP)
   return d;
 }
 export function ffHandleRequest(info) {
-  if (ffProbe && typeof info.url === 'string' && info.url.startsWith(ffProbe.url)) {
-    return ffDescriptor(ffProbe.proxy);
-  }
+  const probe = ffProbes.get(info.url);
+  if (probe) return ffDescriptor(probe);
   if (!ffState || !ffState.enabled || !ffState.proxy?.host) return { type: 'direct' };
   let host;
   try { host = new URL(info.url).hostname; } catch { return { type: 'direct' }; }
@@ -97,17 +96,17 @@ function ffEnsureListener() {
 }
 async function ffProbeThrough(url, proxy, timeoutMs) {
   ffEnsureListener();
-  ffProbe = { url, proxy };
+  ffProbes.set(url, proxy);
   try {
     return await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(timeoutMs) });
   } finally {
-    ffProbe = null;
+    ffProbes.delete(url);
   }
 }
 
 // ---- public API ----
 export async function applyProxy(state) {
-  if (isFirefox) { ffState = state; ffEnsureListener(); return { applied: buildPacScript(state) !== null }; }
+  if (isFirefox) { ffState = state; ffEnsureListener(); return { applied: !!(state.enabled && state.proxy?.host) }; }
   return chromeApply(state);
 }
 export async function clearProxy() {
