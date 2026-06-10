@@ -6,7 +6,7 @@ import './lib/compat.js';
 import { loadState, saveState } from './lib/storage.js';
 import { applyProxy, registerProxyAuth, probeThroughProxy } from './lib/proxy-backend.js';
 import { setIconState } from './lib/icon.js';
-import { buildPacScript, isHostRouted } from './lib/pac.js';
+import { isHostRouted } from './lib/pac.js';
 import { checkAllPresets, isCheckDue, checkDomain } from './lib/rkn-check.js';
 import { pickAndValidate, fetchPool, nextLiveProxy, DEAD_HOST_TTL_MS } from './lib/free-pool.js';
 
@@ -401,6 +401,12 @@ const PROXY_ERROR_CODES = new Set([
   'net::ERR_SOCKS_CONNECTION_FAILED',
   'net::ERR_SOCKS_CONNECTION_HOST_UNREACHABLE',
   'net::ERR_PROXY_CERTIFICATE_INVALID',
+  // Firefox (NS_ERROR_*) — same failures, different code strings.
+  'NS_ERROR_PROXY_CONNECTION_REFUSED',
+  'NS_ERROR_UNKNOWN_PROXY_HOST',
+  'NS_ERROR_PROXY_AUTHENTICATION_FAILED',
+  'NS_ERROR_PROXY_BAD_GATEWAY',
+  'NS_ERROR_PROXY_GATEWAY_TIMEOUT',
 ]);
 
 const ROTATE_DEBOUNCE_MS = 10_000;

@@ -31,6 +31,7 @@ ff = json.loads(json.dumps(base))  # deep copy
 ff["background"] = {"scripts": ["background.js"], "type": "module"}
 ff["browser_specific_settings"] = {"gecko": {"id": "proxypilot@wildbots.ru", "strict_min_version": "121.0"}}
 ff["permissions"] = [p for p in ff.get("permissions", []) if p != "webRequestAuthProvider"]
+ff.pop("minimum_chrome_version", None)
 zip_dir("extension", ff, f"dist/firefox/proxypilot-{ver}.zip")
 
 print(f"Готово: dist/chrome/proxypilot-{ver}.zip, dist/firefox/proxypilot-{ver}.zip")
