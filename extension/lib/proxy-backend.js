@@ -1,14 +1,15 @@
 // Platform proxy backend. Chrome uses a PAC script via chrome.proxy.settings;
 // Firefox (Task 3) uses chrome.proxy.onRequest. Routing logic (isHostRouted) is
 // shared from pac.js so both backends route identically.
-import { buildPacScript } from './pac.js';
+import { buildPacScript, isHostRouted } from './pac.js';
 
 const VALIDATE_URL = 'https://detectportal.firefox.com/success.txt';
 const VALIDATE_TIMEOUT_MS = 4_000;
 
 // Firefox exposes its promise APIs on `browser` natively (Chrome has no `browser`).
-// Detect via `browser` directly so this never depends on compat.js import order.
-const isFirefox = typeof browser !== 'undefined' && !!(browser.proxy && browser.proxy.onRequest);
+// After the compat shim, `chrome` === `browser` in Firefox; detect by presence of
+// chrome.proxy.onRequest (available in Firefox, absent in Chrome).
+const isFirefox = typeof chrome !== 'undefined' && !!(chrome.proxy && chrome.proxy.onRequest);
 
 // ---- shared ----
 function pacDirective({ scheme, host, port }) {
@@ -67,18 +68,59 @@ function chromeRegisterAuth(loadState) {
   );
 }
 
+// ---- Firefox backend ----
+const FF_TYPE = { http: 'http', https: 'https', socks5: 'socks', socks4: 'socks4', auto: 'http' };
+let ffState = null;
+let ffListenerAdded = false;
+let ffProbe = null; // { url, proxy } — временный override для validateProxy/probe
+
+export function ffDescriptor(proxy) {
+  const type = FF_TYPE[proxy.scheme] || 'http';
+  const d = { type, host: proxy.host, port: Number(proxy.port) };
+  if (proxy.user) { d.username = proxy.user; d.password = proxy.pass || ''; }
+  if (type === 'socks' || type === 'socks4') d.proxyDNS = true;
+  return d;
+}
+export function ffHandleRequest(info) {
+  if (ffProbe && typeof info.url === 'string' && info.url.startsWith(ffProbe.url)) {
+    return ffDescriptor(ffProbe.proxy);
+  }
+  if (!ffState || !ffState.enabled || !ffState.proxy?.host) return { type: 'direct' };
+  let host;
+  try { host = new URL(info.url).hostname; } catch { return { type: 'direct' }; }
+  return isHostRouted(host, ffState) ? ffDescriptor(ffState.proxy) : { type: 'direct' };
+}
+function ffEnsureListener() {
+  if (ffListenerAdded) return;
+  chrome.proxy.onRequest.addListener(ffHandleRequest, { urls: ['<all_urls>'] });
+  ffListenerAdded = true;
+}
+async function ffProbeThrough(url, proxy, timeoutMs) {
+  ffEnsureListener();
+  ffProbe = { url, proxy };
+  try {
+    return await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(timeoutMs) });
+  } finally {
+    ffProbe = null;
+  }
+}
+
 // ---- public API ----
 export async function applyProxy(state) {
+  if (isFirefox) { ffState = state; ffEnsureListener(); return { applied: buildPacScript(state) !== null }; }
   return chromeApply(state);
 }
 export async function clearProxy() {
+  if (isFirefox) { ffState = ffState ? { ...ffState, enabled: false } : null; return; }
   return chromeClear();
 }
 /** Route `url` through `proxy` once; resolve to { ok, status, json?, latencyMs, error }. */
 export async function probeThroughProxy(url, proxy, { timeoutMs = VALIDATE_TIMEOUT_MS, parseJson = false } = {}) {
   const start = Date.now();
   try {
-    const res = await chromeProbe(url, proxy, timeoutMs);
+    const res = isFirefox
+      ? await ffProbeThrough(url, proxy, timeoutMs)
+      : await chromeProbe(url, proxy, timeoutMs);
     const latencyMs = Date.now() - start;
     const out = { ok: res.ok, status: res.status, latencyMs, error: res.ok ? null : `HTTP ${res.status}` };
     if (parseJson && res.ok) { try { out.json = await res.json(); } catch { /* ignore */ } }
