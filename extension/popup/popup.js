@@ -166,7 +166,7 @@ function renderMain() {
   // Preset grid — grouped by category. Search filters live; enabled presets sort
   // to the top of each group; group headers collapse.
   const grid = $('#preset-grid');
-  grid.innerHTML = '';
+  grid.replaceChildren();
   const q = searchQuery.trim().toLowerCase();
   let totalShown = 0;
   let enabledTotal = 0;
@@ -227,19 +227,25 @@ function renderMain() {
 
   // Custom domains list
   const list = $('#custom-list');
-  list.innerHTML = '';
+  list.replaceChildren();
   for (const entry of state.customDomains || []) {
     const item = document.createElement('div');
     item.className = 'custom-item';
     const display = entry.mode === 'wildcard'
       ? `*.${entry.value}`
       : entry.mode === 'exact' ? `=${entry.value}` : entry.value;
-    item.innerHTML = `
-      <div class="dot"></div>
-      <div class="value">${escapeHtml(display)}</div>
-      <button class="remove" type="button" title="Remove">\u00d7</button>
-    `;
-    item.querySelector('.remove').addEventListener('click', () => removeCustom(entry));
+    const dot = document.createElement('div');
+    dot.className = 'dot';
+    const value = document.createElement('div');
+    value.className = 'value';
+    value.textContent = display;
+    const remove = document.createElement('button');
+    remove.className = 'remove';
+    remove.type = 'button';
+    remove.title = 'Remove';
+    remove.textContent = '\u00d7';
+    remove.addEventListener('click', () => removeCustom(entry));
+    item.append(dot, value, remove);
     list.appendChild(item);
   }
 
@@ -386,13 +392,6 @@ function showToast(msg) {
     t.classList.remove('show');
     setTimeout(() => t.remove(), 300);
   }, 2400);
-}
-
-
-function escapeHtml(s) {
-  return s.replace(/[&<>"']/g, (c) => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-  }[c]));
 }
 
 async function removeCustom(entry) {
@@ -753,16 +752,34 @@ function renderTestCard(kind, { title, sub = '', badges = [] }) {
   result.hidden = false;
   result.className = `test-card test-${kind}`;
   const icon = { ok: '✓', warn: '⚠', err: '✗' }[kind] || '';
-  const badgeHtml = badges
-    .map((b) => `<span class="free-badge${b.cls ? ` ${b.cls}` : ''}">${escapeHtml(b.text)}</span>`)
-    .join('');
-  result.innerHTML =
-    `<div class="free-icon" aria-hidden="true">${icon}</div>`
-    + '<div class="free-body">'
-    + `<div class="free-title">${escapeHtml(title)}</div>`
-    + (sub ? `<div class="free-sub">${escapeHtml(sub)}</div>` : '')
-    + (badgeHtml ? `<div class="free-badges">${badgeHtml}</div>` : '')
-    + '</div>';
+  const iconEl = document.createElement('div');
+  iconEl.className = 'free-icon';
+  iconEl.setAttribute('aria-hidden', 'true');
+  iconEl.textContent = icon;
+  const body = document.createElement('div');
+  body.className = 'free-body';
+  const titleEl = document.createElement('div');
+  titleEl.className = 'free-title';
+  titleEl.textContent = title;
+  body.appendChild(titleEl);
+  if (sub) {
+    const subEl = document.createElement('div');
+    subEl.className = 'free-sub';
+    subEl.textContent = sub;
+    body.appendChild(subEl);
+  }
+  if (badges.length) {
+    const wrap = document.createElement('div');
+    wrap.className = 'free-badges';
+    for (const b of badges) {
+      const span = document.createElement('span');
+      span.className = b.cls ? `free-badge ${b.cls}` : 'free-badge';
+      span.textContent = b.text;
+      wrap.appendChild(span);
+    }
+    body.appendChild(wrap);
+  }
+  result.replaceChildren(iconEl, body);
 }
 
 // Render the own-pool status card: empty list → idle, active proxy → found,
@@ -972,7 +989,7 @@ async function autoDetectScheme() {
   const autoPill = document.querySelector('.pill[data-scheme="auto"]');
   result.hidden = false;
   result.className = 'result-block detecting';
-  result.innerHTML = '\u25f7 \u041e\u043f\u0440\u0435\u0434\u0435\u043b\u044f\u0435\u043c\u2026 HTTP';
+  result.textContent = '\u25f7 \u041e\u043f\u0440\u0435\u0434\u0435\u043b\u044f\u0435\u043c\u2026 HTTP';
   if (autoPill) autoPill.classList.add('detecting');
 
   // Fire-and-forget to background. Popup watches storage for live updates.
@@ -1014,7 +1031,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (ds?.running) {
     result.hidden = false;
     result.className = 'result-block detecting';
-    result.innerHTML = `\u25f7 \u041e\u043f\u0440\u0435\u0434\u0435\u043b\u044f\u0435\u043c\u2026 ${ds.trying?.toUpperCase() || ''}`;
+    result.textContent = `\u25f7 \u041e\u043f\u0440\u0435\u0434\u0435\u043b\u044f\u0435\u043c\u2026 ${ds.trying?.toUpperCase() || ''}`;
     if (autoPill) autoPill.classList.add('detecting');
   } else if (ds && !ds.running) {
     if (autoPill) autoPill.classList.remove('detecting');
