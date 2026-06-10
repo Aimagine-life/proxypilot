@@ -71,8 +71,10 @@ html, body {
 .screen[hidden] { display: none; }
 
 /* Main screen: header + banners pinned on top, footer pinned at the bottom,
-   only the middle scrolls — so the popup itself never grows an outer scrollbar. */
-#screen-main {
+   only the middle scrolls — so the popup itself never grows an outer scrollbar.
+   Scoped to :not([hidden]) so it never out-specificity-beats `.screen[hidden]`
+   (an id selector would otherwise keep the screen visible when hidden). */
+#screen-main:not([hidden]) {
   display: flex;
   flex-direction: column;
   max-height: 580px;
