@@ -6,8 +6,9 @@ import { buildPacScript } from './pac.js';
 const VALIDATE_URL = 'https://detectportal.firefox.com/success.txt';
 const VALIDATE_TIMEOUT_MS = 4_000;
 
-// Firefox exposes chrome.proxy.onRequest (after the compat shim); Chrome does not.
-const isFirefox = !!(globalThis.chrome && chrome.proxy && chrome.proxy.onRequest);
+// Firefox exposes its promise APIs on `browser` natively (Chrome has no `browser`).
+// Detect via `browser` directly so this never depends on compat.js import order.
+const isFirefox = typeof browser !== 'undefined' && !!(browser.proxy && browser.proxy.onRequest);
 
 // ---- shared ----
 function pacDirective({ scheme, host, port }) {
@@ -36,11 +37,14 @@ async function chromeClear() {
   await chrome.proxy.settings.clear({ scope: 'regular' });
 }
 async function chromeProbe(url, proxy, timeoutMs) {
-  await chrome.proxy.settings.set({
-    value: { mode: 'pac_script', pacScript: { data: allThroughPac(proxy), mandatory: true } },
-    scope: 'regular',
-  });
   try {
+    await chrome.proxy.settings.set({
+      value: { mode: 'pac_script', pacScript: { data: allThroughPac(proxy), mandatory: true } },
+      scope: 'regular',
+    });
+    // Chrome applies the new PAC to the network stack slightly after set() resolves;
+    // wait briefly so the very next fetch goes through THIS proxy, not the previous one.
+    await new Promise((r) => setTimeout(r, 50));
     return await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(timeoutMs) });
   } finally {
     await chrome.proxy.settings.clear({ scope: 'regular' });
@@ -85,6 +89,7 @@ export async function probeThroughProxy(url, proxy, { timeoutMs = VALIDATE_TIMEO
 }
 /** Validate a free-pool candidate { protocol, host, port }. */
 export async function validateProxy(candidate) {
+  // NormalizedProxy uses 'protocol'; probe uses 'scheme' — explicit mapping.
   const r = await probeThroughProxy(VALIDATE_URL, {
     scheme: candidate.protocol, host: candidate.host, port: candidate.port,
   }, { timeoutMs: VALIDATE_TIMEOUT_MS });
@@ -94,4 +99,4 @@ export function registerProxyAuth(loadState) {
   if (isFirefox) return; // Firefox: inline auth in the proxy descriptor (Task 3)
   chromeRegisterAuth(loadState);
 }
-export { VALIDATE_URL };
+export { VALIDATE_URL }; // exported for tests
