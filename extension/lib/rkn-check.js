@@ -26,7 +26,6 @@ async function loadRknList() {
     if (cached && typeof cached.text === 'string' && (Date.now() - cached.at) < CHECK_INTERVAL_MS) {
       memorySet = textToSet(cached.text);
       memoryFetchedAt = cached.at;
-      console.log(`[RKN] Loaded ${memorySet.size} domains from cache`);
       return memorySet;
     }
   } catch (err) {
@@ -34,7 +33,6 @@ async function loadRknList() {
   }
 
   // 3. Cold path — fetch from GitHub.
-  console.log('[RKN] Fetching fresh list from GitHub\u2026');
   const res = await fetch(LIST_URL, {
     cache: 'no-store',
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
@@ -44,7 +42,6 @@ async function loadRknList() {
 
   memorySet = textToSet(text);
   memoryFetchedAt = Date.now();
-  console.log(`[RKN] Loaded ${memorySet.size} domains from network`);
 
   // Try to cache, but don't fail if storage rejects it.
   try {
@@ -83,7 +80,6 @@ export async function checkDomain(domain) {
   try {
     const set = await loadRknList();
     const blocked = isHostInSet(domain, set);
-    console.log(`[RKN] ${domain} → ${blocked ? 'BLOCKED' : 'ok'}`);
     return {
       blocked,
       reason: blocked ? 'in RKN registry' : 'not in RKN registry',
