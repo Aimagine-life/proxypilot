@@ -9,16 +9,12 @@
 //
 // Three-tier cache (memory → chrome.storage → network) mirrors lib/rkn-check.js.
 
+import { validateProxy as _validateProxy } from './proxy-backend.js';
+export { validateProxy } from './proxy-backend.js';
+
 const POOL_TTL_MS = 5 * 60 * 1000;
 const POOL_CACHE_KEY = 'freeProxyPoolCache';
 const FETCH_TIMEOUT_MS = 15_000;
-const VALIDATE_TIMEOUT_MS = 4_000;
-// Provider-neutral captive-portal probe (tiny 200 body, no rate limit). We
-// deliberately avoid Google's generate_204 (biases the pool toward proxies that
-// can reach Google specifically — a universal router routes many non-Google
-// services) and Cloudflare (it L7-blocks many free-proxy IPs). This just answers
-// "is this proxy alive", which is what pool selection needs.
-const VALIDATE_URL = 'https://detectportal.firefox.com/success.txt';
 const BLOCKED_COUNTRIES = new Set(['RU', 'BY', 'CN', 'IR']);
 export const DEAD_HOST_TTL_MS = 30 * 60 * 1000;
 // Cap how many candidates we probe per pick. Public free lists have hundreds of
@@ -294,54 +290,6 @@ export function nextLiveProxy(proxies, deadHosts = {}, now = Date.now()) {
 }
 
 /**
- * Validate a proxy candidate by routing test traffic through it.
- * Temporarily replaces chrome.proxy.settings with PAC=ALL→candidate, fetches
- * VALIDATE_URL (a neutral captive-portal probe — see its definition above),
- * then clears proxy settings.
- *
- * CALLER must restore the user's proxy via applyProxy(state) after this returns —
- * we only clear, we don't know what was there before. (In practice, the background
- * handler that calls us already does applyProxy on storage.onChanged.)
- */
-export async function validateProxy(candidate) {
-  const pac = buildAllThroughPac(candidate);
-  await chrome.proxy.settings.set({
-    value: { mode: 'pac_script', pacScript: { data: pac, mandatory: true } },
-    scope: 'regular',
-  });
-
-  const start = Date.now();
-  try {
-    const res = await fetch(VALIDATE_URL, {
-      cache: 'no-store',
-      signal: AbortSignal.timeout(VALIDATE_TIMEOUT_MS),
-    });
-    const latencyMs = Date.now() - start;
-    // The probe returns a tiny 2xx body. Accept anything 2xx; some proxies
-    // may rewrite the status/body, which is still a working proxy.
-    if (!res.ok) {
-      return { ok: false, latencyMs, error: `HTTP ${res.status}` };
-    }
-    return { ok: true, latencyMs, error: null };
-  } catch (err) {
-    return { ok: false, latencyMs: Date.now() - start, error: String(err?.message || err) };
-  } finally {
-    await chrome.proxy.settings.clear({ scope: 'regular' });
-  }
-}
-
-function buildAllThroughPac({ host, port, protocol }) {
-  let directive;
-  switch (protocol) {
-    case 'https':  directive = `HTTPS ${host}:${port}`; break;
-    case 'socks5': directive = `SOCKS5 ${host}:${port}; SOCKS ${host}:${port}`; break;
-    case 'socks4': directive = `SOCKS ${host}:${port}`; break;
-    default:       directive = `PROXY ${host}:${port}`;
-  }
-  return `function FindProxyForURL(url, host) { return "${directive}"; }`;
-}
-
-/**
  * Fetch pool, filter by deadHosts from state.freeProxy, validate candidates
  * sequentially until one passes or MAX_VALIDATION_ATTEMPTS is reached. Caller
  * can also interrupt by ignoring the response (popup closes, etc.).
@@ -392,7 +340,7 @@ export async function pickAndValidate(state, { onProgress } = {}) {
     if (onProgress) {
       try { onProgress(i + 1, limit, cand); } catch { /* swallow — UI is best-effort */ }
     }
-    const result = await validateProxy(cand);
+    const result = await _validateProxy(cand);
     if (result.ok) {
       return {
         pick: {
