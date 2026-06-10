@@ -70,6 +70,23 @@ html, body {
 .screen { display: block; }
 .screen[hidden] { display: none; }
 
+/* Main screen: header + banners pinned on top, footer pinned at the bottom,
+   only the middle scrolls — so the popup itself never grows an outer scrollbar. */
+#screen-main {
+  display: flex;
+  flex-direction: column;
+  max-height: 580px;
+}
+#screen-main > .header,
+#screen-main > .rkn-banner,
+#screen-main > .ai-free-banner,
+#screen-main > .app-footer { flex: 0 0 auto; }
+#screen-main > .main-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
 /* Directional screen transitions: forward (into settings) slides in from the
    right, back (to main) from the left. Only the entering screen animates. */
 @keyframes screen-in-right {
@@ -239,8 +256,6 @@ html, body {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  max-height: 280px;
-  overflow-y: auto;
 }
 .preset-search {
   width: 100%;
