@@ -2,6 +2,7 @@
   "name": "proxypilot",
   "version": "0.11.13",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "test": "node --test"
