@@ -2,15 +2,16 @@
 // sleep/wake. On startup: load state, push PAC, set initial icon for the
 // active tab.
 
+import './lib/compat.js';
 import { loadState, saveState } from './lib/storage.js';
-import { applyProxy, registerAuthListener } from './lib/proxy.js';
+import { applyProxy, registerProxyAuth, probeThroughProxy } from './lib/proxy-backend.js';
 import { setIconState } from './lib/icon.js';
-import { buildPacScript, isHostRouted } from './lib/pac.js';
+import { isHostRouted } from './lib/pac.js';
 import { checkAllPresets, isCheckDue, checkDomain } from './lib/rkn-check.js';
 import { pickAndValidate, fetchPool, nextLiveProxy, DEAD_HOST_TTL_MS } from './lib/free-pool.js';
 
 // 1. Auth listener — must be top-level for sleep/wake survival.
-registerAuthListener();
+registerProxyAuth(loadState);
 
 // 1b. Auto-rotate free proxy on proxy connection errors.
 registerProxyErrorListener();
@@ -278,59 +279,18 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 async function runProxyTest(url) {
   const state = await loadState();
   if (!state.proxy?.host) return { ok: false, error: 'No proxy configured' };
-
-  // Temporarily route ALL traffic through the proxy so the test URL actually
-  // goes through it (ipinfo.io is not in the normal routing list).
-  await chrome.proxy.settings.set({
-    value: {
-      mode: 'pac_script',
-      pacScript: { data: buildAllThroughPac(state.proxy), mandatory: true },
-    },
-    scope: 'regular',
-  });
-
-  const start = Date.now();
-  try {
-    const res = await fetch(url, {
-      cache: 'no-store',
-      signal: AbortSignal.timeout(8000),
-    });
-    const latencyMs = Date.now() - start;
-    let extra = {};
-    if (url.includes('ipinfo.io')) {
-      const data = await res.json();
-      extra = { ip: data.ip, country: data.country };
-      state.proxy.lastTest = {
-        ok: true,
-        ip: data.ip,
-        country: data.country,
-        latencyMs,
-        at: Math.floor(Date.now() / 1000),
-      };
-      await saveState(state);
-    } else {
-      extra = { httpStatus: res.status };
-    }
-    return { ok: true, latencyMs, ...extra };
-  } catch (err) {
-    return { ok: false, error: String(err?.message || err) };
-  } finally {
-    // Restore normal PAC (routes only configured domains).
-    await applyProxy(state);
+  const r = await probeThroughProxy(url, state.proxy, { timeoutMs: 8000, parseJson: url.includes('ipinfo.io') });
+  if (!r.ok) { await applyProxy(state); return { ok: false, error: r.error }; }
+  let extra = {};
+  if (url.includes('ipinfo.io') && r.json) {
+    extra = { ip: r.json.ip, country: r.json.country };
+    state.proxy.lastTest = { ok: true, ip: r.json.ip, country: r.json.country, latencyMs: r.latencyMs, at: Math.floor(Date.now() / 1000) };
+    await saveState(state);
+  } else {
+    extra = { httpStatus: r.status };
   }
-}
-
-// Build a PAC that routes every URL through the proxy (used only for testing).
-function buildAllThroughPac(proxy) {
-  const { scheme, host, port } = proxy;
-  let directive;
-  switch (scheme) {
-    case 'https':  directive = `HTTPS ${host}:${port}`; break;
-    case 'socks5': directive = `SOCKS5 ${host}:${port}; SOCKS ${host}:${port}`; break;
-    case 'socks4': directive = `SOCKS ${host}:${port}`; break;
-    default:       directive = `PROXY ${host}:${port}`;
-  }
-  return `function FindProxyForURL(url, host) { return "${directive}"; }`;
+  await applyProxy(state);
+  return { ok: true, latencyMs: r.latencyMs, ...extra };
 }
 
 /**
@@ -441,6 +401,12 @@ const PROXY_ERROR_CODES = new Set([
   'net::ERR_SOCKS_CONNECTION_FAILED',
   'net::ERR_SOCKS_CONNECTION_HOST_UNREACHABLE',
   'net::ERR_PROXY_CERTIFICATE_INVALID',
+  // Firefox (NS_ERROR_*) — same failures, different code strings.
+  'NS_ERROR_PROXY_CONNECTION_REFUSED',
+  'NS_ERROR_UNKNOWN_PROXY_HOST',
+  'NS_ERROR_PROXY_AUTHENTICATION_FAILED',
+  'NS_ERROR_PROXY_BAD_GATEWAY',
+  'NS_ERROR_PROXY_GATEWAY_TIMEOUT',
 ]);
 
 const ROTATE_DEBOUNCE_MS = 10_000;
@@ -511,31 +477,15 @@ async function detectScheme(host, port, user, pass) {
   await new Promise((r) => setTimeout(r, 100));
 
   for (const scheme of candidates) {
-    // Write current attempt so popup can show it live.
     state.detectStatus = { running: true, trying: scheme };
     await saveState(state);
-
-    try {
-      const pac = buildAllThroughPac({ scheme, host, port: Number(port) });
-      await chrome.proxy.settings.set({
-        value: { mode: 'pac_script', pacScript: { data: pac, mandatory: true } },
-        scope: 'regular',
-      });
-      await new Promise((r) => setTimeout(r, 50));
-      const res = await fetch('https://ipinfo.io/json', {
-        cache: 'no-store',
-        signal: AbortSignal.timeout(4000),
-      });
-      if (res.ok) {
-        state.proxy.scheme = scheme;
-        state.detectStatus = { running: false, ok: true, scheme };
-        await saveState(state);
-        await applyProxy(state);
-        return;
-      }
-    } catch {
-      await chrome.proxy.settings.clear({ scope: 'regular' });
-      await new Promise((r) => setTimeout(r, 100));
+    const r = await probeThroughProxy('https://ipinfo.io/json', { scheme, host, port: Number(port) }, { timeoutMs: 4000 });
+    if (r.ok) {
+      state.proxy.scheme = scheme;
+      state.detectStatus = { running: false, ok: true, scheme };
+      await saveState(state);
+      await applyProxy(state);
+      return;
     }
   }
 

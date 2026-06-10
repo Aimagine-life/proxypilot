@@ -7,7 +7,7 @@
 ## 0. Что уже готово
 
 - ✅ Manifest V3, `description`, `homepage_url`, иконки 16/32/48/128 в бренд-стиле.
-- ✅ Сборка пакета: `sh scripts/build-dist.sh` → `dist/proxypilot-<version>.zip` (manifest.json в корне).
+- ✅ Сборка пакета: `sh scripts/build.sh` → `dist/chrome/proxypilot-<version>.zip` (manifest.json в корне).
 - ✅ Экран «О разработчике» (фото, ссылки, донат). После публикации — вставить ссылку «Оценить» (см. §7).
 
 ## 1. Аккаунт и оплата
@@ -19,8 +19,8 @@
 ## 2. Сборка пакета
 
 ```sh
-sh scripts/build-dist.sh
-# → dist/proxypilot-0.11.10.zip
+sh scripts/build.sh
+# → dist/chrome/proxypilot-0.11.11.zip
 ```
 Проверь, что в архиве `manifest.json` лежит в КОРНЕ (не внутри папки). Скрипт это гарантирует.
 В пакет НЕ входят `data/`, `docs/`, тесты — только `extension/`.
@@ -136,7 +136,7 @@ CWS спросит, зачем каждое разрешение. Готовые
 
 ## 8. Чеклист перед «Submit for review»
 
-- [ ] `sh scripts/build-dist.sh` собран свежий zip, версия совпадает с manifest.
+- [ ] `sh scripts/build.sh` собран свежий zip, версия совпадает с manifest.
 - [ ] Название, краткое и подробное описание вставлены (§3).
 - [ ] Категория и язык выбраны.
 - [ ] Иконка 128 и минимум 1 скриншот 1280×800 загружены (§4).
