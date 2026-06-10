@@ -711,13 +711,13 @@ html, body {
 
 .about-links {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   padding: 16px;
 }
 .about-link {
-  display: flex; align-items: center; justify-content: center; gap: 7px;
-  padding: 11px 10px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 11px 6px;
   border-radius: 10px;
   background: var(--bg-3);
   border: 1px solid var(--border);
@@ -749,6 +749,13 @@ html, body {
   background: rgba(245, 158, 11, 0.12);
   color: var(--amber-ink);
   border: 1px solid rgba(245, 158, 11, 0.32);
+}
+/* «Оценить» — тизер до публикации в Chrome Web Store (некликабельный). */
+.about-cta-soon {
+  background: var(--bg-2);
+  color: var(--text-mute);
+  border: 1px dashed var(--border-strong);
+  cursor: default;
 }
 .about-version-bar { justify-content: center; }
 
