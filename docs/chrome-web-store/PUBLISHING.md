@@ -58,7 +58,53 @@ AI-ассистенты, видео, музыка, дизайн и другие 
 ```
 
 **Категория:** Productivity (Продуктивность). Альтернатива: Tools.
-**Язык карточки:** Русский (основной). При желании добавить English-локаль листинга позже.
+**Язык карточки:** Русский (основной) + English (см. §3-EN ниже).
+
+## 3-EN. Store listing — English locale
+
+**Name:** `ProxyPilot`
+
+**Summary** (≤132 chars):
+```
+Open AI services and blocked sites through your own proxy or a curated free one. No full VPN — routed per domain.
+```
+
+**Description:**
+```
+ProxyPilot routes only the sites you choose through a proxy — everything else goes direct. Great for opening AI services and other geo-restricted sites without a full VPN.
+
+FEATURES
+• Three proxy sources: your own proxy, your own pool with auto-rotation, and a free public pool.
+• The free pool is built from several vetted lists, filters out dead and unsafe entries, and picks a working one for you.
+• Domain-based routing: turn on the services you need — only those go through the proxy.
+• HTTP, HTTPS, SOCKS5, SOCKS4 with protocol auto-detection and authentication.
+• Light and dark theme, with a clear "what's active now" status.
+
+ABOUT THE FREE POOL
+Free public proxies are run by strangers — don't sign into important accounts while routed through them. Use your own proxy for reliability.
+
+LEGAL COMPLIANCE
+The extension does not route domains listed in Russia's Roskomnadzor registry: if a domain is blocked there, routing for it is disabled automatically (Russian law 149-FZ).
+
+Free and open source. Made by Wildbots — https://wildbots.ru/
+```
+
+**Single purpose (EN):**
+```
+Route user-selected domains through a proxy server. The extension does not collect or transmit user data.
+```
+
+**Permission justifications (EN):**
+- **proxy** — core function: configure the browser proxy (PAC on Chrome / `proxy.onRequest` on Firefox) to route selected domains.
+- **storage** — store user settings (chosen services, own proxy/pool, theme) and a local cache of the free-proxy lists.
+- **unlimitedStorage** — caches the Roskomnadzor registry of domains blocked in Russia (~17 MB, ~870,000 domains), which exceeds the default `chrome.storage.local` quota (~5–10 MB); without it the cache is truncated and the 149-FZ compliance check stops working.
+- **webRequest** — detect proxy connection errors to auto-rotate to a working proxy.
+- **webRequestAuthProvider** (Chrome only) — supply proxy username/password on auth challenges (authenticated proxies). On Firefox, auth is inline in the proxy descriptor.
+- **tabs** — read the active tab's domain to show the correct toolbar icon state (proxied vs direct).
+- **alarms** — periodically refresh the free-proxy list and re-check the RKN registry (daily).
+- **host_permissions `<all_urls>`** — used only by the webRequest listeners (proxy auth + dead-proxy detection) across arbitrary user-routed domains, NOT for reading page content. `activeTab` doesn't fit — proxying runs in the background for all routed requests, not per click; specific hosts can't be listed because the user routes arbitrary domains. The extension does not read or modify page content and collects no user data.
+
+**Data collection (EN):** none — declare no data collected. Reasoning identical to §6.
 
 ## 4. Графика для карточки
 
