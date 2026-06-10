@@ -32,7 +32,9 @@ Mozilla может запросить исходники. Сборка лишь 
 ## Технические отличия Firefox-сборки (для справки)
 - `background` — event page (`scripts`), не service worker.
 - Проксирование — `browser.proxy.onRequest` (per-request), не PAC.
-- `strict_min_version: 121.0` (MV3 + ES-модули в background + `proxy.onRequest`).
+- `strict_min_version`: 140.0 (desktop) / 142.0 (Android) — там, где Firefox добавил
+  поддержку `data_collection_permissions` (ниже AMO предупреждает). Сами фичи (MV3,
+  ES-модули, `proxy.onRequest`) работают и раньше.
 
 ## После публикации
 Если решишь показывать кнопку «Оценить» для Firefox-сборки — добавь ссылку на страницу

@@ -21,7 +21,7 @@ ProxyPilot — это Chrome MV3 расширение. Цель — выпуст
 - Namespace — лёгкий шим `globalThis.browser ??= chrome` (код переводится на
   `browser.*`, промисы в обоих браузерах). webextension-polyfill — запасной вариант,
   если какой-то API в Chrome MV3 окажется не-промисным.
-- Минимальная версия Firefox: **121+** (MV3 + ES-модули в background + `proxy.onRequest`).
+- Минимальная версия Firefox: **140+ desktop / 142+ Android** (там, где добавлен ключ `data_collection_permissions`, обязательный для AMO; сами фичи — MV3, ES-модули, `proxy.onRequest` — работают и с 121).
 
 ## Архитектура
 

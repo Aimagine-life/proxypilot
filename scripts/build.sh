@@ -29,12 +29,19 @@ zip_dir("extension", base, f"dist/chrome/proxypilot-{ver}.zip")
 # Firefox — патч манифеста.
 ff = json.loads(json.dumps(base))  # deep copy
 ff["background"] = {"scripts": ["background.js"], "type": "module"}
-ff["browser_specific_settings"] = {"gecko": {
-    "id": "proxypilot@wildbots.ru",
-    "strict_min_version": "121.0",
-    # Mozilla built-in data consent: расширение НЕ собирает данные пользователя → "none".
-    "data_collection_permissions": {"required": ["none"]},
-}}
+ff["browser_specific_settings"] = {
+    "gecko": {
+        "id": "proxypilot@wildbots.ru",
+        # data_collection_permissions поддержан с Firefox 140 (desktop) / 142 (Android),
+        # поэтому минимальные версии подняты до этих значений (иначе AMO предупреждает).
+        "strict_min_version": "140.0",
+        # Mozilla built-in data consent: расширение НЕ собирает данные пользователя → "none".
+        "data_collection_permissions": {"required": ["none"]},
+    },
+    "gecko_android": {
+        "strict_min_version": "142.0",
+    },
+}
 ff["permissions"] = [p for p in ff.get("permissions", []) if p != "webRequestAuthProvider"]
 ff.pop("minimum_chrome_version", None)
 zip_dir("extension", ff, f"dist/firefox/proxypilot-{ver}.zip")
