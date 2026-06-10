@@ -677,6 +677,78 @@ html, body {
   transition: color 0.15s;
 }
 .app-footer-link:hover { color: var(--cyan-ink); text-decoration: underline; }
+.app-footer-about {
+  background: none;
+  border: 0;
+  border-left: 1px solid var(--border);
+  margin-left: 2px;
+  padding: 0 0 0 8px;
+  color: var(--text-mute);
+  font-size: 11px;
+  cursor: pointer;
+}
+.app-footer-about:hover { color: var(--indigo); }
+
+/* About / developer screen */
+.about-hero { text-align: center; padding: 24px 20px 8px; }
+.about-avatar {
+  width: 88px; height: 88px;
+  border-radius: 50%;
+  margin: 0 auto 12px;
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(150deg, #6366f1, #06b6d4);
+  color: #fff; font-size: 34px; font-weight: 700;
+  box-shadow: 0 8px 22px rgba(99, 102, 241, 0.38);
+  border: 3px solid var(--bg);
+}
+.about-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.about-name { font-size: 17px; font-weight: 700; color: var(--text); }
+.about-role { font-size: 12px; font-weight: 600; color: var(--indigo); margin-top: 3px; }
+.about-bio { font-size: 12px; color: var(--text-dim); line-height: 1.5; margin: 9px auto 0; max-width: 280px; }
+
+.about-links {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 16px;
+}
+.about-link {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 11px 10px;
+  border-radius: 10px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 12px; font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+.about-link:hover { background: var(--bg-hover); border-color: var(--indigo); }
+.about-link:active { transform: translateY(1px); }
+.about-link-ico { font-size: 14px; }
+
+.about-cta-wrap { padding: 0 16px 12px; display: flex; flex-direction: column; gap: 8px; }
+.about-cta {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 12.5px; font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.1s, box-shadow 0.15s;
+}
+.about-cta:active { transform: translateY(1px); }
+.about-cta-primary {
+  background: linear-gradient(135deg, var(--indigo), var(--cyan));
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.32);
+}
+.about-cta-heart {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--amber-ink);
+  border: 1px solid rgba(245, 158, 11, 0.32);
+}
+.about-version-bar { justify-content: center; }
 
 .rkn-banner {
   display: flex;

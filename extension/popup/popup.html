@@ -61,6 +61,7 @@
       <footer class="app-footer">
         <span>Сделано в</span>
         <a class="app-footer-link" href="https://wildbots.ru/" target="_blank" rel="noopener noreferrer">Wildbots ↗</a>
+        <button type="button" class="app-footer-about" id="open-about" title="О разработчике">О разработчике</button>
       </footer>
 
     </section>
@@ -205,6 +206,40 @@
         <div class="cta-sub">Введи хост, порт и авторизацию своего<br />HTTP/SOCKS прокси.</div>
         <button type="button" class="cta" id="firstrun-open-settings">Открыть настройки →</button>
       </section>
+    </section>
+
+    <!-- About / developer screen -->
+    <section id="screen-about" class="screen" hidden>
+      <header class="header">
+        <button type="button" class="back" id="back-from-about" title="Назад">←</button>
+        <div class="header-text"><div class="title">О разработчике</div></div>
+      </header>
+
+      <div class="about-hero">
+        <div class="about-avatar" id="about-avatar">
+          <!-- TODO: заменить на <img src="author.jpg" alt="Konstantin"> когда будет фото -->
+          <span class="about-avatar-ph">K</span>
+        </div>
+        <div class="about-name">Константин</div>
+        <div class="about-role">Разработчик · Wildbots</div>
+        <div class="about-bio">Делаю умные инструменты и AI-ботов. ProxyPilot — один из проектов Wildbots.</div>
+      </div>
+
+      <div class="about-links">
+        <a class="about-link" href="https://wildbots.ru/" target="_blank" rel="noopener noreferrer"><span class="about-link-ico">🌐</span> Сайт</a>
+        <a class="about-link" id="about-tg" href="#" target="_blank" rel="noopener noreferrer"><span class="about-link-ico">✈</span> Telegram</a>
+        <a class="about-link" id="about-gh" href="#" target="_blank" rel="noopener noreferrer"><span class="about-link-ico">⌨</span> GitHub</a>
+        <a class="about-link" id="about-mail" href="#" target="_blank" rel="noopener noreferrer"><span class="about-link-ico">✉</span> Контакт</a>
+      </div>
+
+      <div class="about-cta-wrap">
+        <a class="about-cta about-cta-primary" id="about-rate" href="#" target="_blank" rel="noopener noreferrer">⭐ Оценить расширение</a>
+        <a class="about-cta about-cta-heart" id="about-donate" href="#" target="_blank" rel="noopener noreferrer">💛 Поддержать проект</a>
+      </div>
+
+      <footer class="footer about-version-bar">
+        <span class="dot ok"></span> ProxyPilot <span id="about-version"></span>
+      </footer>
     </section>
   </div>
 

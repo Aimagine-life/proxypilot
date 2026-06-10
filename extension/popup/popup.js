@@ -71,7 +71,7 @@ function renderThemePills() {
 }
 
 function routeInitialScreen() {
-  const screens = ['main', 'settings', 'firstrun'];
+  const screens = ['main', 'settings', 'firstrun', 'about'];
   for (const s of screens) $(`#screen-${s}`).hidden = true;
 
   const hasManual = state.proxySource === 'manual' && state.proxy?.host;
@@ -97,6 +97,7 @@ function showMain({ animate = true } = {}) {
   $('#screen-main').hidden = false;
   $('#screen-settings').hidden = true;
   $('#screen-firstrun').hidden = true;
+  $('#screen-about').hidden = true;
   if (animate) animateScreen($('#screen-main'), 'back');
   renderMain();
 }
@@ -105,8 +106,19 @@ function showSettings() {
   $('#screen-main').hidden = true;
   $('#screen-settings').hidden = false;
   $('#screen-firstrun').hidden = true;
+  $('#screen-about').hidden = true;
   animateScreen($('#screen-settings'), 'forward');
   renderSettings();
+}
+
+function showAbout() {
+  $('#screen-main').hidden = true;
+  $('#screen-settings').hidden = true;
+  $('#screen-firstrun').hidden = true;
+  $('#screen-about').hidden = false;
+  animateScreen($('#screen-about'), 'forward');
+  const v = $('#about-version');
+  if (v) v.textContent = 'v' + chrome.runtime.getManifest().version;
 }
 
 function renderMain() {
@@ -249,6 +261,8 @@ function bindMain() {
   });
 
   $('#open-settings').addEventListener('click', () => showSettings());
+  $('#open-about').addEventListener('click', () => showAbout());
+  $('#back-from-about').addEventListener('click', () => showMain());
 
   $('#preset-search').addEventListener('input', (e) => {
     searchQuery = e.target.value;
