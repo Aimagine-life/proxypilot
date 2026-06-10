@@ -2,6 +2,7 @@
 // sleep/wake. On startup: load state, push PAC, set initial icon for the
 // active tab.
 
+import './lib/compat.js';
 import { loadState, saveState } from './lib/storage.js';
 import { applyProxy, registerAuthListener } from './lib/proxy.js';
 import { setIconState } from './lib/icon.js';
