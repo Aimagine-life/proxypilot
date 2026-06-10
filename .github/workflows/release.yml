@@ -1,0 +1,91 @@
+name: Release
+
+# Собирает готовые пакеты и публикует их в GitHub Release.
+# Триггер: пуш тега вида v1.2.3 (тег должен совпадать с version в manifest.json).
+# Ручной запуск (workflow_dispatch) только собирает/тестирует, без публикации релиза.
+#
+# Firefox: если в секретах репозитория заданы AMO_API_KEY и AMO_API_SECRET —
+# расширение подписывается через AMO (unlisted) и в релиз кладётся постоянный .xpi.
+# Без секретов в релиз идёт неподписанный firefox-zip (ставится только временно).
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      AMO_API_KEY: ${{ secrets.AMO_API_KEY }}
+      AMO_API_SECRET: ${{ secrets.AMO_API_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Run tests (gate)
+        run: npm test
+
+      - name: Build chrome.zip and firefox.zip
+        run: sh scripts/build.sh
+
+      - name: Stage assets with unique names
+        id: stage
+        run: |
+          ver=$(python -c "import json;print(json.load(open('extension/manifest.json'))['version'])")
+          echo "ver=$ver" >> "$GITHUB_OUTPUT"
+          mkdir -p release-assets
+          cp "dist/chrome/proxypilot-$ver.zip"  "release-assets/proxypilot-chrome-$ver.zip"
+          cp "dist/firefox/proxypilot-$ver.zip" "release-assets/proxypilot-firefox-$ver.zip"
+
+      - name: Sign Firefox add-on (optional — needs AMO_API_KEY / AMO_API_SECRET)
+        if: ${{ env.AMO_API_KEY != '' && env.AMO_API_SECRET != '' }}
+        run: |
+          ver=${{ steps.stage.outputs.ver }}
+          mkdir -p firefox-src signed
+          (cd firefox-src && unzip -o "../dist/firefox/proxypilot-$ver.zip")
+          npx --yes web-ext@latest sign \
+            --source-dir firefox-src \
+            --channel unlisted \
+            --api-key "$AMO_API_KEY" \
+            --api-secret "$AMO_API_SECRET" \
+            --artifacts-dir signed \
+            || echo "::warning::Firefox signing failed — релиз получит только неподписанный zip."
+          for f in signed/*.xpi; do
+            [ -e "$f" ] && cp "$f" "release-assets/proxypilot-firefox-$ver-signed.xpi"
+          done
+
+      - name: Publish GitHub Release
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ProxyPilot ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          fail_on_unmatched_files: false
+          body: |
+            ## Установка
+
+            **Chrome / Edge / Brave:** скачай `proxypilot-chrome-*.zip`, распакуй,
+            открой `chrome://extensions` → включи «Режим разработчика» →
+            «Загрузить распакованное» → выбери распакованную папку.
+
+            **Firefox:** если в ассетах есть `…-signed.xpi` — открой его в Firefox
+            (постоянная установка). Иначе `proxypilot-firefox-*.zip` ставится только
+            временно: `about:debugging` → «Load Temporary Add-on».
+
+            Подробности — [INSTALL.md](https://github.com/Aimagine-life/proxypilot/blob/main/INSTALL.md).
+          files: |
+            release-assets/proxypilot-chrome-*.zip
+            release-assets/proxypilot-firefox-*.zip
+            release-assets/proxypilot-firefox-*-signed.xpi
