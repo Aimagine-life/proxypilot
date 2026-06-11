@@ -110,10 +110,10 @@ Route user-selected domains through a proxy server. The extension does not colle
 
 | Ассет | Размер | Статус |
 |---|---|---|
-| Иконка магазина | 128×128 PNG | ✅ `extension/icons/light/off-128.png` (бренд-монограмма P) |
+| Иконка магазина | 128×128 PNG | ✅ `docs/chrome-web-store/icon/proxypilot-128.png` (цветная бренд-монограмма P, с 0.12.0 = `extension/icons/app-128.png`) |
 | Скриншоты (1–5) | 1280×800 или 640×400 PNG | 📁 `docs/chrome-web-store/screenshots/` (сгенерированы, см. ниже) |
 | Promo «маленькая плитка» | 440×280 PNG | 📁 `docs/chrome-web-store/screenshots/promo-440x280.png` |
-| Promo «marquee» (опц.) | 1400×560 PNG | по желанию |
+| Promo «marquee» | 1400×560 JPEG/PNG без альфы | 📁 `docs/chrome-web-store/screenshots/promo-marquee-1400x560.jpg` |
 
 Скриншоты показывают: главный экран, подбор бесплатного прокси (с конфетти-успехом),
 настройки с якорем «Сейчас работает», экран «О разработчике».

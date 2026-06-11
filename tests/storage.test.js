@@ -218,6 +218,35 @@ test('loadState: backfills every current preset (disabled) when none stored', as
   }
 });
 
+test('getDefaultState: includes donate defaults', () => {
+  const s = getDefaultState();
+  assert.deepEqual(s.donate, { uses: 0, lastShownAt: 0, dismissed: false });
+});
+
+test('loadState: backfills donate for users upgrading from before 0.12.0', async () => {
+  await chrome.storage.local.clear();
+  await saveState({
+    schemaVersion: 2, enabled: false, proxy: null, proxySource: 'manual',
+    manualProxy: null, freeProxy: { selected: null, lastError: null, deadHosts: {}, poolFetchedAt: 0 },
+    theme: 'auto', resolvedTheme: 'light', presets: {}, customDomains: [],
+    // no donate (pre-0.12.0 state)
+  });
+  const s = await loadState();
+  assert.deepEqual(s.donate, { uses: 0, lastShownAt: 0, dismissed: false });
+});
+
+test('loadState: existing donate state is preserved as-is', async () => {
+  await chrome.storage.local.clear();
+  await saveState({
+    schemaVersion: 2, enabled: false, proxy: null, proxySource: 'manual',
+    manualProxy: null, freeProxy: { selected: null, lastError: null, deadHosts: {}, poolFetchedAt: 0 },
+    theme: 'auto', resolvedTheme: 'light', presets: {}, customDomains: [],
+    donate: { uses: 7, lastShownAt: 123456, dismissed: true },
+  });
+  const s = await loadState();
+  assert.deepEqual(s.donate, { uses: 7, lastShownAt: 123456, dismissed: true });
+});
+
 test('loadState: backfills ownPool for users upgrading from before 0.9.0', async () => {
   await chrome.storage.local.clear();
   await saveState({

@@ -664,14 +664,37 @@ html, body {
 /* Developer credit bar at the bottom of the main window. */
 .app-footer {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  padding: 10px 16px;
+  flex-direction: column;
+  gap: 7px;
+  padding: 8px 16px 10px;
   border-top: 1px solid var(--border);
   font-size: 11px;
   color: var(--text-mute);
 }
+.app-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+/* Постоянная точка входа в донат — янтарная, в стиле .about-cta-heart. */
+.footer-donate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  border-radius: 9px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  color: var(--amber-ink);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.1s, background 0.15s;
+}
+.footer-donate:hover { background: rgba(245, 158, 11, 0.2); }
+.footer-donate:active { transform: translateY(1px); }
 .app-footer-link {
   color: var(--indigo);
   text-decoration: none;
@@ -1024,3 +1047,42 @@ html, body {
   font-size: 14px;
 }
 .ai-free-banner[hidden] { display: none; }
+
+/* Donate thank-you banner — тёплый янтарный, в семействе ai-free-banner. */
+.donate-banner {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 9px 10px 9px 12px;
+  margin: 8px 0;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  border-radius: 10px;
+  font-size: 11px;
+  color: var(--amber-ink);
+}
+.donate-banner[hidden] { display: none; }
+.donate-banner-icon { flex: 0 0 auto; font-size: 14px; }
+.donate-banner-text { flex: 1 1 auto; font-weight: 600; }
+.donate-banner-btn {
+  flex: 0 0 auto;
+  padding: 5px 10px;
+  border-radius: 7px;
+  background: var(--amber);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+}
+.donate-banner-btn:hover { filter: brightness(1.08); }
+.donate-banner-close {
+  flex: 0 0 auto;
+  background: none;
+  border: 0;
+  padding: 2px 4px;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--amber-ink);
+  opacity: 0.6;
+  cursor: pointer;
+}
+.donate-banner-close:hover { opacity: 1; }

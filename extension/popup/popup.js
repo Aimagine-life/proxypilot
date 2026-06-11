@@ -11,13 +11,36 @@ const collapsedCats = {};        // { categoryKey: true } — collapsed groups
 let pickingFree = false;         // true while a free-pool pick/rotate is running
 let lastFreeStateKey = '';       // last rendered free state (drives confetti-on-success)
 let confettiRunning = false;     // guards against overlapping confetti bursts
+let donateBannerDue = false;     // decided once per popup open in updateDonateNudge()
 
 // Human names for the three proxy sources (state.proxySource).
 const SOURCE_LABEL = { manual: 'Свой прокси', own: 'Свой пул', free: 'Бесплатный пул' };
 const SOURCE_SHORT = { manual: 'Свой', own: 'Свой пул', free: 'Бесплатный' };
 
+const DONATE_REPEAT_MS = 14 * 24 * 60 * 60 * 1000; // re-show thank-you banner at most every 14 days
+
+// Donate nudge: count "useful" popup opens (proxy enabled + active source) and
+// decide ONCE per open whether the thank-you banner is due. renderMain() only
+// applies the precomputed decision, so re-renders never re-trigger it.
+async function updateDonateNudge() {
+  const active = state.enabled && (
+    (state.proxySource === 'manual' && state.proxy?.host) ||
+    (state.proxySource === 'free' && state.freeProxy?.selected) ||
+    (state.proxySource === 'own' && state.ownPool?.selected));
+  if (!active) return;
+
+  state.donate.uses += 1;
+  if (state.donate.uses >= 3 && !state.donate.dismissed &&
+      Date.now() - (state.donate.lastShownAt || 0) >= DONATE_REPEAT_MS) {
+    donateBannerDue = true;
+    state.donate.lastShownAt = Date.now();
+  }
+  await persist();
+}
+
 async function init() {
   state = await loadState();
+  await updateDonateNudge();
   applyTheme();
   await syncResolvedTheme();
   routeInitialScreen();
@@ -258,6 +281,8 @@ function renderMain() {
       || (state.customDomains || []).length > 0;
     aiBanner.hidden = !(state.proxySource === 'free' && state.enabled && anyRouted);
   }
+
+  $('#donate-banner').hidden = !donateBannerDue;
 }
 
 function bindMain() {
@@ -270,6 +295,20 @@ function bindMain() {
   $('#open-settings').addEventListener('click', () => showSettings());
   $('#open-about').addEventListener('click', () => showAbout());
   $('#back-from-about').addEventListener('click', () => showMain());
+
+  $('#donate-banner-close').addEventListener('click', async () => {
+    state.donate.dismissed = true;
+    donateBannerDue = false;
+    await persist();
+    renderMain();
+  });
+  // Клик по «Поддержать» = пользователь отреагировал — баннер больше не нужен
+  // (постоянная кнопка в футере остаётся). Переходу по ссылке не мешаем.
+  $('#donate-banner-link').addEventListener('click', () => {
+    state.donate.dismissed = true;
+    donateBannerDue = false;
+    persist();
+  });
 
   $('#preset-search').addEventListener('input', (e) => {
     searchQuery = e.target.value;
