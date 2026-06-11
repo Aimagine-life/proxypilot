@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  body {
+    width: 1400px; height: 560px; overflow: hidden;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: linear-gradient(118deg, #7c6cf2 0%, #6366f1 38%, #22b8d4 100%);
+    position: relative;
+  }
+  .glow1 { position: absolute; width: 700px; height: 700px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,.15), transparent 70%);
+    top: -300px; left: -180px; }
+  .glow2 { position: absolute; width: 560px; height: 560px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(94,234,212,.26), transparent 70%);
+    bottom: -240px; right: 240px; }
+  .wrap { position: relative; display: flex; align-items: center; gap: 90px;
+    padding: 0 110px; height: 100%; }
+  .left { flex: 1; color: #fff; }
+  .brand { display: flex; align-items: center; gap: 16px; margin-bottom: 26px; }
+  .brand img { width: 58px; height: 58px; border-radius: 13px;
+    box-shadow: 0 5px 16px rgba(15,23,42,.28); }
+  .brand span { font-size: 30px; font-weight: 800; letter-spacing: .01em; }
+  h1 { font-size: 52px; line-height: 1.12; font-weight: 800; margin-bottom: 18px;
+    text-shadow: 0 2px 18px rgba(15,23,42,.18); }
+  .sub { font-size: 20px; line-height: 1.5; color: rgba(255,255,255,.9);
+    max-width: 520px; margin-bottom: 26px; }
+  .chips { display: flex; gap: 10px; flex-wrap: wrap; max-width: 560px; }
+  .chip { padding: 8px 16px; border-radius: 999px; font-size: 15px; font-weight: 600;
+    background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.3);
+    backdrop-filter: blur(2px); }
+  .phone { width: 360px; height: 620px; border-radius: 18px; overflow: hidden;
+    box-shadow: 0 32px 90px rgba(15,23,42,.5), 0 0 0 1px rgba(255,255,255,.18);
+    background: #fff; flex-shrink: 0; align-self: flex-start; margin-top: 56px; }
+  iframe { width: 360px; height: 620px; border: 0; display: block; }
+</style>
+</head>
+<body>
+  <div class="glow1"></div><div class="glow2"></div>
+  <div class="wrap">
+    <div class="left">
+      <div class="brand">
+        <img src="http://localhost:8741/icons/app-128.png" alt="">
+        <span>ProxyPilot</span>
+      </div>
+      <h1>Открывай AI-сервисы без VPN</h1>
+      <div class="sub">Только выбранные сайты идут через прокси — остальной трафик напрямую. Свой прокси, свой пул или бесплатный.</div>
+      <div class="chips">
+        <span class="chip">Gemini</span><span class="chip">ChatGPT</span><span class="chip">Claude</span><span class="chip">Spotify</span><span class="chip">Notion AI</span><span class="chip">+ 30 сервисов</span>
+      </div>
+    </div>
+    <div class="phone"><iframe src="http://localhost:8741/popup/popup.html"></iframe></div>
+  </div>
+</body>
+</html>

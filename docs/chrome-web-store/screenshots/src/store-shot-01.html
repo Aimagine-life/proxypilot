@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  body {
+    width: 1280px; height: 800px; overflow: hidden;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: linear-gradient(125deg, #7c6cf2 0%, #6366f1 35%, #22b8d4 100%);
+    position: relative;
+  }
+  .glow1 { position: absolute; width: 640px; height: 640px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,.16), transparent 70%);
+    top: -220px; left: -160px; }
+  .glow2 { position: absolute; width: 540px; height: 540px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(94,234,212,.24), transparent 70%);
+    bottom: -200px; right: -120px; }
+  .wrap { position: relative; display: flex; align-items: center; gap: 80px;
+    padding: 0 95px; height: 100%; }
+  .left { flex: 1; color: #fff; }
+  .brand { display: flex; align-items: center; gap: 13px; margin-bottom: 30px; }
+  .brand img { width: 46px; height: 46px; border-radius: 11px;
+    box-shadow: 0 4px 14px rgba(15,23,42,.25); }
+  .brand span { font-size: 23px; font-weight: 700; letter-spacing: .01em; }
+  h1 { font-size: 56px; line-height: 1.1; font-weight: 800; margin-bottom: 22px;
+    text-shadow: 0 2px 18px rgba(15,23,42,.18); }
+  .sub { font-size: 19.5px; line-height: 1.55; color: rgba(255,255,255,.9);
+    max-width: 430px; }
+  .phone { width: 360px; height: 580px; border-radius: 18px; overflow: hidden;
+    box-shadow: 0 32px 90px rgba(15,23,42,.45), 0 0 0 1px rgba(255,255,255,.18);
+    background: #fff; flex-shrink: 0; }
+  iframe { width: 360px; height: 580px; border: 0; display: block; }
+</style>
+</head>
+<body>
+  <div class="glow1"></div><div class="glow2"></div>
+  <div class="wrap">
+    <div class="left">
+      <div class="brand">
+        <img src="http://localhost:8741/icons/app-128.png" alt="">
+        <span>ProxyPilot</span>
+      </div>
+      <h1>Открывай AI-сервисы<br>без VPN</h1>
+      <div class="sub">Маршрутизируй только нужные сайты через прокси — остальное идёт напрямую.</div>
+    </div>
+    <div class="phone"><iframe src="http://localhost:8741/popup/popup.html"></iframe></div>
+  </div>
+</body>
+</html>
