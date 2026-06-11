@@ -35,6 +35,10 @@ export function getDefaultState() {
     resolvedTheme: 'light',
     presets: buildDefaultPresets(),
     customDomains: [],
+    // Donate nudge bookkeeping (added in 0.12.0). `uses` counts popup opens
+    // with an active proxy; the thank-you banner shows at >=3 uses, at most
+    // once per 14 days, until dismissed.
+    donate: { uses: 0, lastShownAt: 0, dismissed: false },
   };
 }
 
@@ -74,6 +78,9 @@ export async function loadState() {
   if (!saved.ownPool) saved.ownPool = { ...defaults.ownPool };
   if (!Array.isArray(saved.ownPool.proxies)) saved.ownPool.proxies = [];
   if (!saved.ownPool.deadHosts) saved.ownPool.deadHosts = {};
+
+  // donate backfill (added in 0.12.0).
+  if (!saved.donate) saved.donate = { ...defaults.donate };
 
   return saved;
 }
