@@ -3,6 +3,7 @@
 // active tab.
 
 import './lib/compat.js';
+import { t } from './lib/i18n.js';
 import { loadState, saveState } from './lib/storage.js';
 import { applyProxy, registerProxyAuth, probeThroughProxy } from './lib/proxy-backend.js';
 import { setIconState } from './lib/icon.js';
@@ -114,13 +115,13 @@ async function refreshTabIcon(tabId, state) {
     return;
   }
   if (!state.proxy || !state.proxy.host) {
-    await setIconState(tabId, 'error', { reason: 'not configured', theme });
+    await setIconState(tabId, 'error', { reason: t('icon_error_reason_not_configured'), theme });
     return;
   }
 
   const tab = await chrome.tabs.get(tabId).catch(() => null);
   if (!tab || !tab.url || !tab.url.startsWith('http')) {
-    await setIconState(tabId, 'direct', { host: '(internal)', theme });
+    await setIconState(tabId, 'direct', { host: t('icon_host_internal'), theme });
     return;
   }
 
@@ -149,7 +150,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     // Sanitize to a bare hostname before building the URL (defensive — domain
     // comes from a runtime message).
     const domain = String(msg.domain || '').replace(/[^a-z0-9.-]/gi, '');
-    if (!domain) { sendResponse({ ok: false, error: 'нет домена для проверки' }); return false; }
+    if (!domain) { sendResponse({ ok: false, error: t('err_no_domain_to_test') }); return false; }
     runProxyTest(`https://${domain}/`).then(sendResponse);
     return true;
   }
@@ -278,7 +279,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
 async function runProxyTest(url) {
   const state = await loadState();
-  if (!state.proxy?.host) return { ok: false, error: 'No proxy configured' };
+  if (!state.proxy?.host) return { ok: false, error: t('err_no_proxy_configured') };
   const r = await probeThroughProxy(url, state.proxy, { timeoutMs: 8000, parseJson: url.includes('ipinfo.io') });
   if (!r.ok) { await applyProxy(state); return { ok: false, error: r.error }; }
   let extra = {};
@@ -339,7 +340,9 @@ async function rotateFreeProxy(state, { markCurrentDead = true } = {}) {
       };
     } else {
       state.freeProxy.selected = null;
-      state.freeProxy.lastError = result.error;
+      state.freeProxy.lastError = result.errorCode
+        ? t(`free_err_${result.errorCode}`, result.errorParams)
+        : result.error;
       state.proxy = null;
     }
     state.freeProxy.poolFetchedAt = Date.now();
@@ -456,8 +459,8 @@ async function selectOwnProxy(state, { markCurrentDead = true } = {}) {
   } else {
     pool.selected = null;
     pool.lastError = (pool.proxies || []).length
-      ? 'Все твои прокси временно недоступны — подожди или проверь адреса.'
-      : 'Список пуст — вставь свои прокси.';
+      ? t('own_all_proxies_unavailable')
+      : t('own_pool_empty');
     state.proxy = null;
   }
   await saveState(state);
@@ -490,7 +493,7 @@ async function detectScheme(host, port, user, pass) {
   }
 
   state.proxy = origProxy;
-  state.detectStatus = { running: false, ok: false, error: 'Could not detect protocol' };
+  state.detectStatus = { running: false, ok: false, error: t('settings_detect_failed') };
   await saveState(state);
   if (origProxy) await applyProxy(state);
 }

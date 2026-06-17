@@ -16,15 +16,18 @@
 // registry (verified against zapret-info/z-i). Some are account/payment-gated
 // ("type B") — a proxy alone may not be enough; see the README notes.
 
+// `labelKey` is a chrome.i18n key (see _locales/*/messages.json); the popup renders
+// each category header via t(labelKey). Service/brand labels on PRESET_DEFINITIONS
+// are NOT localized (Netflix, Gemini, … are brand names).
 export const CATEGORIES = [
-  { key: 'aiChat',  label: 'AI-ассистенты' },
-  { key: 'aiTools', label: 'AI: код · медиа · голос' },
-  { key: 'video',   label: 'Видео' },
-  { key: 'music',   label: 'Музыка' },
-  { key: 'design',  label: 'Дизайн и продуктивность' },
-  { key: 'web',     label: 'Сайты · хостинг · магазины' },
-  { key: 'work',    label: 'Работа · команды · dev' },
-  { key: 'adult',   label: '18+' },
+  { key: 'aiChat',  labelKey: 'cat_ai_chat' },
+  { key: 'aiTools', labelKey: 'cat_ai_tools' },
+  { key: 'video',   labelKey: 'cat_video' },
+  { key: 'music',   labelKey: 'cat_music' },
+  { key: 'design',  labelKey: 'cat_design' },
+  { key: 'web',     labelKey: 'cat_web' },
+  { key: 'work',    labelKey: 'cat_work' },
+  { key: 'adult',   labelKey: 'cat_adult' },
 ];
 
 export const PRESET_DEFINITIONS = {

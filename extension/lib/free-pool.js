@@ -301,9 +301,11 @@ export function nextLiveProxy(proxies, deadHosts = {}, now = Date.now()) {
  * call so the caller can stream progress to the UI. Errors thrown by
  * onProgress are swallowed.
  *
- * Returns { pick, attemptedHosts, poolSize, error }.
+ * Returns { pick, attemptedHosts, poolSize, error, errorCode, errorParams }.
  *   pick: { host, port, scheme, country, latencyMs, validatedAt } | null
- *   error: user-facing Russian string when pick is null.
+ *   error: Russian fallback string when pick is null (kept for tests + as a
+ *     fallback). errorCode/errorParams are machine-readable; background.js
+ *     localizes them via the chrome.i18n key `free_err_<errorCode>`.
  */
 export async function pickAndValidate(state, { onProgress } = {}) {
   const deadHosts = (state.freeProxy && state.freeProxy.deadHosts) || {};
@@ -316,6 +318,8 @@ export async function pickAndValidate(state, { onProgress } = {}) {
       attemptedHosts: [],
       poolSize: 0,
       error: `не удалось загрузить список: ${err.message}`,
+      errorCode: 'load_list_failed',
+      errorParams: [err.message],
     };
   }
   const candidates = filterPool(pool, { deadHosts });
@@ -325,6 +329,8 @@ export async function pickAndValidate(state, { onProgress } = {}) {
       attemptedHosts: [],
       poolSize: pool.length,
       error: 'В бесплатном списке нет подходящих прокси. Лучше укажи свой прокси.',
+      errorCode: 'no_suitable',
+      errorParams: null,
     };
   }
 
@@ -364,6 +370,8 @@ export async function pickAndValidate(state, { onProgress } = {}) {
     error: httpsCapable === 0
       ? 'В бесплатном списке сейчас нет HTTPS-прокси — он почти бесполезен. Лучше укажи свой прокси.'
       : `Рабочий прокси не найден (проверено ${attempted.length}). Попробуй позже или укажи свой.`,
+    errorCode: httpsCapable === 0 ? 'no_https' : 'no_working',
+    errorParams: httpsCapable === 0 ? null : [attempted.length],
   };
 }
 

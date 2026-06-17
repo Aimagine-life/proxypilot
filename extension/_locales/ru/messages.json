@@ -1,0 +1,593 @@
+{
+  "app_name": {
+    "message": "ProxyPilot",
+    "description": "Extension name shown in the browser and store. Brand name — keep as-is."
+  },
+  "app_description": {
+    "message": "Маршрутизация выбранных доменов через свой HTTP/SOCKS прокси или подобранный бесплатный пул прокси.",
+    "description": "Extension description shown in Chrome Web Store and Firefox Add-ons."
+  },
+
+  "back": {
+    "message": "Назад",
+    "description": "Back-button tooltip on settings and about screens."
+  },
+  "auto": {
+    "message": "Авто",
+    "description": "Auto option label (used for protocol auto-detect and theme)."
+  },
+  "status_off": {
+    "message": "Выключено",
+    "description": "Status when the extension is turned off."
+  },
+  "about_developer": {
+    "message": "О разработчике",
+    "description": "About screen title and the button/tooltip that opens it."
+  },
+  "unit_ms": {
+    "message": "мс",
+    "description": "Abbreviation for milliseconds, shown after a latency number."
+  },
+
+  "main_open_settings_title": {
+    "message": "Настройки",
+    "description": "Tooltip on the gear button that opens settings."
+  },
+  "main_ai_free_banner": {
+    "message": "Бесплатный публичный прокси не доверенный — не входи в важные аккаунты, пока трафик идёт через него. Некоторые сервисы могут заблокировать аккаунт.",
+    "description": "Warning banner shown when routing through a free public proxy."
+  },
+  "main_donate_banner_text": {
+    "message": "Нравится ProxyPilot? Поддержи проект",
+    "description": "Donation nudge banner text."
+  },
+  "main_donate_banner_btn": {
+    "message": "Поддержать",
+    "description": "Donation banner button."
+  },
+  "main_donate_banner_close_title": {
+    "message": "Больше не показывать",
+    "description": "Tooltip on the close button of the donation banner."
+  },
+  "main_services_label": {
+    "message": "Сервисы",
+    "description": "Section heading for the list of preset services."
+  },
+  "main_reset_presets": {
+    "message": "Сбросить",
+    "description": "Button that disables all enabled services."
+  },
+  "main_preset_search_placeholder": {
+    "message": "Поиск сервиса…",
+    "description": "Placeholder in the service search field."
+  },
+  "main_preset_empty": {
+    "message": "Ничего не найдено",
+    "description": "Shown when a service search returns no matches."
+  },
+  "main_custom_domains_label": {
+    "message": "Свои домены",
+    "description": "Section heading for the user's own domain list."
+  },
+  "main_add_domain_placeholder": {
+    "message": "example.com или *.example.com",
+    "description": "Placeholder in the add-domain field."
+  },
+  "main_add_domain_btn": {
+    "message": "+ Добавить",
+    "description": "Add-domain button default label."
+  },
+  "main_add_domain_btn_checking": {
+    "message": "Проверка…",
+    "description": "Add-domain button label while the domain is being checked."
+  },
+  "main_footer_donate": {
+    "message": "💛 Поддержать проект",
+    "description": "Footer donation link."
+  },
+  "main_footer_made_in": {
+    "message": "Сделано в",
+    "description": "Footer text before the Wildbots link, e.g. 'Made at Wildbots'."
+  },
+  "main_remove_custom_domain_title": {
+    "message": "Удалить",
+    "description": "Tooltip on the × button that removes a custom domain."
+  },
+  "main_status_need_proxy_setup": {
+    "message": "Нужна настройка прокси",
+    "description": "Status line when no proxy is configured."
+  },
+  "main_rkn_banner_blocked": {
+    "message": "$1 — в реестре Роскомнадзора. Маршрутизация отключена согласно 149-ФЗ.",
+    "description": "Compliance banner. $1 is a comma-separated list of blocked service names."
+  },
+  "main_cat_count_enabled": {
+    "message": "$1 вкл",
+    "description": "Category header badge: number of enabled services in this category. $1 is the count."
+  },
+  "main_enabled_count": {
+    "message": "$1 включено",
+    "description": "Total number of enabled services. $1 is the count."
+  },
+  "main_toast_domain_added": {
+    "message": "✓ $1 добавлен — не в реестре РКН",
+    "description": "Toast after adding a custom domain. $1 is the domain."
+  },
+
+  "settings_title": {
+    "message": "Настройки прокси",
+    "description": "Settings screen title."
+  },
+  "settings_active_source_label": {
+    "message": "Сейчас работает",
+    "description": "Label above the active proxy source card."
+  },
+  "settings_change_source_label": {
+    "message": "Сменить источник",
+    "description": "Label above the proxy source selector."
+  },
+  "settings_source_manual": {
+    "message": "Свой",
+    "description": "Proxy source pill: user's own single proxy."
+  },
+  "settings_source_own": {
+    "message": "Свой пул",
+    "description": "Proxy source pill: user's own pool of proxies."
+  },
+  "settings_source_free": {
+    "message": "Бесплатный",
+    "description": "Proxy source pill: free public proxy pool."
+  },
+  "settings_own_pool_label": {
+    "message": "Свой пул прокси",
+    "description": "Heading for the own-pool block."
+  },
+  "settings_own_list_placeholder": {
+    "message": "По одному прокси на строку:\nsocks5://user:pass@host:port\nhttp://host:port\nhost:port:user:pass",
+    "description": "Placeholder in the own-pool textarea. The scheme examples are not translated."
+  },
+  "settings_save_own": {
+    "message": "Сохранить и подключить",
+    "description": "Button that saves the own-pool list and connects."
+  },
+  "settings_rotate_own": {
+    "message": "↻ Следующий",
+    "description": "Button that switches to the next proxy in the own pool. ↻ is a decorative icon."
+  },
+  "settings_own_hint": {
+    "message": "Если выбранный прокси перестанет отвечать — переключусь на следующий. Без протокола строка считается http. Проверить текущий — кнопкой «Проверить прокси».",
+    "description": "Hint under the own-pool block."
+  },
+  "settings_free_pool_label": {
+    "message": "Бесплатный пул прокси",
+    "description": "Heading for the free-pool block."
+  },
+  "settings_free_warning": {
+    "message": "⚠ Бесплатные прокси публичные и не доверенные. Не входи в важные аккаунты, пока трафик идёт через них.",
+    "description": "Warning under the free-pool block. ⚠ is part of the phrase."
+  },
+  "settings_scheme_label": {
+    "message": "Протокол",
+    "description": "Label above the proxy protocol selector."
+  },
+  "settings_host_label": {
+    "message": "Хост",
+    "description": "Label for the proxy host field."
+  },
+  "settings_port_label": {
+    "message": "Порт",
+    "description": "Label for the proxy port field."
+  },
+  "settings_auth_label": {
+    "message": "Авторизация",
+    "description": "Label for the proxy authentication block."
+  },
+  "settings_auth_optional": {
+    "message": "опц.",
+    "description": "Short 'optional' marker next to the authentication label."
+  },
+  "settings_user_placeholder": {
+    "message": "логин",
+    "description": "Placeholder in the proxy username field."
+  },
+  "settings_pass_placeholder": {
+    "message": "пароль",
+    "description": "Placeholder in the proxy password field."
+  },
+  "settings_test_proxy": {
+    "message": "Проверить прокси",
+    "description": "Button that tests the current proxy."
+  },
+  "settings_test_service": {
+    "message": "Проверить сервис",
+    "description": "Button that tests an enabled service through the proxy."
+  },
+  "settings_theme_label": {
+    "message": "Тема",
+    "description": "Label above the theme selector."
+  },
+  "settings_theme_light": {
+    "message": "Светлая",
+    "description": "Light theme option."
+  },
+  "settings_theme_dark": {
+    "message": "Тёмная",
+    "description": "Dark theme option."
+  },
+  "settings_footer_autosave": {
+    "message": "Сохраняется автоматически",
+    "description": "Settings footer note that changes are saved automatically."
+  },
+
+  "settings_source_label_manual": {
+    "message": "Свой прокси",
+    "description": "Active-source card name for the manual single proxy."
+  },
+  "settings_source_label_own": {
+    "message": "Свой пул",
+    "description": "Active-source card name for the own pool."
+  },
+  "settings_source_label_free": {
+    "message": "Бесплатный пул",
+    "description": "Active-source card name for the free pool."
+  },
+  "main_source_short_manual": {
+    "message": "Свой",
+    "description": "Short source name shown in the main status line (manual)."
+  },
+  "main_source_short_own": {
+    "message": "Свой пул",
+    "description": "Short source name shown in the main status line (own pool)."
+  },
+  "main_source_short_free": {
+    "message": "Бесплатный",
+    "description": "Short source name shown in the main status line (free pool)."
+  },
+  "settings_active_source_off_detail": {
+    "message": "Выбран: $1 · включи переключатель на главном экране",
+    "description": "Active-source detail when the extension is off. $1 is the selected source name."
+  },
+  "settings_active_source_warn_free": {
+    "message": "Прокси ещё не подобран — нажми «Подобрать» ниже",
+    "description": "Active-source detail when free pool has no proxy chosen yet."
+  },
+  "settings_active_source_warn_own": {
+    "message": "Прокси не выбран — добавь список ниже",
+    "description": "Active-source detail when own pool has no proxy selected."
+  },
+  "settings_active_source_warn_manual": {
+    "message": "Прокси не настроен — заполни поля ниже",
+    "description": "Active-source detail when the manual proxy is not configured."
+  },
+  "settings_detect_running": {
+    "message": "◷ Определяем… $1",
+    "description": "Protocol auto-detect in progress. $1 is the scheme being tried (HTTP/SOCKS5...)."
+  },
+  "settings_detect_found": {
+    "message": "✓ Найден: $1",
+    "description": "Protocol auto-detect succeeded. $1 is the detected scheme."
+  },
+  "settings_detect_failed": {
+    "message": "Не удалось определить протокол",
+    "description": "Protocol auto-detect failed with no specific reason."
+  },
+  "settings_test_russian_proxy_title": {
+    "message": "Это российский прокси",
+    "description": "Test result title when the proxy resolves to Russia."
+  },
+  "settings_test_russian_proxy_sub": {
+    "message": "Гео-блок им не обойти — нужен прокси другой страны.",
+    "description": "Test result subtitle for a Russian proxy."
+  },
+  "settings_test_proxy_ok_title": {
+    "message": "Прокси работает",
+    "description": "Test result title when the proxy works."
+  },
+  "settings_test_proxy_ok_sub": {
+    "message": "Заблокированные сервисы откроются.",
+    "description": "Test result subtitle when the proxy works."
+  },
+  "settings_test_service_ok_title": {
+    "message": "$1 отвечает",
+    "description": "Service test success title. $1 is the service name."
+  },
+  "settings_test_failed_title": {
+    "message": "Не получилось",
+    "description": "Generic test failure title."
+  },
+  "err_test_enable_one_first": {
+    "message": "Сначала включите хотя бы один сервис",
+    "description": "Shown when testing a service but none are enabled."
+  },
+
+  "firstrun_status_needs_setup": {
+    "message": "⚠ Нужна настройка",
+    "description": "First-run status. ⚠ is part of the phrase."
+  },
+  "firstrun_cta_title": {
+    "message": "Подключи прокси для старта",
+    "description": "First-run call-to-action title."
+  },
+  "firstrun_cta_sub": {
+    "message": "Введи хост, порт и авторизацию своего HTTP/SOCKS прокси.",
+    "description": "First-run call-to-action subtitle."
+  },
+  "firstrun_open_settings_btn": {
+    "message": "Открыть настройки →",
+    "description": "First-run button that opens settings."
+  },
+
+  "about_avatar_alt": {
+    "message": "Константин",
+    "description": "Alt text for the developer avatar image (a person's name)."
+  },
+  "about_name": {
+    "message": "Константин",
+    "description": "Developer name on the about screen."
+  },
+  "about_role": {
+    "message": "Разработчик · Wildbots",
+    "description": "Developer role line. Wildbots is a brand."
+  },
+  "about_bio": {
+    "message": "Делаю умные инструменты и AI-ботов. ProxyPilot — один из проектов Wildbots.",
+    "description": "Developer bio on the about screen."
+  },
+  "about_link_site": {
+    "message": "Сайт",
+    "description": "Label for the developer website link."
+  },
+  "about_donate_cta": {
+    "message": "💛 Поддержать проект",
+    "description": "Donation call-to-action on the about screen."
+  },
+  "about_rate_soon": {
+    "message": "⭐ Скоро в Chrome Web Store",
+    "description": "Placeholder for the not-yet-available store rating link. Chrome Web Store is a brand."
+  },
+  "about_rate_soon_title": {
+    "message": "Появится после публикации в Chrome Web Store",
+    "description": "Tooltip on the coming-soon store link."
+  },
+
+  "free_searching_title": {
+    "message": "Подбираю рабочий прокси…",
+    "description": "Free-pool card title while searching."
+  },
+  "free_searching_sub": {
+    "message": "Проверяю кандидатов вживую — это пара секунд.",
+    "description": "Free-pool card subtitle while searching."
+  },
+  "free_searching_progress_starting": {
+    "message": "Запускаю проверку…",
+    "description": "Initial progress text when a free-pool search starts."
+  },
+  "free_progress_tested": {
+    "message": "Проверено $1 из $2",
+    "description": "Live free-pool progress. $1 is current index, $2 is total."
+  },
+  "free_rotate_btn_picking": {
+    "message": "Идёт подбор…",
+    "description": "Free-pool rotate button label while a pick runs."
+  },
+  "free_rotate_btn_change": {
+    "message": "↻ Сменить прокси",
+    "description": "Free-pool rotate button when a proxy is connected. ↻ is decorative."
+  },
+  "free_rotate_btn_retry": {
+    "message": "↻ Попробовать ещё раз",
+    "description": "Free-pool rotate button after an error. ↻ is decorative."
+  },
+  "free_rotate_btn_pick": {
+    "message": "Подобрать прокси",
+    "description": "Free-pool button that starts picking a proxy."
+  },
+  "free_speed_fast": {
+    "message": "быстрый",
+    "description": "Speed badge for a fast free proxy."
+  },
+  "free_speed_mid": {
+    "message": "средний",
+    "description": "Speed badge for a medium-speed free proxy."
+  },
+  "free_speed_slow": {
+    "message": "медленный",
+    "description": "Speed badge for a slow free proxy."
+  },
+  "free_found_title": {
+    "message": "Готово — прокси подключён",
+    "description": "Free-pool card title when a proxy is connected."
+  },
+  "free_error_title": {
+    "message": "Живой прокси пока не нашёлся",
+    "description": "Free-pool card title on error."
+  },
+  "free_idle_title": {
+    "message": "Прокси ещё не подобран",
+    "description": "Free-pool card title when idle (initial)."
+  },
+  "free_idle_sub": {
+    "message": "Нажми кнопку — найду рабочий за пару секунд.",
+    "description": "Free-pool card subtitle when idle (initial)."
+  },
+  "free_pool_meta_updated": {
+    "message": "Список обновлён $1 мин назад",
+    "description": "Free-pool list freshness. $1 is minutes."
+  },
+  "free_err_load_list_failed": {
+    "message": "не удалось загрузить список: $1",
+    "description": "Free-pool error when the list fetch fails. $1 is the reason."
+  },
+  "free_err_no_suitable": {
+    "message": "В бесплатном списке нет подходящих прокси. Лучше укажи свой прокси.",
+    "description": "Free-pool error when no candidate passes the filter."
+  },
+  "free_err_no_https": {
+    "message": "В бесплатном списке сейчас нет HTTPS-прокси — он почти бесполезен. Лучше укажи свой прокси.",
+    "description": "Free-pool error when no HTTPS-capable proxy exists."
+  },
+  "free_err_no_working": {
+    "message": "Рабочий прокси не найден (проверено $1). Попробуй позже или укажи свой.",
+    "description": "Free-pool error after probing candidates. $1 is the number tested."
+  },
+
+  "own_empty_title": {
+    "message": "Список пуст",
+    "description": "Own-pool card title when the list is empty."
+  },
+  "own_empty_sub": {
+    "message": "Вставь свои прокси — по одному на строку.",
+    "description": "Own-pool card subtitle when the list is empty."
+  },
+  "own_meta_recognized_one": {
+    "message": "$1 прокси распознано",
+    "description": "Own-pool meta after Save, singular. $1 is the count (1)."
+  },
+  "own_meta_recognized_other": {
+    "message": "$1 прокси распознано",
+    "description": "Own-pool meta after Save, plural. $1 is the count."
+  },
+  "own_meta_none_recognized": {
+    "message": "Не распознал ни одного прокси — проверь формат",
+    "description": "Own-pool meta when nothing parsed."
+  },
+  "own_meta_in_list_one": {
+    "message": "$1 прокси в списке",
+    "description": "Own-pool meta count, singular. $1 is the count (1)."
+  },
+  "own_meta_in_list_other": {
+    "message": "$1 прокси в списке",
+    "description": "Own-pool meta count, plural. $1 is the count."
+  },
+  "own_badge_one_of_n": {
+    "message": "1 из $1 в пуле",
+    "description": "Badge showing the active proxy position. $1 is the pool size."
+  },
+  "own_found_title": {
+    "message": "Прокси активен",
+    "description": "Own-pool card title when a proxy is active."
+  },
+  "own_error_title": {
+    "message": "Прокси недоступен",
+    "description": "Own-pool card title on error."
+  },
+  "own_idle_ready_one": {
+    "message": "$1 прокси готово",
+    "description": "Own-pool idle title, singular. $1 is the count (1)."
+  },
+  "own_idle_ready_other": {
+    "message": "$1 прокси готово",
+    "description": "Own-pool idle title, plural. $1 is the count."
+  },
+  "own_idle_ready_sub": {
+    "message": "Нажми «Сохранить и подключить».",
+    "description": "Own-pool idle subtitle. Mirrors the Save-and-connect button."
+  },
+  "own_all_proxies_unavailable": {
+    "message": "Все твои прокси временно недоступны — подожди или проверь адреса.",
+    "description": "Own-pool error when no live proxy is found but the list is non-empty."
+  },
+  "own_pool_empty": {
+    "message": "Список пуст — вставь свои прокси.",
+    "description": "Own-pool error when the pool has no proxies."
+  },
+
+  "icon_off_tooltip": {
+    "message": "ProxyPilot — выключено",
+    "description": "Toolbar icon tooltip when off. ProxyPilot is a brand."
+  },
+  "icon_routed_tooltip": {
+    "message": "ProxyPilot — $1 через прокси",
+    "description": "Toolbar tooltip for a routed tab. $1 is the host. Country and latency are appended separately."
+  },
+  "icon_direct_tooltip": {
+    "message": "ProxyPilot — $1 напрямую (не в списке маршрутизации)",
+    "description": "Toolbar tooltip for a non-routed tab. $1 is the host."
+  },
+  "icon_error_tooltip": {
+    "message": "ProxyPilot — ошибка прокси: $1",
+    "description": "Toolbar tooltip on proxy error. $1 is the reason."
+  },
+  "icon_error_reason_unavailable": {
+    "message": "недоступен",
+    "description": "Default reason in the error tooltip when none is given."
+  },
+  "icon_error_reason_not_configured": {
+    "message": "не настроен",
+    "description": "Error-tooltip reason when no proxy is configured."
+  },
+  "icon_host_internal": {
+    "message": "(внутренняя страница)",
+    "description": "Placeholder host in the direct tooltip for internal/non-http pages."
+  },
+
+  "err_domain_empty_input": {
+    "message": "пустой ввод",
+    "description": "Domain validation: input is empty."
+  },
+  "err_domain_empty_after_normalize": {
+    "message": "пусто после нормализации",
+    "description": "Domain validation: nothing left after normalization."
+  },
+  "err_domain_not_a_domain": {
+    "message": "не похоже на домен: $1",
+    "description": "Domain validation: input isn't a domain. $1 is the input."
+  },
+  "err_domain_ipv6_unsupported": {
+    "message": "IPv6-адреса не поддерживаются",
+    "description": "Domain validation: IPv6 literal rejected."
+  },
+  "err_domain_invalid": {
+    "message": "некорректный домен: $1",
+    "description": "Domain validation: normalized value is invalid. $1 is the input."
+  },
+  "err_domain_already_in_list": {
+    "message": "Уже в списке",
+    "description": "Shown when adding a custom domain that is already present."
+  },
+  "err_domain_in_rkn_registry": {
+    "message": "⛔ $1 в реестре Роскомнадзора — добавить нельзя (149-ФЗ)",
+    "description": "Shown when a custom domain is RKN-blocked. $1 is the domain."
+  },
+  "err_no_domain_to_test": {
+    "message": "нет домена для проверки",
+    "description": "Error when a service test has no domain."
+  },
+  "err_no_proxy_configured": {
+    "message": "Прокси не настроен",
+    "description": "Error when testing with no proxy set up."
+  },
+
+  "cat_ai_chat": {
+    "message": "AI-ассистенты",
+    "description": "Service category: AI chat assistants."
+  },
+  "cat_ai_tools": {
+    "message": "AI: код · медиа · голос",
+    "description": "Service category: AI tools for code, media and voice."
+  },
+  "cat_video": {
+    "message": "Видео",
+    "description": "Service category: video streaming."
+  },
+  "cat_music": {
+    "message": "Музыка",
+    "description": "Service category: music streaming."
+  },
+  "cat_design": {
+    "message": "Дизайн и продуктивность",
+    "description": "Service category: design and productivity."
+  },
+  "cat_web": {
+    "message": "Сайты · хостинг · магазины",
+    "description": "Service category: websites, hosting and stores."
+  },
+  "cat_work": {
+    "message": "Работа · команды · dev",
+    "description": "Service category: work, teams and dev tools."
+  },
+  "cat_adult": {
+    "message": "18+",
+    "description": "Service category: adult content. Kept identical in all languages."
+  }
+}
