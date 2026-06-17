@@ -116,7 +116,9 @@ export const PRESET_DEFINITIONS = {
   // ─────────────────────────── Видео ───────────────────────────
   youtube: {
     label: 'YouTube', icon: '▶', logo: 'youtube.svg', category: 'video',
-    domains: ['youtube.com', 'www.youtube.com', 'youtu.be', 'googlevideo.com'],
+    // ytimg.com / ggpht.com host video thumbnails and channel avatars — without
+    // them previews and images fail to load through the proxy.
+    domains: ['youtube.com', 'www.youtube.com', 'youtu.be', 'googlevideo.com', 'ytimg.com', 'ggpht.com'],
     couplesGoogleAuth: false,
   },
   netflix: {

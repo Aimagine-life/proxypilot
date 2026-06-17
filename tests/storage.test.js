@@ -35,6 +35,12 @@ test('getDefaultState: all presets disabled by default (neutral universal router
   assert.equal(s.presets.chatgpt.enabled, false);
 });
 
+test('getDefaultState: youtube preset includes preview/image CDN domains', () => {
+  const domains = getDefaultState().presets.youtube.domains;
+  assert.ok(domains.includes('ytimg.com'), 'ytimg.com present');
+  assert.ok(domains.includes('ggpht.com'), 'ggpht.com present');
+});
+
 test('loadState: returns default state when storage empty', async () => {
   await chrome.storage.local.clear();
   const s = await loadState();
@@ -216,6 +222,23 @@ test('loadState: backfills every current preset (disabled) when none stored', as
     assert.equal(s.presets[key].enabled, false, `preset ${key} backfilled disabled`);
     assert.deepEqual(s.presets[key].domains, defaults.presets[key].domains, `preset ${key} domains match`);
   }
+});
+
+test('loadState: merges newly added preset domains into an existing preset (enabled untouched)', async () => {
+  await chrome.storage.local.clear();
+  const old = getDefaultState();
+  // Simulate a state saved before ytimg.com/ggpht.com were added, with youtube on.
+  old.presets.youtube = {
+    enabled: true,
+    domains: ['youtube.com', 'www.youtube.com', 'youtu.be', 'googlevideo.com'],
+  };
+  await saveState(old);
+  const s = await loadState();
+  assert.ok(s.presets.youtube.domains.includes('ytimg.com'), 'ytimg.com merged in');
+  assert.ok(s.presets.youtube.domains.includes('ggpht.com'), 'ggpht.com merged in');
+  assert.equal(s.presets.youtube.enabled, true, 'enabled flag preserved');
+  const ytd = s.presets.youtube.domains;
+  assert.equal(new Set(ytd).size, ytd.length, 'no duplicate domains after merge');
 });
 
 test('getDefaultState: includes donate defaults', () => {

@@ -60,11 +60,23 @@ export async function loadState() {
 
   // Merge: add any new presets that didn't exist when the user first installed.
   // Always backfill DISABLED — a preset reappearing must never silently start
-  // routing traffic the user didn't choose.
+  // routing traffic the user didn't choose. For presets the user already has,
+  // merge in any domains added to the definition since (e.g. new CDN hosts):
+  // routing reads domains from state, so without this an upgrade never reaches
+  // existing users. Only extends the domain list — never touches `enabled`.
+  saved.presets = saved.presets || {};
   for (const [key, def] of Object.entries(defaults.presets)) {
     if (!saved.presets[key]) {
       saved.presets[key] = { ...def, enabled: false };
+      continue;
     }
+    const existing = saved.presets[key];
+    const existingDomains = Array.isArray(existing.domains) ? existing.domains : [];
+    const mergedDomains = [...existingDomains];
+    for (const domain of def.domains || []) {
+      if (!mergedDomains.includes(domain)) mergedDomains.push(domain);
+    }
+    existing.domains = mergedDomains;
   }
   // Backfill theme fields for users upgrading from pre-0.4.3.
   if (!saved.theme) saved.theme = defaults.theme;
