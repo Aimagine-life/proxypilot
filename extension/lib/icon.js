@@ -40,6 +40,24 @@ const STATES = {
   },
 };
 
+function isNoTabError(err) {
+  const msg = String(err?.message || err || '').toLowerCase();
+  return msg.includes('no tab with id') || msg.includes('tab not found');
+}
+
+// Tabs can disappear between event delivery and the icon update. Swallow that
+// race so it doesn't surface as a noisy "No tab with id" runtime error; rethrow
+// anything else. Returns false when the tab was gone, true otherwise.
+async function safeActionCall(fn) {
+  try {
+    await fn();
+    return true;
+  } catch (err) {
+    if (isNoTabError(err)) return false;
+    throw err;
+  }
+}
+
 /**
  * Set the toolbar icon for a single tab. `state` is one of:
  * 'off' | 'routed' | 'direct' | 'error'.
@@ -54,14 +72,16 @@ export async function setIconState(tabId, state, info = {}) {
   const sizes = [16, 32, 48, 128];
   const path = {};
   for (const size of sizes) path[size] = `icons/${theme}/${config.name}-${size}.png`;
-  await chrome.action.setIcon({ tabId, path });
+  // If the tab is already gone, skip the rest — the remaining calls would all fail.
+  const tabExists = await safeActionCall(() => chrome.action.setIcon({ tabId, path }));
+  if (!tabExists) return;
 
   let badgeText = config.badge;
   if (state === 'routed') {
     badgeText = info.country || '✓';
   }
-  await chrome.action.setBadgeText({ tabId, text: badgeText });
-  await chrome.action.setBadgeBackgroundColor({ tabId, color: config.badgeColor });
+  await safeActionCall(() => chrome.action.setBadgeText({ tabId, text: badgeText }));
+  await safeActionCall(() => chrome.action.setBadgeBackgroundColor({ tabId, color: config.badgeColor }));
 
-  await chrome.action.setTitle({ tabId, title: config.tooltipFn(info) });
+  await safeActionCall(() => chrome.action.setTitle({ tabId, title: config.tooltipFn(info) }));
 }
