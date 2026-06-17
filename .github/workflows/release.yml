@@ -5,8 +5,9 @@ name: Release
 # Ручной запуск (workflow_dispatch) только собирает/тестирует, без публикации релиза.
 #
 # Firefox: если в секретах репозитория заданы AMO_API_KEY и AMO_API_SECRET —
-# расширение подписывается через AMO (unlisted) и в релиз кладётся постоянный .xpi.
-# Без секретов в релиз идёт неподписанный firefox-zip (ставится только временно).
+# новая версия загружается в публичный каталог AMO (listed-канал) на ревью Mozilla.
+# Листинг создаётся один раз вручную — см. docs/amo-listing.md. Без секретов шаг
+# AMO пропускается; в релиз всегда кладётся firefox-zip для временной установки.
 
 on:
   push:
@@ -48,22 +49,24 @@ jobs:
           cp "dist/chrome/proxypilot-$ver.zip"  "release-assets/proxypilot-chrome-$ver.zip"
           cp "dist/firefox/proxypilot-$ver.zip" "release-assets/proxypilot-firefox-$ver.zip"
 
-      - name: Sign Firefox add-on (optional — needs AMO_API_KEY / AMO_API_SECRET)
+      - name: Publish Firefox version to AMO (listed) — needs AMO_API_KEY / AMO_API_SECRET
         if: ${{ env.AMO_API_KEY != '' && env.AMO_API_SECRET != '' }}
         run: |
           ver=${{ steps.stage.outputs.ver }}
-          mkdir -p firefox-src signed
+          mkdir -p firefox-src
           (cd firefox-src && unzip -o "../dist/firefox/proxypilot-$ver.zip")
+          # Uploads this version to the AMO *listed* (public catalog) channel for review.
+          # The add-on listing (name, description, screenshots) must already exist on AMO
+          # — see docs/amo-listing.md for the one-time setup. Listed versions are
+          # distributed by AMO, so no signed .xpi is produced here. --approval-timeout 0
+          # submits without blocking CI on Mozilla's review.
           npx --yes web-ext@latest sign \
             --source-dir firefox-src \
-            --channel unlisted \
+            --channel listed \
             --api-key "$AMO_API_KEY" \
             --api-secret "$AMO_API_SECRET" \
-            --artifacts-dir signed \
-            || echo "::warning::Firefox signing failed — релиз получит только неподписанный zip."
-          for f in signed/*.xpi; do
-            [ -e "$f" ] && cp "$f" "release-assets/proxypilot-firefox-$ver-signed.xpi"
-          done
+            --approval-timeout 0 \
+            || echo "::warning::AMO listed upload failed — confirm the listing exists and the API keys are valid (see docs/amo-listing.md)."
 
       - name: Publish GitHub Release
         if: ${{ startsWith(github.ref, 'refs/tags/') }}
@@ -80,12 +83,12 @@ jobs:
             открой `chrome://extensions` → включи «Режим разработчика» →
             «Загрузить распакованное» → выбери распакованную папку.
 
-            **Firefox:** если в ассетах есть `…-signed.xpi` — открой его в Firefox
-            (постоянная установка). Иначе `proxypilot-firefox-*.zip` ставится только
-            временно: `about:debugging` → «Load Temporary Add-on».
+            **Firefox:** ставь из каталога [Firefox Add-ons](https://addons.mozilla.org/firefox/)
+            (постоянная установка, авто-обновления — после одобрения версии Mozilla).
+            Либо `proxypilot-firefox-*.zip` для временной установки:
+            `about:debugging` → «Load Temporary Add-on».
 
             Подробности — [INSTALL.md](https://github.com/Aimagine-life/proxypilot/blob/main/INSTALL.md).
           files: |
             release-assets/proxypilot-chrome-*.zip
             release-assets/proxypilot-firefox-*.zip
-            release-assets/proxypilot-firefox-*-signed.xpi
