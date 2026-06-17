@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="ru">
+<!-- lang matches default_locale; localizeDom() overwrites it with the live UI language at startup -->
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -20,7 +21,7 @@
           <input type="checkbox" id="master-toggle" />
           <span class="slider"></span>
         </label>
-        <button type="button" class="gear" id="open-settings" title="Настройки">⚙</button>
+        <button type="button" class="gear" id="open-settings" data-i18n-title="main_open_settings_title" title="Настройки">⚙</button>
       </header>
 
       <div class="rkn-banner" id="rkn-banner" hidden>
@@ -30,7 +31,7 @@
 
       <div class="ai-free-banner" id="ai-free-banner" hidden>
         <span class="ai-free-icon">⚠</span>
-        <span class="ai-free-text">
+        <span class="ai-free-text" data-i18n="main_ai_free_banner">
           Бесплатный публичный прокси не доверенный — не входи в важные аккаунты,
           пока трафик идёт через него. Некоторые сервисы могут заблокировать аккаунт.
         </span>
@@ -39,37 +40,37 @@
       <div class="main-scroll">
       <div class="donate-banner" id="donate-banner" hidden>
         <span class="donate-banner-icon">💛</span>
-        <span class="donate-banner-text">Нравится ProxyPilot? Поддержи проект</span>
-        <a class="donate-banner-btn" id="donate-banner-link" href="https://yoomoney.ru/to/410011076392857" target="_blank" rel="noopener noreferrer">Поддержать</a>
-        <button type="button" class="donate-banner-close" id="donate-banner-close" title="Больше не показывать">×</button>
+        <span class="donate-banner-text" data-i18n="main_donate_banner_text">Нравится ProxyPilot? Поддержи проект</span>
+        <a class="donate-banner-btn" id="donate-banner-link" data-i18n="main_donate_banner_btn" href="https://yoomoney.ru/to/410011076392857" target="_blank" rel="noopener noreferrer">Поддержать</a>
+        <button type="button" class="donate-banner-close" id="donate-banner-close" data-i18n-title="main_donate_banner_close_title" title="Больше не показывать">×</button>
       </div>
       <section class="block">
         <div class="block-label-row">
-          <div class="block-label">Сервисы<span class="enabled-count" id="enabled-count"></span></div>
-          <button type="button" class="link-btn" id="reset-presets" hidden>Сбросить</button>
+          <div class="block-label"><span data-i18n="main_services_label">Сервисы</span><span class="enabled-count" id="enabled-count"></span></div>
+          <button type="button" class="link-btn" id="reset-presets" data-i18n="main_reset_presets" hidden>Сбросить</button>
         </div>
-        <input type="search" class="preset-search" id="preset-search" placeholder="Поиск сервиса…" autocomplete="off" />
+        <input type="search" class="preset-search" id="preset-search" data-i18n-placeholder="main_preset_search_placeholder" placeholder="Поиск сервиса…" autocomplete="off" />
         <div class="preset-grid" id="preset-grid"></div>
-        <div class="preset-empty" id="preset-empty" hidden>Ничего не найдено</div>
+        <div class="preset-empty" id="preset-empty" data-i18n="main_preset_empty" hidden>Ничего не найдено</div>
       </section>
 
       <section class="block">
-        <div class="block-label">Свои домены</div>
+        <div class="block-label" data-i18n="main_custom_domains_label">Свои домены</div>
         <div class="custom-list" id="custom-list"></div>
         <form class="add-row" id="add-domain-form">
-          <input type="text" id="add-domain-input" placeholder="example.com или *.example.com" autocomplete="off" />
-          <button type="submit" id="add-domain-btn">+ Добавить</button>
+          <input type="text" id="add-domain-input" data-i18n-placeholder="main_add_domain_placeholder" placeholder="example.com или *.example.com" autocomplete="off" />
+          <button type="submit" id="add-domain-btn" data-i18n="main_add_domain_btn">+ Добавить</button>
         </form>
         <div class="error-text" id="add-domain-error" hidden></div>
       </section>
       </div>
 
       <footer class="app-footer">
-        <a class="footer-donate" href="https://yoomoney.ru/to/410011076392857" target="_blank" rel="noopener noreferrer">💛 Поддержать проект</a>
+        <a class="footer-donate" data-i18n="main_footer_donate" href="https://yoomoney.ru/to/410011076392857" target="_blank" rel="noopener noreferrer">💛 Поддержать проект</a>
         <div class="app-footer-row">
-          <span>Сделано в</span>
+          <span data-i18n="main_footer_made_in">Сделано в</span>
           <a class="app-footer-link" href="https://wildbots.ru/" target="_blank" rel="noopener noreferrer">Wildbots ↗</a>
-          <button type="button" class="app-footer-about" id="open-about" title="О разработчике">О разработчике</button>
+          <button type="button" class="app-footer-about" id="open-about" data-i18n="about_developer" data-i18n-title="about_developer" title="О разработчике">О разработчике</button>
         </div>
       </footer>
 
@@ -78,54 +79,55 @@
     <!-- Settings screen -->
     <section id="screen-settings" class="screen" hidden>
       <header class="header">
-        <button type="button" class="back" id="back-to-main" title="Назад">←</button>
+        <button type="button" class="back" id="back-to-main" data-i18n-title="back" title="Назад">←</button>
         <div class="header-text">
-          <div class="title">Настройки прокси</div>
+          <div class="title" data-i18n="settings_title">Настройки прокси</div>
         </div>
       </header>
 
       <section class="block">
         <div class="active-source" id="active-source" data-state="off">
-          <div class="active-source-label">Сейчас работает</div>
+          <div class="active-source-label" data-i18n="settings_active_source_label">Сейчас работает</div>
           <div class="active-source-name" id="active-source-name">—</div>
           <div class="active-source-detail" id="active-source-detail"></div>
         </div>
-        <div class="block-label">Сменить источник</div>
+        <div class="block-label" data-i18n="settings_change_source_label">Сменить источник</div>
         <div class="pill-group" id="source-pills">
-          <button type="button" data-source="manual" class="pill">Свой</button>
-          <button type="button" data-source="own"    class="pill">Свой пул</button>
-          <button type="button" data-source="free"   class="pill">Бесплатный</button>
+          <button type="button" data-source="manual" class="pill" data-i18n="settings_source_manual">Свой</button>
+          <button type="button" data-source="own"    class="pill" data-i18n="settings_source_own">Свой пул</button>
+          <button type="button" data-source="free"   class="pill" data-i18n="settings_source_free">Бесплатный</button>
         </div>
       </section>
 
       <section class="block" id="own-block" hidden>
-        <div class="block-label">Свой пул прокси</div>
+        <div class="block-label" data-i18n="settings_own_pool_label">Свой пул прокси</div>
         <textarea id="own-list" class="own-list" rows="5" spellcheck="false" autocomplete="off"
+          data-i18n-placeholder="settings_own_list_placeholder"
           placeholder="По одному прокси на строку:&#10;socks5://user:pass@host:port&#10;http://host:port&#10;host:port:user:pass"></textarea>
         <div class="own-meta" id="own-meta"></div>
         <div class="free-state" id="own-state" data-state="idle">
           <div class="free-icon" id="own-icon" aria-hidden="true">📋</div>
           <div class="free-body">
-            <div class="free-title" id="own-title">Список пуст</div>
-            <div class="free-sub" id="own-sub">Вставь свои прокси — по одному на строку.</div>
+            <div class="free-title" id="own-title" data-i18n="own_empty_title">Список пуст</div>
+            <div class="free-sub" id="own-sub" data-i18n="own_empty_sub">Вставь свои прокси — по одному на строку.</div>
             <div class="free-badges" id="own-badges" hidden></div>
           </div>
         </div>
         <div class="row">
-          <button type="button" class="action" id="save-own">Сохранить и подключить</button>
-          <button type="button" class="action" id="rotate-own">↻ Следующий</button>
+          <button type="button" class="action" id="save-own" data-i18n="settings_save_own">Сохранить и подключить</button>
+          <button type="button" class="action" id="rotate-own" data-i18n="settings_rotate_own">↻ Следующий</button>
         </div>
-        <div class="hint">Если выбранный прокси перестанет отвечать — переключусь на следующий. Без протокола строка считается http. Проверить текущий — кнопкой «Проверить прокси».</div>
+        <div class="hint" data-i18n="settings_own_hint">Если выбранный прокси перестанет отвечать — переключусь на следующий. Без протокола строка считается http. Проверить текущий — кнопкой «Проверить прокси».</div>
       </section>
 
       <section class="block free-block" id="free-block" hidden>
-        <div class="block-label">Бесплатный пул прокси</div>
+        <div class="block-label" data-i18n="settings_free_pool_label">Бесплатный пул прокси</div>
 
         <div class="free-state" id="free-state" data-state="idle">
           <div class="free-icon" id="free-icon" aria-hidden="true">🔍</div>
           <div class="free-body">
-            <div class="free-title" id="free-title">Прокси ещё не подобран</div>
-            <div class="free-sub" id="free-sub">Нажми кнопку — найду рабочий за пару секунд.</div>
+            <div class="free-title" id="free-title" data-i18n="free_idle_title">Прокси ещё не подобран</div>
+            <div class="free-sub" id="free-sub" data-i18n="free_idle_sub">Нажми кнопку — найду рабочий за пару секунд.</div>
             <div class="free-progress" id="free-progress" hidden>
               <div class="free-bar"><div class="free-bar-fill" id="free-bar-fill"></div></div>
               <div class="free-progress-text" id="free-progress-text"></div>
@@ -134,10 +136,10 @@
           </div>
         </div>
 
-        <button type="button" class="action free-action" id="rotate-free">Подобрать прокси</button>
+        <button type="button" class="action free-action" id="rotate-free" data-i18n="free_rotate_btn_pick">Подобрать прокси</button>
         <div class="free-pool-meta" id="free-pool-meta"></div>
 
-        <div class="free-warning">
+        <div class="free-warning" data-i18n="settings_free_warning">
           ⚠ Бесплатные прокси публичные и не доверенные. Не входи в важные
           аккаунты, пока трафик идёт через них.
         </div>
@@ -145,9 +147,9 @@
 
       <div id="manual-blocks">
         <section class="block">
-          <div class="block-label">Протокол</div>
+          <div class="block-label" data-i18n="settings_scheme_label">Протокол</div>
           <div class="pill-group" id="scheme-pills">
-            <button type="button" data-scheme="auto" class="pill pill-auto">&#x2725; Авто</button>
+            <button type="button" data-scheme="auto" class="pill pill-auto">&#x2725; <span data-i18n="auto">Авто</span></button>
             <button type="button" data-scheme="http"   class="pill">HTTP</button>
             <button type="button" data-scheme="https"  class="pill">HTTPS</button>
             <button type="button" data-scheme="socks5" class="pill">SOCKS5</button>
@@ -158,11 +160,11 @@
         <section class="block">
           <div class="row">
             <div class="field grow">
-              <div class="block-label">Хост</div>
+              <div class="block-label" data-i18n="settings_host_label">Хост</div>
               <input type="text" id="cfg-host" autocomplete="off" />
             </div>
             <div class="field port">
-              <div class="block-label">Порт</div>
+              <div class="block-label" data-i18n="settings_port_label">Порт</div>
               <input type="text" id="cfg-port" autocomplete="off" inputmode="numeric" />
             </div>
           </div>
@@ -170,33 +172,33 @@
 
         <section class="block">
           <div class="block-label-row">
-            <span class="block-label">Авторизация</span>
-            <span class="hint">опц.</span>
+            <span class="block-label" data-i18n="settings_auth_label">Авторизация</span>
+            <span class="hint" data-i18n="settings_auth_optional">опц.</span>
           </div>
-          <input type="text" id="cfg-user" placeholder="логин" autocomplete="off" />
-          <input type="password" id="cfg-pass" placeholder="пароль" autocomplete="off" />
+          <input type="text" id="cfg-user" data-i18n-placeholder="settings_user_placeholder" placeholder="логин" autocomplete="off" />
+          <input type="password" id="cfg-pass" data-i18n-placeholder="settings_pass_placeholder" placeholder="пароль" autocomplete="off" />
         </section>
       </div>
 
       <section class="block">
         <div class="row">
-          <button type="button" class="action" id="test-proxy">Проверить прокси</button>
-          <button type="button" class="action" id="test-service">Проверить сервис</button>
+          <button type="button" class="action" id="test-proxy" data-i18n="settings_test_proxy">Проверить прокси</button>
+          <button type="button" class="action" id="test-service" data-i18n="settings_test_service">Проверить сервис</button>
         </div>
         <div class="result-block" id="test-result" hidden></div>
       </section>
 
       <section class="block">
-        <div class="block-label">Тема</div>
+        <div class="block-label" data-i18n="settings_theme_label">Тема</div>
         <div class="pill-group" id="theme-pills">
-          <button type="button" data-theme="light" class="pill">Светлая</button>
-          <button type="button" data-theme="dark"  class="pill">Тёмная</button>
-          <button type="button" data-theme="auto"  class="pill">Авто</button>
+          <button type="button" data-theme="light" class="pill" data-i18n="settings_theme_light">Светлая</button>
+          <button type="button" data-theme="dark"  class="pill" data-i18n="settings_theme_dark">Тёмная</button>
+          <button type="button" data-theme="auto"  class="pill" data-i18n="auto">Авто</button>
         </div>
       </section>
 
       <footer class="footer" id="settings-footer">
-        <span class="dot ok"></span> Сохраняется автоматически
+        <span class="dot ok"></span> <span data-i18n="settings_footer_autosave">Сохраняется автоматически</span>
       </footer>
     </section>
 
@@ -206,44 +208,44 @@
         <div class="logo-app amber"><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M14 8H27a11 11 0 0 1 0 22h-7v10h-6ZM20 13.5v11h7a5.5 5.5 0 0 0 0-11h-7Z" fill="#fff"/><circle cx="35.5" cy="12.5" r="3.4" fill="#5eead4"/></svg></div>
         <div class="header-text">
           <div class="title">ProxyPilot</div>
-          <div class="status amber">⚠ Нужна настройка</div>
+          <div class="status amber" data-i18n="firstrun_status_needs_setup">⚠ Нужна настройка</div>
         </div>
       </header>
       <section class="block centered">
         <div class="big-icon">⚙</div>
-        <div class="cta-title">Подключи прокси для старта</div>
-        <div class="cta-sub">Введи хост, порт и авторизацию своего<br />HTTP/SOCKS прокси.</div>
-        <button type="button" class="cta" id="firstrun-open-settings">Открыть настройки →</button>
+        <div class="cta-title" data-i18n="firstrun_cta_title">Подключи прокси для старта</div>
+        <div class="cta-sub" data-i18n="firstrun_cta_sub">Введи хост, порт и авторизацию своего<br />HTTP/SOCKS прокси.</div>
+        <button type="button" class="cta" id="firstrun-open-settings" data-i18n="firstrun_open_settings_btn">Открыть настройки →</button>
       </section>
     </section>
 
     <!-- About / developer screen -->
     <section id="screen-about" class="screen" hidden>
       <header class="header">
-        <button type="button" class="back" id="back-from-about" title="Назад">←</button>
-        <div class="header-text"><div class="title">О разработчике</div></div>
+        <button type="button" class="back" id="back-from-about" data-i18n-title="back" title="Назад">←</button>
+        <div class="header-text"><div class="title" data-i18n="about_developer">О разработчике</div></div>
       </header>
 
       <div class="about-hero">
         <div class="about-avatar" id="about-avatar">
-          <img class="about-avatar-img" src="konstantin.png" alt="Константин" />
+          <img class="about-avatar-img" src="konstantin.png" data-i18n-alt="about_avatar_alt" alt="Константин" />
         </div>
-        <div class="about-name">Константин</div>
-        <div class="about-role">Разработчик · Wildbots</div>
-        <div class="about-bio">Делаю умные инструменты и AI-ботов. ProxyPilot — один из проектов Wildbots.</div>
+        <div class="about-name" data-i18n="about_name">Константин</div>
+        <div class="about-role" data-i18n="about_role">Разработчик · Wildbots</div>
+        <div class="about-bio" data-i18n="about_bio">Делаю умные инструменты и AI-ботов. ProxyPilot — один из проектов Wildbots.</div>
       </div>
 
       <div class="about-links">
-        <a class="about-link" href="https://wildbots.ru/" target="_blank" rel="noopener noreferrer"><span class="about-link-ico">🌐</span> Сайт</a>
+        <a class="about-link" href="https://wildbots.ru/" target="_blank" rel="noopener noreferrer"><span class="about-link-ico">🌐</span> <span data-i18n="about_link_site">Сайт</span></a>
         <a class="about-link" href="https://t.me/romankov_k" target="_blank" rel="noopener noreferrer"><span class="about-link-ico">✈</span> Telegram</a>
         <a class="about-link" href="https://github.com/Aimagine-life" target="_blank" rel="noopener noreferrer"><span class="about-link-ico">⌨</span> GitHub</a>
       </div>
 
       <div class="about-cta-wrap">
-        <a class="about-cta about-cta-primary" id="about-donate" href="https://yoomoney.ru/to/410011076392857" target="_blank" rel="noopener noreferrer">💛 Поддержать проект</a>
+        <a class="about-cta about-cta-primary" id="about-donate" data-i18n="about_donate_cta" href="https://yoomoney.ru/to/410011076392857" target="_blank" rel="noopener noreferrer">💛 Поддержать проект</a>
         <!-- Кнопка «Оценить»: подставить href на страницу Chrome Web Store после публикации
              и заменить класс about-cta-soon на about-cta-rate (см. CSS). -->
-        <div class="about-cta about-cta-soon" id="about-rate" title="Появится после публикации в Chrome Web Store">⭐ Скоро в Chrome Web Store</div>
+        <div class="about-cta about-cta-soon" id="about-rate" data-i18n="about_rate_soon" data-i18n-title="about_rate_soon_title" title="Появится после публикации в Chrome Web Store">⭐ Скоро в Chrome Web Store</div>
       </div>
 
       <footer class="footer about-version-bar">

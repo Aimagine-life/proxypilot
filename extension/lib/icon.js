@@ -5,31 +5,38 @@
 // Icon sets live in icons/light/ and icons/dark/. Caller passes the
 // resolved theme ('light' | 'dark') via info.theme so the correct variant
 // is picked for the toolbar.
+//
+// Tooltips are localized via chrome.i18n (import after compat.js in the entry
+// point, which background.js does).
+
+import { t } from './i18n.js';
 
 const STATES = {
   off: {
     name: 'off',
     badge: '',
     badgeColor: '#000000',
-    tooltipFn: () => 'ProxyPilot — выключено',
+    tooltipFn: () => t('icon_off_tooltip'),
   },
   routed: {
     name: 'routed',
     badgeColor: '#10b981',
     tooltipFn: ({ host, country, latencyMs }) =>
-      `ProxyPilot — ${host} через прокси${country ? ' (' + country + ')' : ''}${latencyMs ? ' · ' + latencyMs + ' мс' : ''}`,
+      t('icon_routed_tooltip', host)
+      + (country ? ` (${country})` : '')
+      + (latencyMs ? ` · ${latencyMs} ${t('unit_ms')}` : ''),
   },
   direct: {
     name: 'direct',
     badge: '',
     badgeColor: '#000000',
-    tooltipFn: ({ host }) => `ProxyPilot — ${host} напрямую (не в списке маршрутизации)`,
+    tooltipFn: ({ host }) => t('icon_direct_tooltip', host),
   },
   error: {
     name: 'error',
     badge: '!',
     badgeColor: '#ef4444',
-    tooltipFn: ({ reason }) => `ProxyPilot — ошибка прокси: ${reason || 'недоступен'}`,
+    tooltipFn: ({ reason }) => t('icon_error_tooltip', reason || t('icon_error_reason_unavailable')),
   },
 };
 

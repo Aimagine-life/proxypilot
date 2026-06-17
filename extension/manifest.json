@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "ProxyPilot",
-  "version": "0.12.0",
-  "description": "Маршрутизация выбранных доменов через свой HTTP/SOCKS прокси или подобранный бесплатный пул прокси.",
+  "name": "__MSG_app_name__",
+  "version": "0.13.0",
+  "default_locale": "en",
+  "description": "__MSG_app_description__",
   "homepage_url": "https://github.com/Aimagine-life/proxypilot",
   "minimum_chrome_version": "120",
   "background": {
@@ -11,7 +12,7 @@
   },
   "action": {
     "default_popup": "popup/popup.html",
-    "default_title": "ProxyPilot",
+    "default_title": "__MSG_app_name__",
     "default_icon": {
       "16": "icons/app-16.png",
       "32": "icons/app-32.png",

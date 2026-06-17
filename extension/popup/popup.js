@@ -1,4 +1,5 @@
 import '../lib/compat.js';
+import { t, plural, localizeDom, uiLang } from '../lib/i18n.js';
 import { loadState, saveState } from '../lib/storage.js';
 import { parseEntry, ValidationError } from '../lib/domain.js';
 import { PRESET_DEFINITIONS, PRESET_ORDER, CATEGORIES } from '../lib/presets.js';
@@ -13,9 +14,11 @@ let lastFreeStateKey = '';       // last rendered free state (drives confetti-on
 let confettiRunning = false;     // guards against overlapping confetti bursts
 let donateBannerDue = false;     // decided once per popup open in updateDonateNudge()
 
-// Human names for the three proxy sources (state.proxySource).
-const SOURCE_LABEL = { manual: 'Свой прокси', own: 'Свой пул', free: 'Бесплатный пул' };
-const SOURCE_SHORT = { manual: 'Свой', own: 'Свой пул', free: 'Бесплатный' };
+// Human names for the three proxy sources (state.proxySource), resolved live via
+// chrome.i18n so they follow the UI language.
+const SRC_KEYS = new Set(['manual', 'own', 'free']);
+const sourceLabel = (src) => t(`settings_source_label_${SRC_KEYS.has(src) ? src : 'manual'}`);
+const sourceShort = (src) => t(`main_source_short_${SRC_KEYS.has(src) ? src : 'manual'}`);
 
 const DONATE_REPEAT_MS = 14 * 24 * 60 * 60 * 1000; // re-show thank-you banner at most every 14 days
 
@@ -40,6 +43,7 @@ async function updateDonateNudge() {
 
 async function init() {
   state = await loadState();
+  localizeDom();
   await updateDonateNudge();
   applyTheme();
   await syncResolvedTheme();
@@ -150,18 +154,18 @@ function renderMain() {
   const status = $('#status-line');
   status.classList.remove('no-dot', 'amber', 'error');
   if (!state.enabled) {
-    status.textContent = 'Выключено';
+    status.textContent = t('status_off');
     status.classList.add('no-dot');
   } else if (!state.proxy?.host) {
-    status.textContent = 'Нужна настройка прокси';
+    status.textContent = t('main_status_need_proxy_setup');
     status.classList.add('amber');
   } else {
-    const src = SOURCE_SHORT[state.proxySource] || 'Свой';
-    const t = state.proxy?.lastTest;
-    if (t?.ok) {
-      const cc = String(t.country || '').toUpperCase();
+    const src = sourceShort(state.proxySource);
+    const lt = state.proxy?.lastTest;
+    if (lt?.ok) {
+      const cc = String(lt.country || '').toUpperCase();
       const flag = cc ? ` · ${countryFlag(cc)}` : '';
-      status.textContent = `${src}${flag}${t.latencyMs ? ` · ${t.latencyMs} мс` : ''}`;
+      status.textContent = `${src}${flag}${lt.latencyMs ? ` · ${lt.latencyMs} ${t('unit_ms')}` : ''}`;
     } else {
       status.textContent = `${src} · ${state.proxy.host}:${state.proxy.port}`;
     }
@@ -179,8 +183,7 @@ function renderMain() {
   }
   const banner = $('#rkn-banner');
   if (blockedNames.length) {
-    $('#rkn-text').textContent =
-      `${blockedNames.join(', ')} — в реестре Роскомнадзора. Маршрутизация отключена согласно 149-ФЗ.`;
+    $('#rkn-text').textContent = t('main_rkn_banner_blocked', blockedNames.join(', '));
     banner.hidden = false;
   } else {
     banner.hidden = true;
@@ -224,10 +227,10 @@ function renderMain() {
     caret.textContent = '▾';
     const name = document.createElement('span');
     name.className = 'cat-name';
-    name.textContent = cat.label;
+    name.textContent = t(cat.labelKey);
     const count = document.createElement('span');
     count.className = 'cat-count';
-    count.textContent = catEnabled ? `${catEnabled} вкл` : '';
+    count.textContent = catEnabled ? t('main_cat_count_enabled', catEnabled) : '';
     header.append(caret, name, count);
     header.addEventListener('click', () => {
       collapsedCats[cat.key] = !collapsedCats[cat.key];
@@ -244,7 +247,7 @@ function renderMain() {
 
   $('#preset-empty').hidden = totalShown > 0 || !q;
   const countEl = $('#enabled-count');
-  if (countEl) countEl.textContent = enabledTotal ? ` · ${enabledTotal} включено` : '';
+  if (countEl) countEl.textContent = enabledTotal ? ' · ' + t('main_enabled_count', enabledTotal) : '';
   const resetBtn = $('#reset-presets');
   if (resetBtn) resetBtn.hidden = enabledTotal === 0;
 
@@ -265,7 +268,7 @@ function renderMain() {
     const remove = document.createElement('button');
     remove.className = 'remove';
     remove.type = 'button';
-    remove.title = 'Remove';
+    remove.title = t('main_remove_custom_domain_title');
     remove.textContent = '\u00d7';
     remove.addEventListener('click', () => removeCustom(entry));
     item.append(dot, value, remove);
@@ -335,7 +338,7 @@ function bindMain() {
       entry = parseEntry(input.value);
     } catch (err) {
       if (err instanceof ValidationError) {
-        errEl.textContent = err.message;
+        errEl.textContent = t(`err_domain_${err.code}`, err.params);
         errEl.hidden = false;
         return;
       }
@@ -347,27 +350,27 @@ function bindMain() {
       (x) => x.value === entry.value && x.mode === entry.mode
     );
     if (exists) {
-      errEl.textContent = '\u0423\u0436\u0435 \u0432 \u0441\u043f\u0438\u0441\u043a\u0435';
+      errEl.textContent = t('err_domain_already_in_list');
       errEl.hidden = false;
       return;
     }
 
     // RKN compliance check
     btn.disabled = true;
-    btn.textContent = '\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430\u2026';
+    btn.textContent = t('main_add_domain_btn_checking');
     try {
       const result = await chrome.runtime.sendMessage({
         type: 'CHECK_DOMAIN',
         domain: entry.value,
       });
       if (result?.blocked) {
-        errEl.textContent = `\u26d4 ${entry.value} \u0432 \u0440\u0435\u0435\u0441\u0442\u0440\u0435 \u0420\u043e\u0441\u043a\u043e\u043c\u043d\u0430\u0434\u0437\u043e\u0440\u0430 \u2014 \u0434\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u043d\u0435\u043b\u044c\u0437\u044f (149-\u0424\u0417)`;
+        errEl.textContent = t('err_domain_in_rkn_registry', entry.value);
         errEl.hidden = false;
         return;
       }
     } finally {
       btn.disabled = false;
-      btn.textContent = '+ \u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c';
+      btn.textContent = t('main_add_domain_btn');
     }
 
     state.customDomains = state.customDomains || [];
@@ -376,7 +379,7 @@ function bindMain() {
     input.value = '';
     renderMain();
 
-    showToast(`\u2713 ${entry.value} \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d \u2014 \u043d\u0435 \u0432 \u0440\u0435\u0435\u0441\u0442\u0440\u0435 \u0420\u041a\u041d`);
+    showToast(t('main_toast_domain_added', entry.value));
   });
 }
 
@@ -578,8 +581,8 @@ function bindSettings() {
     const raw = $('#own-list').value;
     const proxies = parseProxyList(raw);
     $('#own-meta').textContent = proxies.length
-      ? `${proxies.length} прокси распознано`
-      : 'Не распознал ни одного прокси — проверь формат';
+      ? plural('own_meta_recognized', proxies.length)
+      : t('own_meta_none_recognized');
     const res = await chrome.runtime.sendMessage({ type: 'SET_OWN_POOL', raw, proxies });
     if (res?.state) { state = res.state; renderSettings(); }
   });
@@ -642,11 +645,11 @@ function renderFreeBlock() {
 
   if (pickingFree) {
     setStatusCard('free', 'searching', {
-      title: 'Подбираю рабочий прокси…',
-      sub: 'Проверяю кандидатов вживую — это пара секунд.',
-      progress: { pct: 0, text: 'Запускаю проверку…' },
+      title: t('free_searching_title'),
+      sub: t('free_searching_sub'),
+      progress: { pct: 0, text: t('free_searching_progress_starting') },
     });
-    if (rotate) { rotate.disabled = true; rotate.textContent = 'Идёт подбор…'; }
+    if (rotate) { rotate.disabled = true; rotate.textContent = t('free_rotate_btn_picking'); }
     lastFreeStateKey = 'searching';
   } else if (sel) {
     const country = sel.country
@@ -654,22 +657,22 @@ function renderFreeBlock() {
       : null;
     const ms = sel.latencyMs;
     const speed = typeof ms === 'number'
-      ? (ms < 600 ? { cls: 'speed-fast', label: 'быстрый' }
-        : ms < 1800 ? { cls: 'speed-mid', label: 'средний' }
-        : { cls: 'speed-slow', label: 'медленный' })
+      ? (ms < 600 ? { cls: 'speed-fast', label: t('free_speed_fast') }
+        : ms < 1800 ? { cls: 'speed-mid', label: t('free_speed_mid') }
+        : { cls: 'speed-slow', label: t('free_speed_slow') })
       : null;
     const proto = ({ http: 'HTTP', https: 'HTTPS', socks5: 'SOCKS5', socks4: 'SOCKS4' })[sel.scheme] || sel.scheme;
     const badges = [];
     if (country) badges.push({ text: country });
-    if (speed) badges.push({ text: `⚡ ${ms} мс · ${speed.label}`, cls: speed.cls });
+    if (speed) badges.push({ text: `⚡ ${ms} ${t('unit_ms')} · ${speed.label}`, cls: speed.cls });
     if (proto) badges.push({ text: proto });
 
     setStatusCard('free', 'found', {
-      title: 'Готово — прокси подключён',
+      title: t('free_found_title'),
       sub: `${sel.host}:${sel.port}`,
       badges,
     });
-    if (rotate) { rotate.disabled = false; rotate.textContent = '↻ Сменить прокси'; }
+    if (rotate) { rotate.disabled = false; rotate.textContent = t('free_rotate_btn_change'); }
 
     const key = `found:${sel.host}:${sel.port}`;
     // Celebrate only on a real transition INTO a found proxy (after a search, or a
@@ -680,21 +683,21 @@ function renderFreeBlock() {
     }
     lastFreeStateKey = key;
   } else if (err) {
-    setStatusCard('free', 'error', { title: 'Живой прокси пока не нашёлся', sub: err });
-    if (rotate) { rotate.disabled = false; rotate.textContent = '↻ Попробовать ещё раз'; }
+    setStatusCard('free', 'error', { title: t('free_error_title'), sub: err });
+    if (rotate) { rotate.disabled = false; rotate.textContent = t('free_rotate_btn_retry'); }
     lastFreeStateKey = 'error';
   } else {
     setStatusCard('free', 'idle', {
-      title: 'Прокси ещё не подобран',
-      sub: 'Нажми кнопку — найду рабочий за пару секунд.',
+      title: t('free_idle_title'),
+      sub: t('free_idle_sub'),
     });
-    if (rotate) { rotate.disabled = false; rotate.textContent = 'Подобрать прокси'; }
+    if (rotate) { rotate.disabled = false; rotate.textContent = t('free_rotate_btn_pick'); }
     lastFreeStateKey = 'idle';
   }
 
   const fetchedAt = state.freeProxy?.poolFetchedAt;
   $('#free-pool-meta').textContent = fetchedAt
-    ? `Список обновлён ${Math.floor((Date.now() - fetchedAt) / 60_000)} мин назад`
+    ? t('free_pool_meta_updated', Math.floor((Date.now() - fetchedAt) / 60_000))
     : '';
 }
 
@@ -756,12 +759,12 @@ function renderActiveSource() {
   const nameEl = $('#active-source-name');
   const detailEl = $('#active-source-detail');
   const src = state.proxySource || 'manual';
-  const label = SOURCE_LABEL[src] || 'Свой прокси';
+  const label = sourceLabel(src);
 
   if (!state.enabled) {
     card.dataset.state = 'off';
-    nameEl.textContent = 'Выключено';
-    detailEl.textContent = `Выбран: ${label} · включи переключатель на главном экране`;
+    nameEl.textContent = t('status_off');
+    detailEl.textContent = t('settings_active_source_off_detail', label);
     return;
   }
 
@@ -776,10 +779,10 @@ function renderActiveSource() {
     card.dataset.state = 'warn';
     nameEl.textContent = label;
     detailEl.textContent = src === 'free'
-      ? 'Прокси ещё не подобран — нажми «Подобрать» ниже'
+      ? t('settings_active_source_warn_free')
       : src === 'own'
-        ? 'Прокси не выбран — добавь список ниже'
-        : 'Прокси не настроен — заполни поля ниже';
+        ? t('settings_active_source_warn_own')
+        : t('settings_active_source_warn_manual');
   }
 }
 
@@ -827,28 +830,28 @@ function renderOwnBlock() {
   const op = state.ownPool || {};
   $('#own-list').value = op.raw || '';
   const n = (op.proxies || []).length;
-  $('#own-meta').textContent = n ? `${n} прокси в списке` : '';
+  $('#own-meta').textContent = n ? plural('own_meta_in_list', n) : '';
 
   const rotate = $('#rotate-own');
   const protoLabel = (s) => ({ http: 'HTTP', https: 'HTTPS', socks5: 'SOCKS5', socks4: 'SOCKS4' })[s] || (s || 'HTTP').toUpperCase();
 
   if (op.selected) {
     const badges = [{ text: protoLabel(op.selected.scheme) }];
-    if (n > 1) badges.push({ text: `1 из ${n} в пуле` });
+    if (n > 1) badges.push({ text: t('own_badge_one_of_n', n) });
     setStatusCard('own', 'found', {
-      title: 'Прокси активен',
+      title: t('own_found_title'),
       sub: `${op.selected.host}:${op.selected.port}`,
       badges,
     });
     if (rotate) rotate.disabled = false;
   } else if (op.lastError) {
-    setStatusCard('own', 'error', { icon: '😕', title: 'Прокси недоступен', sub: op.lastError });
+    setStatusCard('own', 'error', { icon: '😕', title: t('own_error_title'), sub: op.lastError });
     if (rotate) rotate.disabled = false;
   } else if (n > 0) {
-    setStatusCard('own', 'idle', { icon: '📋', title: `${n} прокси готово`, sub: 'Нажми «Сохранить и подключить».' });
+    setStatusCard('own', 'idle', { icon: '📋', title: plural('own_idle_ready', n), sub: t('own_idle_ready_sub') });
     if (rotate) rotate.disabled = false;
   } else {
-    setStatusCard('own', 'idle', { icon: '📋', title: 'Список пуст', sub: 'Вставь свои прокси — по одному на строку.' });
+    setStatusCard('own', 'idle', { icon: '📋', title: t('own_empty_title'), sub: t('own_empty_sub') });
     if (rotate) rotate.disabled = true;
   }
 }
@@ -904,13 +907,13 @@ function burstConfetti() {
   requestAnimationFrame(frame);
 }
 
-// Country code → Russian name, e.g. 'NL' → 'Нидерланды'. Falls back to '' on
-// unknown/invalid codes.
+// Country code → localized name in the UI language, e.g. 'NL' → 'Netherlands' /
+// 'Нидерланды'. Falls back to '' on unknown/invalid codes.
 let _regionNames;
 function regionName(cc) {
   if (!cc || cc.length !== 2) return '';
   try {
-    _regionNames = _regionNames || new Intl.DisplayNames(['ru'], { type: 'region' });
+    _regionNames = _regionNames || new Intl.DisplayNames([uiLang()], { type: 'region' });
     return _regionNames.of(cc.toUpperCase()) || '';
   } catch {
     return '';
@@ -1028,7 +1031,7 @@ async function autoDetectScheme() {
   const autoPill = document.querySelector('.pill[data-scheme="auto"]');
   result.hidden = false;
   result.className = 'result-block detecting';
-  result.textContent = '\u25f7 \u041e\u043f\u0440\u0435\u0434\u0435\u043b\u044f\u0435\u043c\u2026 HTTP';
+  result.textContent = t('settings_detect_running', 'HTTP');
   if (autoPill) autoPill.classList.add('detecting');
 
   // Fire-and-forget to background. Popup watches storage for live updates.
@@ -1051,7 +1054,7 @@ chrome.runtime.onMessage.addListener((msg) => {
   const prog = $('#free-progress');
   if (prog) prog.hidden = false;
   if (fill) fill.style.width = `${Math.round((msg.index / msg.total) * 100)}%`;
-  if (text) text.textContent = `Проверено ${msg.index} из ${msg.total} · ${msg.host}:${msg.port}`;
+  if (text) text.textContent = t('free_progress_tested', [msg.index, msg.total]) + ` · ${msg.host}:${msg.port}`;
 });
 
 // Watch storage changes for detect progress + general state updates.
@@ -1070,18 +1073,18 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (ds?.running) {
     result.hidden = false;
     result.className = 'result-block detecting';
-    result.textContent = `\u25f7 \u041e\u043f\u0440\u0435\u0434\u0435\u043b\u044f\u0435\u043c\u2026 ${ds.trying?.toUpperCase() || ''}`;
+    result.textContent = t('settings_detect_running', ds.trying?.toUpperCase() || '');
     if (autoPill) autoPill.classList.add('detecting');
   } else if (ds && !ds.running) {
     if (autoPill) autoPill.classList.remove('detecting');
     result.hidden = false;
     if (ds.ok) {
       result.className = 'result-block ok';
-      result.textContent = `\u2713 \u041d\u0430\u0439\u0434\u0435\u043d: ${ds.scheme.toUpperCase()}`;
+      result.textContent = t('settings_detect_found', ds.scheme.toUpperCase());
       renderSettings();
     } else {
       result.className = 'result-block err';
-      result.textContent = `\u2717 ${ds.error || '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u043f\u0440\u0435\u0434\u0435\u043b\u0438\u0442\u044c'}`;
+      result.textContent = '\u2717 ' + (ds.error || t('settings_detect_failed'));
     }
   }
 });
@@ -1098,7 +1101,7 @@ async function runTest(type) {
     if (!key) {
       result.hidden = false;
       result.className = 'result-block err';
-      result.textContent = '\u2717 \u0421\u043d\u0430\u0447\u0430\u043b\u0430 \u0432\u043a\u043b\u044e\u0447\u0438\u0442\u0435 \u0445\u043e\u0442\u044f \u0431\u044b \u043e\u0434\u0438\u043d \u0441\u0435\u0440\u0432\u0438\u0441';
+      result.textContent = '\u2717 ' + t('err_test_enable_one_first');
       return;
     }
     const def = PRESET_DEFINITIONS[key];
@@ -1118,29 +1121,29 @@ async function runTest(type) {
         const cc = String(res.country || '').toUpperCase();
         const place = `${countryFlag(cc)} ${regionName(cc) || cc || '\u2014'}`.trim();
         const localProxy = cc === 'RU'; // \u0440\u043e\u0441\u0441\u0438\u0439\u0441\u043a\u0438\u0439 \u043f\u0440\u043e\u043a\u0441\u0438 \u2014 \u0420\u0424 \u0433\u0435\u043e-\u0431\u043b\u043e\u043a \u0438\u043c \u043d\u0435 \u043e\u0431\u043e\u0439\u0442\u0438
-        const badges = [{ text: place }, { text: `\u26a1 ${res.latencyMs} \u043c\u0441` }, { text: `IP ${res.ip || '?'}` }];
+        const badges = [{ text: place }, { text: `\u26a1 ${res.latencyMs} ${t('unit_ms')}` }, { text: `IP ${res.ip || '?'}` }];
         if (localProxy) {
           renderTestCard('warn', {
-            title: '\u042d\u0442\u043e \u0440\u043e\u0441\u0441\u0438\u0439\u0441\u043a\u0438\u0439 \u043f\u0440\u043e\u043a\u0441\u0438',
-            sub: '\u0413\u0435\u043e-\u0431\u043b\u043e\u043a \u0438\u043c \u043d\u0435 \u043e\u0431\u043e\u0439\u0442\u0438 \u2014 \u043d\u0443\u0436\u0435\u043d \u043f\u0440\u043e\u043a\u0441\u0438 \u0434\u0440\u0443\u0433\u043e\u0439 \u0441\u0442\u0440\u0430\u043d\u044b.',
+            title: t('settings_test_russian_proxy_title'),
+            sub: t('settings_test_russian_proxy_sub'),
             badges,
           });
         } else {
           renderTestCard('ok', {
-            title: '\u041f\u0440\u043e\u043a\u0441\u0438 \u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442',
-            sub: '\u0417\u0430\u0431\u043b\u043e\u043a\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u044b\u0435 \u0441\u0435\u0440\u0432\u0438\u0441\u044b \u043e\u0442\u043a\u0440\u043e\u044e\u0442\u0441\u044f.',
+            title: t('settings_test_proxy_ok_title'),
+            sub: t('settings_test_proxy_ok_sub'),
             badges,
           });
         }
       } else {
         renderTestCard('ok', {
-          title: `${target.label} \u043e\u0442\u0432\u0435\u0447\u0430\u0435\u0442`,
-          badges: [{ text: `HTTP ${res.httpStatus}` }, { text: `\u26a1 ${res.latencyMs} \u043c\u0441` }],
+          title: t('settings_test_service_ok_title', target.label),
+          badges: [{ text: `HTTP ${res.httpStatus}` }, { text: `\u26a1 ${res.latencyMs} ${t('unit_ms')}` }],
         });
       }
       state = await loadState();
     } else {
-      renderTestCard('err', { title: '\u041d\u0435 \u043f\u043e\u043b\u0443\u0447\u0438\u043b\u043e\u0441\u044c', sub: res.error });
+      renderTestCard('err', { title: t('settings_test_failed_title'), sub: res.error });
     }
   } finally {
     btnProxy.disabled = false;

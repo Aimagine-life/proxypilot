@@ -1,9 +1,14 @@
-// Pure module — no chrome.* APIs allowed.
+// Pure module — no chrome.* APIs allowed. Stays language-agnostic: errors carry a
+// machine-readable `code` (and optional `params` for $1,$2 substitutions); the UI
+// layer translates them via chrome.i18n (key `err_domain_<code>`). `message` holds
+// the code as a non-localized fallback for logs.
 
 export class ValidationError extends Error {
-  constructor(message) {
-    super(message);
+  constructor(code, params = null) {
+    super(code);
     this.name = 'ValidationError';
+    this.code = code;
+    this.params = params;
   }
 }
 
@@ -14,7 +19,7 @@ export class ValidationError extends Error {
  */
 export function normalizeDomain(input) {
   let s = String(input ?? '').trim().toLowerCase();
-  if (!s) throw new ValidationError('пустой ввод');
+  if (!s) throw new ValidationError('empty_input');
 
   // Strip scheme: anything matching scheme:// or just //
   s = s.replace(/^[a-z][a-z0-9+.\-]*:\/\//, '');
@@ -37,21 +42,21 @@ export function normalizeDomain(input) {
   // Trailing dot
   s = s.replace(/\.+$/, '');
 
-  if (!s) throw new ValidationError('пусто после нормализации');
+  if (!s) throw new ValidationError('empty_after_normalize');
 
   // IDN to punycode via the URL parser
   try {
     const u = new URL('http://' + s + '/');
     s = u.hostname;
   } catch {
-    throw new ValidationError(`не похоже на домен: ${input}`);
+    throw new ValidationError('not_a_domain', [input]);
   }
 
   // The URL parser accepts IPv6 literals and returns them in bracket form
   // (e.g. "[::1]"). We don't support IPv6 in v1 — reject explicitly so the
   // caller doesn't see a bracketed string sneak through as "normalized".
   if (s.startsWith('[')) {
-    throw new ValidationError('IPv6-адреса не поддерживаются');
+    throw new ValidationError('ipv6_unsupported');
   }
 
   return s;
@@ -106,7 +111,7 @@ export function validateNormalized(domain) {
  */
 export function parseEntry(input) {
   let raw = String(input ?? '').trim();
-  if (!raw) throw new ValidationError('пустой ввод');
+  if (!raw) throw new ValidationError('empty_input');
 
   let mode = 'suffix';
   if (raw.startsWith('*.')) {
@@ -119,7 +124,7 @@ export function parseEntry(input) {
 
   const value = normalizeDomain(raw);
   if (!validateNormalized(value)) {
-    throw new ValidationError(`некорректный домен: ${input}`);
+    throw new ValidationError('invalid', [input]);
   }
   return { value, mode };
 }

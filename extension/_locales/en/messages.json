@@ -1,0 +1,593 @@
+{
+  "app_name": {
+    "message": "ProxyPilot",
+    "description": "Extension name shown in the browser and store. Brand name — keep as-is."
+  },
+  "app_description": {
+    "message": "Route selected domains through your own HTTP/SOCKS proxy or a curated free proxy pool.",
+    "description": "Extension description shown in Chrome Web Store and Firefox Add-ons."
+  },
+
+  "back": {
+    "message": "Back",
+    "description": "Back-button tooltip on settings and about screens."
+  },
+  "auto": {
+    "message": "Auto",
+    "description": "Auto option label (used for protocol auto-detect and theme)."
+  },
+  "status_off": {
+    "message": "Off",
+    "description": "Status when the extension is turned off."
+  },
+  "about_developer": {
+    "message": "About the developer",
+    "description": "About screen title and the button/tooltip that opens it."
+  },
+  "unit_ms": {
+    "message": "ms",
+    "description": "Abbreviation for milliseconds, shown after a latency number."
+  },
+
+  "main_open_settings_title": {
+    "message": "Settings",
+    "description": "Tooltip on the gear button that opens settings."
+  },
+  "main_ai_free_banner": {
+    "message": "This free public proxy isn't trusted — don't sign in to important accounts while traffic goes through it. Some services may block your account.",
+    "description": "Warning banner shown when routing through a free public proxy."
+  },
+  "main_donate_banner_text": {
+    "message": "Like ProxyPilot? Support the project",
+    "description": "Donation nudge banner text."
+  },
+  "main_donate_banner_btn": {
+    "message": "Support",
+    "description": "Donation banner button."
+  },
+  "main_donate_banner_close_title": {
+    "message": "Don't show again",
+    "description": "Tooltip on the close button of the donation banner."
+  },
+  "main_services_label": {
+    "message": "Services",
+    "description": "Section heading for the list of preset services."
+  },
+  "main_reset_presets": {
+    "message": "Reset",
+    "description": "Button that disables all enabled services."
+  },
+  "main_preset_search_placeholder": {
+    "message": "Search a service…",
+    "description": "Placeholder in the service search field."
+  },
+  "main_preset_empty": {
+    "message": "Nothing found",
+    "description": "Shown when a service search returns no matches."
+  },
+  "main_custom_domains_label": {
+    "message": "Custom domains",
+    "description": "Section heading for the user's own domain list."
+  },
+  "main_add_domain_placeholder": {
+    "message": "example.com or *.example.com",
+    "description": "Placeholder in the add-domain field."
+  },
+  "main_add_domain_btn": {
+    "message": "+ Add",
+    "description": "Add-domain button default label."
+  },
+  "main_add_domain_btn_checking": {
+    "message": "Checking…",
+    "description": "Add-domain button label while the domain is being checked."
+  },
+  "main_footer_donate": {
+    "message": "💛 Support the project",
+    "description": "Footer donation link."
+  },
+  "main_footer_made_in": {
+    "message": "Made at",
+    "description": "Footer text before the Wildbots link, e.g. 'Made at Wildbots'."
+  },
+  "main_remove_custom_domain_title": {
+    "message": "Remove",
+    "description": "Tooltip on the × button that removes a custom domain."
+  },
+  "main_status_need_proxy_setup": {
+    "message": "Proxy setup needed",
+    "description": "Status line when no proxy is configured."
+  },
+  "main_rkn_banner_blocked": {
+    "message": "$1 — listed in the Roskomnadzor registry. Routing disabled under federal law 149-FZ.",
+    "description": "Compliance banner. $1 is a comma-separated list of blocked service names."
+  },
+  "main_cat_count_enabled": {
+    "message": "$1 on",
+    "description": "Category header badge: number of enabled services in this category. $1 is the count."
+  },
+  "main_enabled_count": {
+    "message": "$1 enabled",
+    "description": "Total number of enabled services. $1 is the count."
+  },
+  "main_toast_domain_added": {
+    "message": "✓ $1 added — not in the RKN registry",
+    "description": "Toast after adding a custom domain. $1 is the domain."
+  },
+
+  "settings_title": {
+    "message": "Proxy settings",
+    "description": "Settings screen title."
+  },
+  "settings_active_source_label": {
+    "message": "Currently active",
+    "description": "Label above the active proxy source card."
+  },
+  "settings_change_source_label": {
+    "message": "Change source",
+    "description": "Label above the proxy source selector."
+  },
+  "settings_source_manual": {
+    "message": "Manual",
+    "description": "Proxy source pill: user's own single proxy."
+  },
+  "settings_source_own": {
+    "message": "My pool",
+    "description": "Proxy source pill: user's own pool of proxies."
+  },
+  "settings_source_free": {
+    "message": "Free",
+    "description": "Proxy source pill: free public proxy pool."
+  },
+  "settings_own_pool_label": {
+    "message": "My proxy pool",
+    "description": "Heading for the own-pool block."
+  },
+  "settings_own_list_placeholder": {
+    "message": "One proxy per line:\nsocks5://user:pass@host:port\nhttp://host:port\nhost:port:user:pass",
+    "description": "Placeholder in the own-pool textarea. The scheme examples are not translated."
+  },
+  "settings_save_own": {
+    "message": "Save and connect",
+    "description": "Button that saves the own-pool list and connects."
+  },
+  "settings_rotate_own": {
+    "message": "↻ Next",
+    "description": "Button that switches to the next proxy in the own pool. ↻ is a decorative icon."
+  },
+  "settings_own_hint": {
+    "message": "If the selected proxy stops responding, I'll switch to the next one. A line without a protocol is treated as http. Check the current one with the \"Test proxy\" button.",
+    "description": "Hint under the own-pool block."
+  },
+  "settings_free_pool_label": {
+    "message": "Free proxy pool",
+    "description": "Heading for the free-pool block."
+  },
+  "settings_free_warning": {
+    "message": "⚠ Free proxies are public and untrusted. Don't sign in to important accounts while traffic goes through them.",
+    "description": "Warning under the free-pool block. ⚠ is part of the phrase."
+  },
+  "settings_scheme_label": {
+    "message": "Protocol",
+    "description": "Label above the proxy protocol selector."
+  },
+  "settings_host_label": {
+    "message": "Host",
+    "description": "Label for the proxy host field."
+  },
+  "settings_port_label": {
+    "message": "Port",
+    "description": "Label for the proxy port field."
+  },
+  "settings_auth_label": {
+    "message": "Authentication",
+    "description": "Label for the proxy authentication block."
+  },
+  "settings_auth_optional": {
+    "message": "opt.",
+    "description": "Short 'optional' marker next to the authentication label."
+  },
+  "settings_user_placeholder": {
+    "message": "username",
+    "description": "Placeholder in the proxy username field."
+  },
+  "settings_pass_placeholder": {
+    "message": "password",
+    "description": "Placeholder in the proxy password field."
+  },
+  "settings_test_proxy": {
+    "message": "Test proxy",
+    "description": "Button that tests the current proxy."
+  },
+  "settings_test_service": {
+    "message": "Test service",
+    "description": "Button that tests an enabled service through the proxy."
+  },
+  "settings_theme_label": {
+    "message": "Theme",
+    "description": "Label above the theme selector."
+  },
+  "settings_theme_light": {
+    "message": "Light",
+    "description": "Light theme option."
+  },
+  "settings_theme_dark": {
+    "message": "Dark",
+    "description": "Dark theme option."
+  },
+  "settings_footer_autosave": {
+    "message": "Saved automatically",
+    "description": "Settings footer note that changes are saved automatically."
+  },
+
+  "settings_source_label_manual": {
+    "message": "Own proxy",
+    "description": "Active-source card name for the manual single proxy."
+  },
+  "settings_source_label_own": {
+    "message": "Own pool",
+    "description": "Active-source card name for the own pool."
+  },
+  "settings_source_label_free": {
+    "message": "Free pool",
+    "description": "Active-source card name for the free pool."
+  },
+  "main_source_short_manual": {
+    "message": "Own",
+    "description": "Short source name shown in the main status line (manual)."
+  },
+  "main_source_short_own": {
+    "message": "Own pool",
+    "description": "Short source name shown in the main status line (own pool)."
+  },
+  "main_source_short_free": {
+    "message": "Free",
+    "description": "Short source name shown in the main status line (free pool)."
+  },
+  "settings_active_source_off_detail": {
+    "message": "Selected: $1 · turn on the switch on the main screen",
+    "description": "Active-source detail when the extension is off. $1 is the selected source name."
+  },
+  "settings_active_source_warn_free": {
+    "message": "No proxy picked yet — tap “Find” below",
+    "description": "Active-source detail when free pool has no proxy chosen yet."
+  },
+  "settings_active_source_warn_own": {
+    "message": "No proxy selected — add a list below",
+    "description": "Active-source detail when own pool has no proxy selected."
+  },
+  "settings_active_source_warn_manual": {
+    "message": "Proxy not configured — fill in the fields below",
+    "description": "Active-source detail when the manual proxy is not configured."
+  },
+  "settings_detect_running": {
+    "message": "◷ Detecting… $1",
+    "description": "Protocol auto-detect in progress. $1 is the scheme being tried (HTTP/SOCKS5...)."
+  },
+  "settings_detect_found": {
+    "message": "✓ Found: $1",
+    "description": "Protocol auto-detect succeeded. $1 is the detected scheme."
+  },
+  "settings_detect_failed": {
+    "message": "Couldn't detect protocol",
+    "description": "Protocol auto-detect failed with no specific reason."
+  },
+  "settings_test_russian_proxy_title": {
+    "message": "This is a Russian proxy",
+    "description": "Test result title when the proxy resolves to Russia."
+  },
+  "settings_test_russian_proxy_sub": {
+    "message": "It won't bypass geo-blocks — you need a proxy in another country.",
+    "description": "Test result subtitle for a Russian proxy."
+  },
+  "settings_test_proxy_ok_title": {
+    "message": "Proxy works",
+    "description": "Test result title when the proxy works."
+  },
+  "settings_test_proxy_ok_sub": {
+    "message": "Blocked services will open.",
+    "description": "Test result subtitle when the proxy works."
+  },
+  "settings_test_service_ok_title": {
+    "message": "$1 responds",
+    "description": "Service test success title. $1 is the service name."
+  },
+  "settings_test_failed_title": {
+    "message": "Didn't work",
+    "description": "Generic test failure title."
+  },
+  "err_test_enable_one_first": {
+    "message": "Enable at least one service first",
+    "description": "Shown when testing a service but none are enabled."
+  },
+
+  "firstrun_status_needs_setup": {
+    "message": "⚠ Setup required",
+    "description": "First-run status. ⚠ is part of the phrase."
+  },
+  "firstrun_cta_title": {
+    "message": "Connect a proxy to get started",
+    "description": "First-run call-to-action title."
+  },
+  "firstrun_cta_sub": {
+    "message": "Enter the host, port and credentials of your HTTP/SOCKS proxy.",
+    "description": "First-run call-to-action subtitle."
+  },
+  "firstrun_open_settings_btn": {
+    "message": "Open settings →",
+    "description": "First-run button that opens settings."
+  },
+
+  "about_avatar_alt": {
+    "message": "Konstantin",
+    "description": "Alt text for the developer avatar image (a person's name)."
+  },
+  "about_name": {
+    "message": "Konstantin",
+    "description": "Developer name on the about screen."
+  },
+  "about_role": {
+    "message": "Developer · Wildbots",
+    "description": "Developer role line. Wildbots is a brand."
+  },
+  "about_bio": {
+    "message": "I build smart tools and AI bots. ProxyPilot is one of Wildbots' projects.",
+    "description": "Developer bio on the about screen."
+  },
+  "about_link_site": {
+    "message": "Website",
+    "description": "Label for the developer website link."
+  },
+  "about_donate_cta": {
+    "message": "💛 Support the project",
+    "description": "Donation call-to-action on the about screen."
+  },
+  "about_rate_soon": {
+    "message": "⭐ Coming soon to the Chrome Web Store",
+    "description": "Placeholder for the not-yet-available store rating link. Chrome Web Store is a brand."
+  },
+  "about_rate_soon_title": {
+    "message": "Will appear after publishing to the Chrome Web Store",
+    "description": "Tooltip on the coming-soon store link."
+  },
+
+  "free_searching_title": {
+    "message": "Finding a working proxy…",
+    "description": "Free-pool card title while searching."
+  },
+  "free_searching_sub": {
+    "message": "Testing candidates live — takes a couple of seconds.",
+    "description": "Free-pool card subtitle while searching."
+  },
+  "free_searching_progress_starting": {
+    "message": "Starting the check…",
+    "description": "Initial progress text when a free-pool search starts."
+  },
+  "free_progress_tested": {
+    "message": "Tested $1 of $2",
+    "description": "Live free-pool progress. $1 is current index, $2 is total."
+  },
+  "free_rotate_btn_picking": {
+    "message": "Searching…",
+    "description": "Free-pool rotate button label while a pick runs."
+  },
+  "free_rotate_btn_change": {
+    "message": "↻ Change proxy",
+    "description": "Free-pool rotate button when a proxy is connected. ↻ is decorative."
+  },
+  "free_rotate_btn_retry": {
+    "message": "↻ Try again",
+    "description": "Free-pool rotate button after an error. ↻ is decorative."
+  },
+  "free_rotate_btn_pick": {
+    "message": "Find a proxy",
+    "description": "Free-pool button that starts picking a proxy."
+  },
+  "free_speed_fast": {
+    "message": "fast",
+    "description": "Speed badge for a fast free proxy."
+  },
+  "free_speed_mid": {
+    "message": "medium",
+    "description": "Speed badge for a medium-speed free proxy."
+  },
+  "free_speed_slow": {
+    "message": "slow",
+    "description": "Speed badge for a slow free proxy."
+  },
+  "free_found_title": {
+    "message": "Done — proxy connected",
+    "description": "Free-pool card title when a proxy is connected."
+  },
+  "free_error_title": {
+    "message": "No live proxy found yet",
+    "description": "Free-pool card title on error."
+  },
+  "free_idle_title": {
+    "message": "No proxy picked yet",
+    "description": "Free-pool card title when idle (initial)."
+  },
+  "free_idle_sub": {
+    "message": "Tap the button — I'll find a working one in a couple of seconds.",
+    "description": "Free-pool card subtitle when idle (initial)."
+  },
+  "free_pool_meta_updated": {
+    "message": "List updated $1 min ago",
+    "description": "Free-pool list freshness. $1 is minutes."
+  },
+  "free_err_load_list_failed": {
+    "message": "couldn't load the list: $1",
+    "description": "Free-pool error when the list fetch fails. $1 is the reason."
+  },
+  "free_err_no_suitable": {
+    "message": "No suitable proxies in the free list. Better add your own proxy.",
+    "description": "Free-pool error when no candidate passes the filter."
+  },
+  "free_err_no_https": {
+    "message": "No HTTPS proxies in the free list right now — it's nearly useless. Better add your own proxy.",
+    "description": "Free-pool error when no HTTPS-capable proxy exists."
+  },
+  "free_err_no_working": {
+    "message": "No working proxy found (tested $1). Try again later or add your own.",
+    "description": "Free-pool error after probing candidates. $1 is the number tested."
+  },
+
+  "own_empty_title": {
+    "message": "List is empty",
+    "description": "Own-pool card title when the list is empty."
+  },
+  "own_empty_sub": {
+    "message": "Paste your proxies — one per line.",
+    "description": "Own-pool card subtitle when the list is empty."
+  },
+  "own_meta_recognized_one": {
+    "message": "$1 proxy recognized",
+    "description": "Own-pool meta after Save, singular. $1 is the count (1)."
+  },
+  "own_meta_recognized_other": {
+    "message": "$1 proxies recognized",
+    "description": "Own-pool meta after Save, plural. $1 is the count."
+  },
+  "own_meta_none_recognized": {
+    "message": "Couldn't recognize any proxy — check the format",
+    "description": "Own-pool meta when nothing parsed."
+  },
+  "own_meta_in_list_one": {
+    "message": "$1 proxy in the list",
+    "description": "Own-pool meta count, singular. $1 is the count (1)."
+  },
+  "own_meta_in_list_other": {
+    "message": "$1 proxies in the list",
+    "description": "Own-pool meta count, plural. $1 is the count."
+  },
+  "own_badge_one_of_n": {
+    "message": "1 of $1 in the pool",
+    "description": "Badge showing the active proxy position. $1 is the pool size."
+  },
+  "own_found_title": {
+    "message": "Proxy active",
+    "description": "Own-pool card title when a proxy is active."
+  },
+  "own_error_title": {
+    "message": "Proxy unavailable",
+    "description": "Own-pool card title on error."
+  },
+  "own_idle_ready_one": {
+    "message": "$1 proxy ready",
+    "description": "Own-pool idle title, singular. $1 is the count (1)."
+  },
+  "own_idle_ready_other": {
+    "message": "$1 proxies ready",
+    "description": "Own-pool idle title, plural. $1 is the count."
+  },
+  "own_idle_ready_sub": {
+    "message": "Tap “Save and connect”.",
+    "description": "Own-pool idle subtitle. Mirrors the Save-and-connect button."
+  },
+  "own_all_proxies_unavailable": {
+    "message": "All your proxies are temporarily unavailable — wait a bit or check the addresses.",
+    "description": "Own-pool error when no live proxy is found but the list is non-empty."
+  },
+  "own_pool_empty": {
+    "message": "List is empty — paste your own proxies.",
+    "description": "Own-pool error when the pool has no proxies."
+  },
+
+  "icon_off_tooltip": {
+    "message": "ProxyPilot — off",
+    "description": "Toolbar icon tooltip when off. ProxyPilot is a brand."
+  },
+  "icon_routed_tooltip": {
+    "message": "ProxyPilot — $1 via proxy",
+    "description": "Toolbar tooltip for a routed tab. $1 is the host. Country and latency are appended separately."
+  },
+  "icon_direct_tooltip": {
+    "message": "ProxyPilot — $1 direct (not in routing list)",
+    "description": "Toolbar tooltip for a non-routed tab. $1 is the host."
+  },
+  "icon_error_tooltip": {
+    "message": "ProxyPilot — proxy error: $1",
+    "description": "Toolbar tooltip on proxy error. $1 is the reason."
+  },
+  "icon_error_reason_unavailable": {
+    "message": "unavailable",
+    "description": "Default reason in the error tooltip when none is given."
+  },
+  "icon_error_reason_not_configured": {
+    "message": "not configured",
+    "description": "Error-tooltip reason when no proxy is configured."
+  },
+  "icon_host_internal": {
+    "message": "(internal)",
+    "description": "Placeholder host in the direct tooltip for internal/non-http pages."
+  },
+
+  "err_domain_empty_input": {
+    "message": "empty input",
+    "description": "Domain validation: input is empty."
+  },
+  "err_domain_empty_after_normalize": {
+    "message": "empty after normalization",
+    "description": "Domain validation: nothing left after normalization."
+  },
+  "err_domain_not_a_domain": {
+    "message": "doesn't look like a domain: $1",
+    "description": "Domain validation: input isn't a domain. $1 is the input."
+  },
+  "err_domain_ipv6_unsupported": {
+    "message": "IPv6 addresses are not supported",
+    "description": "Domain validation: IPv6 literal rejected."
+  },
+  "err_domain_invalid": {
+    "message": "invalid domain: $1",
+    "description": "Domain validation: normalized value is invalid. $1 is the input."
+  },
+  "err_domain_already_in_list": {
+    "message": "Already in the list",
+    "description": "Shown when adding a custom domain that is already present."
+  },
+  "err_domain_in_rkn_registry": {
+    "message": "⛔ $1 is in the Roskomnadzor registry — can't add it (149-FZ)",
+    "description": "Shown when a custom domain is RKN-blocked. $1 is the domain."
+  },
+  "err_no_domain_to_test": {
+    "message": "no domain to test",
+    "description": "Error when a service test has no domain."
+  },
+  "err_no_proxy_configured": {
+    "message": "No proxy configured",
+    "description": "Error when testing with no proxy set up."
+  },
+
+  "cat_ai_chat": {
+    "message": "AI Assistants",
+    "description": "Service category: AI chat assistants."
+  },
+  "cat_ai_tools": {
+    "message": "AI: code · media · voice",
+    "description": "Service category: AI tools for code, media and voice."
+  },
+  "cat_video": {
+    "message": "Video",
+    "description": "Service category: video streaming."
+  },
+  "cat_music": {
+    "message": "Music",
+    "description": "Service category: music streaming."
+  },
+  "cat_design": {
+    "message": "Design & Productivity",
+    "description": "Service category: design and productivity."
+  },
+  "cat_web": {
+    "message": "Sites · hosting · stores",
+    "description": "Service category: websites, hosting and stores."
+  },
+  "cat_work": {
+    "message": "Work · teams · dev",
+    "description": "Service category: work, teams and dev tools."
+  },
+  "cat_adult": {
+    "message": "18+",
+    "description": "Service category: adult content. Kept identical in all languages."
+  }
+}
