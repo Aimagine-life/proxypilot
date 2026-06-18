@@ -41,7 +41,7 @@
       <div class="donate-banner" id="donate-banner" hidden>
         <span class="donate-banner-icon">💛</span>
         <span class="donate-banner-text" data-i18n="main_donate_banner_text">Нравится ProxyPilot? Поддержи проект</span>
-        <a class="donate-banner-btn" id="donate-banner-link" data-i18n="main_donate_banner_btn" href="https://yoomoney.ru/to/410011076392857" target="_blank" rel="noopener noreferrer">Поддержать</a>
+        <button type="button" class="donate-banner-btn" id="donate-banner-link" data-i18n="main_donate_banner_btn">Поддержать</button>
         <button type="button" class="donate-banner-close" id="donate-banner-close" data-i18n-title="main_donate_banner_close_title" title="Больше не показывать">×</button>
       </div>
       <section class="block">
@@ -66,7 +66,7 @@
       </div>
 
       <footer class="app-footer">
-        <a class="footer-donate" data-i18n="main_footer_donate" href="https://yoomoney.ru/to/410011076392857" target="_blank" rel="noopener noreferrer">💛 Поддержать проект</a>
+        <button type="button" class="footer-donate" id="footer-donate" data-i18n="main_footer_donate">💛 Поддержать проект</button>
         <div class="app-footer-row">
           <span data-i18n="main_footer_made_in">Сделано в</span>
           <a class="app-footer-link" href="https://wildbots.ru/" target="_blank" rel="noopener noreferrer">Wildbots ↗</a>
@@ -242,7 +242,7 @@
       </div>
 
       <div class="about-cta-wrap">
-        <a class="about-cta about-cta-primary" id="about-donate" data-i18n="about_donate_cta" href="https://yoomoney.ru/to/410011076392857" target="_blank" rel="noopener noreferrer">💛 Поддержать проект</a>
+        <button type="button" class="about-cta about-cta-primary" id="about-donate" data-i18n="about_donate_cta">💛 Поддержать проект</button>
         <!-- Кнопка «Оценить»: подставить href на страницу Chrome Web Store после публикации
              и заменить класс about-cta-soon на about-cta-rate (см. CSS). -->
         <div class="about-cta about-cta-soon" id="about-rate" data-i18n="about_rate_soon" data-i18n-title="about_rate_soon_title" title="Появится после публикации в Chrome Web Store">⭐ Скоро в Chrome Web Store</div>
@@ -251,6 +251,40 @@
       <footer class="footer about-version-bar">
         <span class="dot ok"></span> ProxyPilot <span id="about-version"></span>
       </footer>
+    </section>
+
+    <!-- Support / donate screen -->
+    <section id="screen-support" class="screen" hidden>
+      <header class="header">
+        <button type="button" class="back" id="back-from-support" data-i18n-title="back" title="Назад">←</button>
+        <div class="header-text"><div class="title" data-i18n="support_title">Поддержать проект</div></div>
+      </header>
+
+      <div class="support-body">
+        <div class="support-intro">
+          <span class="support-intro-icon">💛</span>
+          <span data-i18n="support_intro">Спасибо, что пользуешься ProxyPilot. Поддержка помогает развивать проект.</span>
+        </div>
+
+        <section class="support-card">
+          <div class="support-card-label" data-i18n="support_method_card_label">Банковская карта</div>
+          <div class="support-card-sub" data-i18n="support_method_card_sub">Картой РФ через ЮMoney</div>
+          <a class="support-card-btn" href="https://yoomoney.ru/to/410011076392857" target="_blank" rel="noopener noreferrer" data-i18n="support_card_btn">💳 Перейти к оплате</a>
+        </section>
+
+        <section class="support-card">
+          <div class="support-card-label" data-i18n="support_method_crypto_label">Криптовалюта</div>
+          <div class="support-card-sub" data-i18n="support_crypto_sub">USDT или TON · сеть TON</div>
+          <div class="support-qr-wrap">
+            <img class="support-qr" src="qr-ton.png" width="160" height="160" alt="TON QR" />
+          </div>
+          <div class="support-addr-row">
+            <code class="support-addr" id="ton-address">UQCBazZZbctu3IEMdPp5H8pKtQhf9raykndGUYo7hQsF5yGo</code>
+            <button type="button" class="support-copy" id="support-copy" data-i18n="support_copy">Копировать</button>
+          </div>
+          <div class="support-note" data-i18n="support_crypto_note">Через Telegram → @wallet. Принимаю и USDT (TON), и TON.</div>
+        </section>
+      </div>
     </section>
   </div>
 

@@ -1086,3 +1086,57 @@ html, body {
   cursor: pointer;
 }
 .donate-banner-close:hover { opacity: 1; }
+
+/* ── Support / donate screen ─────────────────────────────────────── */
+.support-body { padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+.support-intro {
+  display: flex; gap: 8px; align-items: flex-start;
+  font-size: 12px; line-height: 1.4; color: var(--amber-ink);
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  border-radius: 10px; padding: 10px 12px;
+}
+.support-intro-icon { flex: 0 0 auto; font-size: 14px; }
+.support-card {
+  background: var(--bg-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px; padding: 12px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.support-card-label { font-size: 12.5px; font-weight: 700; color: var(--text); }
+.support-card-sub { font-size: 11px; color: var(--text-mute); margin-top: -4px; }
+.support-card-btn {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 12px; border-radius: 10px;
+  font-size: 12.5px; font-weight: 700; text-decoration: none;
+  background: linear-gradient(135deg, var(--indigo), var(--cyan));
+  color: #fff; box-shadow: 0 2px 10px rgba(99, 102, 241, 0.32);
+  transition: transform 0.1s;
+}
+.support-card-btn:active { transform: translateY(1px); }
+.support-qr-wrap { display: flex; justify-content: center; padding: 4px 0; }
+.support-qr {
+  width: 160px; height: 160px; border-radius: 8px;
+  background: #fff; padding: 8px; border: 1px solid var(--border-strong);
+}
+.support-addr-row { display: flex; gap: 8px; align-items: stretch; }
+.support-addr {
+  flex: 1 1 auto; min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px; line-height: 1.35; word-break: break-all;
+  background: var(--bg); border: 1px solid var(--border-strong);
+  border-radius: 8px; padding: 8px 10px; color: var(--text);
+}
+.support-copy {
+  flex: 0 0 auto; align-self: flex-start;
+  padding: 8px 12px; border-radius: 8px; border: 0; cursor: pointer;
+  background: var(--amber); color: #fff; font-weight: 700; font-size: 11px; font-family: inherit;
+}
+.support-copy:hover { filter: brightness(1.08); }
+.support-copy:active { transform: translateY(1px); }
+.support-note { font-size: 11px; color: var(--text-mute); line-height: 1.4; }
+
+/* Кнопочные точки входа в донат (были <a>, стали <button>) */
+.donate-banner-btn { border: 0; cursor: pointer; font-family: inherit; }
+.footer-donate { border: 1px solid rgba(245, 158, 11, 0.32); cursor: pointer; font-family: inherit; }
+button.about-cta { border: 0; cursor: pointer; width: 100%; font-family: inherit; }
