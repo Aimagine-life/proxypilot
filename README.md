@@ -35,6 +35,8 @@
 >
 > Chrome отдаёт управление прокси только **одному** расширению. Если их несколько — будет конфликт: сайты перестают открываться, хотя прокси «подключён».
 >
+> **В Opera** дополнительно отключи **встроенный VPN** (Настройки → Конфиденциальность → VPN) — он тоже управляет трафиком и конфликтует.
+>
 > 💬 *Реальный случай пользователя: «был конфликт с другим расширением — Proxy SwitchyOmega 3, отключил его и всё гуд!»*
 
 ---
@@ -59,6 +61,7 @@
 **Проще всего — из магазина:**
 
 - 🟦 **Chrome / Edge / Brave** → [Chrome Web Store](https://chromewebstore.google.com/detail/proxypilot/gmbihijfnafhpafknokdnkkafbbkbehj)
+- 🔴 **Opera** → тот же [Chrome Web Store](https://chromewebstore.google.com/detail/proxypilot/gmbihijfnafhpafknokdnkkafbbkbehj) через аддон **«Install Chrome Extensions»** (Opera на Chromium)
 - 🟧 **Firefox** → [Firefox Add-ons](https://addons.mozilla.org/firefox/addon/proxypilot/)
 
 **Вручную** (для разработки): `chrome://extensions` → «Режим разработчика» → «Загрузить распакованное» → папка `extension/`. Подробнее (Chrome и Firefox) — в [INSTALL.md](INSTALL.md).
@@ -133,6 +136,8 @@ Everything else goes direct. No account, no tracking.
 >
 > Chrome hands proxy control to only **one** extension. With several installed they conflict: sites stop loading even though the proxy looks "connected".
 >
+> **In Opera**, also turn off the **built-in VPN** (Settings → Privacy → VPN) — it controls traffic too and will conflict.
+>
 > 💬 *Real user report: "there was a conflict with another extension — Proxy SwitchyOmega 3 — disabled it and all good!"*
 
 ---
@@ -155,6 +160,7 @@ Everything else goes direct. No account, no tracking.
 ## Install
 
 - 🟦 **Chrome / Edge / Brave** → [Chrome Web Store](https://chromewebstore.google.com/detail/proxypilot/gmbihijfnafhpafknokdnkkafbbkbehj)
+- 🔴 **Opera** → same [Chrome Web Store](https://chromewebstore.google.com/detail/proxypilot/gmbihijfnafhpafknokdnkkafbbkbehj) via the **"Install Chrome Extensions"** add-on (Opera is Chromium-based)
 - 🟧 **Firefox** → [Firefox Add-ons](https://addons.mozilla.org/firefox/addon/proxypilot/)
 
 Manual install (development): `chrome://extensions` → Developer mode → Load unpacked → `extension/` folder. Details (Chrome & Firefox) in [INSTALL.md](INSTALL.md).
