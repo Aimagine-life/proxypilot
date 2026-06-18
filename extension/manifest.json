@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_app_name__",
-  "version": "0.14.1",
+  "version": "0.14.2",
   "default_locale": "en",
   "description": "__MSG_app_description__",
   "homepage_url": "https://github.com/Aimagine-life/proxypilot",
