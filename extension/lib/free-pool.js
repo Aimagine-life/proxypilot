@@ -22,6 +22,14 @@ export const DEAD_HOST_TTL_MS = 30 * 60 * 1000;
 // are pre-sorted (HTTPS-capable + trusted feeds first), so a live one is usually
 // found early — this cap just bounds the worst case and lets us stop honestly.
 export const MAX_VALIDATION_ATTEMPTS = 100;
+// Latency-aware selection: a candidate that answers the validation probe within
+// FAST_LATENCY_MS is taken immediately. Otherwise we keep scanning for a fast
+// one, but consider at most MAX_WORKING_TO_CONSIDER working-but-slow candidates
+// before settling on the fastest of those — so a pool of only slow proxies still
+// yields a pick quickly instead of returning the first sluggish one (whose first
+// real connection tends to time out and trigger a costly rotation).
+export const FAST_LATENCY_MS = 1500;
+export const MAX_WORKING_TO_CONSIDER = 5;
 
 let memoryPool = null;
 let memoryFetchedAt = 0;
@@ -289,6 +297,25 @@ export function nextLiveProxy(proxies, deadHosts = {}, now = Date.now()) {
   }) || null;
 }
 
+// Warm standby entries are validated picks collected during the last scan. They
+// go stale (the proxy may have died since) — anything validated longer ago than
+// WARM_MAX_AGE_MS is ignored, falling back to a fresh scan.
+export const WARM_MAX_AGE_MS = 5 * 60 * 1000;
+
+/**
+ * First warm-pool entry that is still fresh (validated within maxAgeMs) and not
+ * marked dead. Used to switch proxies instantly on rotation without a full scan.
+ * Pure — no I/O.
+ */
+export function nextWarmProxy(warmPool, deadHosts = {}, now = Date.now(), maxAgeMs = WARM_MAX_AGE_MS) {
+  return (warmPool || []).find((p) => {
+    if (!p || !p.host || !p.port) return false;
+    if (p.validatedAt && (now - p.validatedAt) > maxAgeMs) return false; // stale
+    const exp = deadHosts[`${p.host}:${p.port}`];
+    return !(exp && exp > now);
+  }) || null;
+}
+
 /**
  * Fetch pool, filter by deadHosts from state.freeProxy, validate candidates
  * sequentially until one passes or MAX_VALIDATION_ATTEMPTS is reached. Caller
@@ -307,7 +334,7 @@ export function nextLiveProxy(proxies, deadHosts = {}, now = Date.now()) {
  *     fallback). errorCode/errorParams are machine-readable; background.js
  *     localizes them via the chrome.i18n key `free_err_<errorCode>`.
  */
-export async function pickAndValidate(state, { onProgress } = {}) {
+export async function pickAndValidate(state, { onProgress, validate = _validateProxy } = {}) {
   const deadHosts = (state.freeProxy && state.freeProxy.deadHosts) || {};
   let pool;
   try {
@@ -315,6 +342,7 @@ export async function pickAndValidate(state, { onProgress } = {}) {
   } catch (err) {
     return {
       pick: null,
+      warm: [],
       attemptedHosts: [],
       poolSize: 0,
       error: `не удалось загрузить список: ${err.message}`,
@@ -326,6 +354,7 @@ export async function pickAndValidate(state, { onProgress } = {}) {
   if (candidates.length === 0) {
     return {
       pick: null,
+      warm: [],
       attemptedHosts: [],
       poolSize: pool.length,
       error: 'В бесплатном списке нет подходящих прокси. Лучше укажи свой прокси.',
@@ -340,31 +369,36 @@ export async function pickAndValidate(state, { onProgress } = {}) {
 
   const attempted = [];
   const limit = Math.min(candidates.length, MAX_VALIDATION_ATTEMPTS);
+  const working = []; // every candidate that passed this scan: { cand, latencyMs }
   for (let i = 0; i < limit; i++) {
     const cand = candidates[i];
     attempted.push(`${cand.host}:${cand.port}`);
     if (onProgress) {
       try { onProgress(i + 1, limit, cand); } catch { /* swallow — UI is best-effort */ }
     }
-    const result = await _validateProxy(cand);
-    if (result.ok) {
-      return {
-        pick: {
-          host: cand.host,
-          port: cand.port,
-          scheme: cand.protocol,
-          country: cand.country || null,
-          latencyMs: result.latencyMs,
-          validatedAt: Date.now(),
-        },
-        attemptedHosts: attempted,
-        poolSize: pool.length,
-        error: null,
-      };
-    }
+    const result = await validate(cand);
+    if (!result.ok) continue;
+    working.push({ cand, latencyMs: result.latencyMs });
+    // Fast enough → stop scanning. It becomes the pick; anything slower already
+    // collected becomes the warm standby (validated, just not the fastest).
+    if (result.latencyMs <= FAST_LATENCY_MS) break;
+    // Working but slow → keep scanning for a fast one, up to the cap.
+    if (working.length >= MAX_WORKING_TO_CONSIDER) break;
+  }
+  if (working.length > 0) {
+    working.sort((a, b) => a.latencyMs - b.latencyMs);
+    const [first, ...rest] = working;
+    return {
+      pick: makePick(first.cand, first.latencyMs),
+      warm: rest.map((w) => makePick(w.cand, w.latencyMs)),
+      attemptedHosts: attempted,
+      poolSize: pool.length,
+      error: null,
+    };
   }
   return {
     pick: null,
+    warm: [],
     attemptedHosts: attempted,
     poolSize: pool.length,
     error: httpsCapable === 0
@@ -372,6 +406,18 @@ export async function pickAndValidate(state, { onProgress } = {}) {
       : `Рабочий прокси не найден (проверено ${attempted.length}). Попробуй позже или укажи свой.`,
     errorCode: httpsCapable === 0 ? 'no_https' : 'no_working',
     errorParams: httpsCapable === 0 ? null : [attempted.length],
+  };
+}
+
+/** Build a free-pick object from a validated candidate + measured latency. */
+function makePick(cand, latencyMs) {
+  return {
+    host: cand.host,
+    port: cand.port,
+    scheme: cand.protocol,
+    country: cand.country || null,
+    latencyMs,
+    validatedAt: Date.now(),
   };
 }
 

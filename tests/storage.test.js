@@ -67,6 +67,7 @@ test('getDefaultState: includes new v2 fields', () => {
     lastError: null,
     deadHosts: {},
     poolFetchedAt: 0,
+    warmPool: [],
   });
 });
 
@@ -180,6 +181,7 @@ test('loadState: v2 state with missing freeProxy gets backfilled', async () => {
     lastError: null,
     deadHosts: {},
     poolFetchedAt: 0,
+    warmPool: [],
   });
 });
 
@@ -204,6 +206,30 @@ test('loadState: v2 state with missing freeProxy.deadHosts gets backfilled', asy
   };
   const s = await loadState();
   assert.deepEqual(s.freeProxy.deadHosts, {});
+});
+
+test('loadState: v2 state with freeProxy but missing warmPool gets backfilled', async () => {
+  await chrome.storage.local.clear();
+  mockStore.state = {
+    schemaVersion: 2,
+    enabled: false,
+    proxy: null,
+    proxySource: 'manual',
+    manualProxy: null,
+    freeProxy: {
+      selected: null,
+      lastError: null,
+      deadHosts: {},
+      poolFetchedAt: 0,
+      // warmPool intentionally absent (upgrade from 0.14.0)
+    },
+    theme: 'auto',
+    resolvedTheme: 'light',
+    presets: {},
+    customDomains: [],
+  };
+  const s = await loadState();
+  assert.deepEqual(s.freeProxy.warmPool, []);
 });
 
 test('loadState: backfills every current preset (disabled) when none stored', async () => {

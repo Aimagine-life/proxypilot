@@ -9,7 +9,8 @@ import { applyProxy, registerProxyAuth, probeThroughProxy } from './lib/proxy-ba
 import { setIconState } from './lib/icon.js';
 import { isHostRouted } from './lib/pac.js';
 import { checkAllPresets, isCheckDue, checkDomain } from './lib/rkn-check.js';
-import { pickAndValidate, fetchPool, nextLiveProxy, DEAD_HOST_TTL_MS } from './lib/free-pool.js';
+import { pickAndValidate, fetchPool, nextLiveProxy, nextWarmProxy, DEAD_HOST_TTL_MS } from './lib/free-pool.js';
+import { registerFailureAndDecide } from './lib/rotation-policy.js';
 
 // 1. Auth listener — must be top-level for sleep/wake survival.
 registerProxyAuth(loadState);
@@ -310,6 +311,31 @@ async function rotateFreeProxy(state, { markCurrentDead = true } = {}) {
       state.freeProxy.deadHosts[key] = Date.now() + DEAD_HOST_TTL_MS;
     }
 
+    // Instant switch: reuse a fresh, non-dead warm standby (validated during the
+    // last scan) before paying for a full probe sweep.
+    const warm = nextWarmProxy(state.freeProxy.warmPool, state.freeProxy.deadHosts, Date.now());
+    if (warm) {
+      state.freeProxy.warmPool = (state.freeProxy.warmPool || [])
+        .filter((p) => !(p.host === warm.host && p.port === warm.port));
+      state.freeProxy.selected = warm;
+      state.freeProxy.lastError = null;
+      state.proxy = {
+        host: warm.host,
+        port: warm.port,
+        scheme: warm.scheme,
+        user: '',
+        pass: '',
+        lastTest: {
+          ok: true,
+          country: warm.country,
+          latencyMs: warm.latencyMs,
+          at: Math.floor(Date.now() / 1000),
+        },
+      };
+      await saveState(state);
+      return state;
+    }
+
     const result = await pickAndValidate(state, {
       onProgress: (index, total, cand) => {
         // Best-effort: push progress to popup if open. No receiver = no problem.
@@ -324,6 +350,7 @@ async function rotateFreeProxy(state, { markCurrentDead = true } = {}) {
     });
     if (result.pick) {
       state.freeProxy.selected = result.pick;
+      state.freeProxy.warmPool = result.warm || [];
       state.freeProxy.lastError = null;
       state.proxy = {
         host: result.pick.host,
@@ -340,6 +367,7 @@ async function rotateFreeProxy(state, { markCurrentDead = true } = {}) {
       };
     } else {
       state.freeProxy.selected = null;
+      state.freeProxy.warmPool = [];
       state.freeProxy.lastError = result.errorCode
         ? t(`free_err_${result.errorCode}`, result.errorParams)
         : result.error;
@@ -412,17 +440,20 @@ const PROXY_ERROR_CODES = new Set([
   'NS_ERROR_PROXY_GATEWAY_TIMEOUT',
 ]);
 
-const ROTATE_DEBOUNCE_MS = 10_000;
-
 async function handleProxyError(details) {
   if (!PROXY_ERROR_CODES.has(details.error)) return;
 
-  const now = Date.now();
-  const last = globalThis.__lastRotateAt || 0;
-  if (now - last < ROTATE_DEBOUNCE_MS) return;
-  globalThis.__lastRotateAt = now;
-
   const state = await loadState();
+  if (state.proxySource !== 'free' && state.proxySource !== 'own') return;
+
+  // Tolerate a slow first connection: only rotate when a proxy fails repeatedly
+  // in a short window (a genuinely dead proxy keeps failing). registerFailure-
+  // AndDecide tracks per-proxy failures and resets when we rotate or switch.
+  const key = state.proxy ? `${state.proxy.host}:${state.proxy.port}` : 'none';
+  const failures = (globalThis.__proxyFailures ||= {});
+  const shouldRotate = registerFailureAndDecide(failures, key, Date.now());
+  if (!shouldRotate) return;
+
   if (state.proxySource === 'free') {
     await rotateFreeProxy(state, { markCurrentDead: true });
   } else if (state.proxySource === 'own') {

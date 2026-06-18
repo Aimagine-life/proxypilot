@@ -25,13 +25,27 @@ function allThroughPac(proxy) {
 }
 
 // ---- Chrome backend ----
+// Skip redundant PAC re-applies. Re-setting chrome.proxy.settings tears down
+// in-flight connections during the swap, so an unrelated state write (e.g.
+// donate.uses++ when the popup opens) must not churn the proxy. Track the last
+// PAC string applied this service-worker lifetime; a SW restart resets it to
+// undefined so the first post-wake apply always runs.
+let lastAppliedPac;
 async function chromeApply(state) {
   const pac = buildPacScript(state);
-  if (pac === null) { await chrome.proxy.settings.clear({ scope: 'regular' }); return { applied: false }; }
+  if (pac === null) {
+    if (lastAppliedPac !== null) {
+      await chrome.proxy.settings.clear({ scope: 'regular' });
+      lastAppliedPac = null;
+    }
+    return { applied: false };
+  }
+  if (pac === lastAppliedPac) return { applied: true, unchanged: true };
   await chrome.proxy.settings.set({
     value: { mode: 'pac_script', pacScript: { data: pac, mandatory: true } },
     scope: 'regular',
   });
+  lastAppliedPac = pac;
   return { applied: true };
 }
 async function chromeClear() {

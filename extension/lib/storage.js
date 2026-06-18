@@ -26,7 +26,7 @@ export function getDefaultState() {
     proxy: null,
     proxySource: 'manual',
     manualProxy: null,
-    freeProxy: { selected: null, lastError: null, deadHosts: {}, poolFetchedAt: 0 },
+    freeProxy: { selected: null, lastError: null, deadHosts: {}, poolFetchedAt: 0, warmPool: [] },
     // User's own pool of proxies (proxySource === 'own'). `raw` is the textarea
     // text; `proxies` is the parsed list [{host,port,scheme,user,pass}]. Picked
     // optimistically (no upfront validation) and rotated reactively on error.
@@ -85,6 +85,8 @@ export async function loadState() {
   // Defensive freeProxy backfill.
   if (!saved.freeProxy) saved.freeProxy = { ...defaults.freeProxy };
   if (!saved.freeProxy.deadHosts) saved.freeProxy.deadHosts = {};
+  // warmPool backfill (added in 0.14.1): validated standby picks for instant rotation.
+  if (!Array.isArray(saved.freeProxy.warmPool)) saved.freeProxy.warmPool = [];
 
   // ownPool backfill (added in 0.9.0).
   if (!saved.ownPool) saved.ownPool = { ...defaults.ownPool };

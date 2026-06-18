@@ -406,6 +406,78 @@ test('pickAndValidate: caps probes at MAX_VALIDATION_ATTEMPTS', async () => {
   assert.equal(result.attemptedHosts.length, MAX_VALIDATION_ATTEMPTS);
 });
 
+import { FAST_LATENCY_MS, MAX_WORKING_TO_CONSIDER } from '../extension/lib/free-pool.js';
+
+// Pool of N socks5 candidates (equal score) from distinct IPs.
+function poolOf(ips) {
+  return ips.map((ip) => ({ protocol: 'socks5', ip, port: 1080, anonymity: 'elite', score: 50, geolocation: { country: 'NL' } }));
+}
+
+test('pickAndValidate: prefers a fast proxy, skipping a slower one earlier in the list', async () => {
+  __resetMemoryCache();
+  const origRandom = Math.random; Math.random = () => 0.999; // freeze shuffle → list order kept
+  try {
+    queuePool(poolOf(['1.1.1.1', '2.2.2.2']));
+    const lat = { '1.1.1.1': FAST_LATENCY_MS + 1000, '2.2.2.2': 300 };
+    const validate = async (cand) => ({ ok: true, latencyMs: lat[cand.host], error: null });
+    const result = await pickAndValidate({ freeProxy: { deadHosts: {} } }, { validate });
+    assert.equal(result.pick.host, '2.2.2.2');
+    assert.equal(result.pick.latencyMs, 300);
+  } finally { Math.random = origRandom; }
+});
+
+test('pickAndValidate: all working proxies are slow → picks the lowest-latency one', async () => {
+  __resetMemoryCache();
+  const origRandom = Math.random; Math.random = () => 0.999;
+  try {
+    queuePool(poolOf(['1.1.1.1', '2.2.2.2', '3.3.3.3']));
+    const lat = { '1.1.1.1': FAST_LATENCY_MS + 1000, '2.2.2.2': FAST_LATENCY_MS + 300, '3.3.3.3': FAST_LATENCY_MS + 1500 };
+    const validate = async (cand) => ({ ok: true, latencyMs: lat[cand.host], error: null });
+    const result = await pickAndValidate({ freeProxy: { deadHosts: {} } }, { validate });
+    assert.equal(result.pick.host, '2.2.2.2'); // lowest latency among the slow ones
+    assert.equal(result.pick.latencyMs, FAST_LATENCY_MS + 300);
+  } finally { Math.random = origRandom; }
+});
+
+test('pickAndValidate: stops scanning after MAX_WORKING_TO_CONSIDER slow proxies', async () => {
+  __resetMemoryCache();
+  const origRandom = Math.random; Math.random = () => 0.999;
+  try {
+    const ips = Array.from({ length: MAX_WORKING_TO_CONSIDER + 3 }, (_, i) => `9.9.9.${i + 1}`);
+    queuePool(poolOf(ips));
+    const validate = async () => ({ ok: true, latencyMs: FAST_LATENCY_MS + 500, error: null });
+    const result = await pickAndValidate({ freeProxy: { deadHosts: {} } }, { validate });
+    assert.equal(result.attemptedHosts.length, MAX_WORKING_TO_CONSIDER); // doesn't scan the whole pool
+    assert.ok(result.pick); // still returns the best seen
+  } finally { Math.random = origRandom; }
+});
+
+test('pickAndValidate: collects working-but-slower proxies as warm standby (sorted by latency)', async () => {
+  __resetMemoryCache();
+  const origRandom = Math.random; Math.random = () => 0.999;
+  try {
+    queuePool(poolOf(['1.1.1.1', '2.2.2.2', '3.3.3.3'])); // two slow, then a fast one
+    const lat = { '1.1.1.1': FAST_LATENCY_MS + 1000, '2.2.2.2': FAST_LATENCY_MS + 500, '3.3.3.3': 300 };
+    const validate = async (cand) => ({ ok: true, latencyMs: lat[cand.host], error: null });
+    const result = await pickAndValidate({ freeProxy: { deadHosts: {} } }, { validate });
+    assert.equal(result.pick.host, '3.3.3.3');                              // fast one is the pick
+    assert.deepEqual(result.warm.map((w) => w.host), ['2.2.2.2', '1.1.1.1']); // the slower-but-working ones, fastest first
+    assert.equal(result.warm[0].scheme, 'socks5');                          // warm entries are full picks
+  } finally { Math.random = origRandom; }
+});
+
+test('pickAndValidate: warm is empty when the first probed proxy is already fast', async () => {
+  __resetMemoryCache();
+  const origRandom = Math.random; Math.random = () => 0.999;
+  try {
+    queuePool(poolOf(['1.1.1.1', '2.2.2.2']));
+    const validate = async (cand) => ({ ok: cand.host === '1.1.1.1', latencyMs: 300, error: null });
+    const result = await pickAndValidate({ freeProxy: { deadHosts: {} } }, { validate });
+    assert.equal(result.pick.host, '1.1.1.1');
+    assert.deepEqual(result.warm, []); // first probe was fast → stopped, nothing else collected
+  } finally { Math.random = origRandom; }
+});
+
 import { nextLiveProxy } from '../extension/lib/free-pool.js';
 
 test('nextLiveProxy: skips dead-marked, returns first live or null (own pool)', () => {
@@ -418,6 +490,42 @@ test('nextLiveProxy: skips dead-marked, returns first live or null (own pool)', 
   // all dead → null
   assert.equal(nextLiveProxy(proxies, { 'a:1': now + 1, 'b:2': now + 1, 'c:3': now + 1 }, now), null);
   assert.equal(nextLiveProxy([], {}, now), null);
+});
+
+import { nextWarmProxy, WARM_MAX_AGE_MS } from '../extension/lib/free-pool.js';
+
+test('nextWarmProxy: returns the first fresh, non-dead entry', () => {
+  const now = 100_000;
+  const warm = [
+    { host: 'a', port: 1, validatedAt: now - 1000 },
+    { host: 'b', port: 2, validatedAt: now - 1000 },
+  ];
+  assert.equal(nextWarmProxy(warm, {}, now).host, 'a');
+});
+
+test('nextWarmProxy: skips stale entries (validated too long ago)', () => {
+  const now = 100_000;
+  const warm = [
+    { host: 'a', port: 1, validatedAt: now - WARM_MAX_AGE_MS - 1 }, // stale
+    { host: 'b', port: 2, validatedAt: now - 1000 },                // fresh
+  ];
+  assert.equal(nextWarmProxy(warm, {}, now).host, 'b');
+});
+
+test('nextWarmProxy: skips dead-marked entries', () => {
+  const now = 100_000;
+  const warm = [
+    { host: 'a', port: 1, validatedAt: now - 1000 },
+    { host: 'b', port: 2, validatedAt: now - 1000 },
+  ];
+  assert.equal(nextWarmProxy(warm, { 'a:1': now + 1000 }, now).host, 'b');
+});
+
+test('nextWarmProxy: null when empty, nullish, or none usable', () => {
+  const now = 100_000;
+  assert.equal(nextWarmProxy([], {}, now), null);
+  assert.equal(nextWarmProxy(null, {}, now), null);
+  assert.equal(nextWarmProxy([{ host: 'a', port: 1, validatedAt: now - WARM_MAX_AGE_MS - 1 }], {}, now), null);
 });
 
 import {

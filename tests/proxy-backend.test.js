@@ -72,3 +72,31 @@ test('Firefox validateProxy: probe-override роутит тест-URL через
   assert.equal(routedThroughCandidate, true);
   assert.deepEqual(onRequestHandler({ url: 'https://example.com/' }), { type: 'direct' });
 });
+
+// Chrome env helper: chrome.proxy WITHOUT onRequest → isFirefox=false → chromeApply path.
+function chromeEnv() {
+  let setCount = 0;
+  let clearCount = 0;
+  globalThis.chrome = {
+    proxy: { settings: { set: async () => { setCount++; }, clear: async () => { clearCount++; } } },
+    storage: { local: { get: async () => ({}), set: async () => {} } },
+    webRequest: { onAuthRequired: { addListener: () => {} } },
+  };
+  return { counts: () => ({ setCount, clearCount }) };
+}
+
+test('Chrome applyProxy: re-applying identical state does NOT re-set PAC', async () => {
+  const env = chromeEnv();
+  const m = await import(`../extension/lib/proxy-backend.js?dedupe=${Date.now()}`);
+  await m.applyProxy(ROUTED_STATE);
+  await m.applyProxy(ROUTED_STATE); // identical PAC → must skip the redundant set
+  assert.equal(env.counts().setCount, 1);
+});
+
+test('Chrome applyProxy: changed proxy host DOES re-set PAC', async () => {
+  const env = chromeEnv();
+  const m = await import(`../extension/lib/proxy-backend.js?changed=${Date.now()}`);
+  await m.applyProxy(ROUTED_STATE);
+  await m.applyProxy({ ...ROUTED_STATE, proxy: { ...ROUTED_STATE.proxy, host: '9.9.9.9' } });
+  assert.equal(env.counts().setCount, 2);
+});
