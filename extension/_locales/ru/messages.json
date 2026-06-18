@@ -49,6 +49,46 @@
     "message": "Больше не показывать",
     "description": "Tooltip on the close button of the donation banner."
   },
+  "support_title": {
+    "message": "Поддержать проект",
+    "description": "Title of the support/donation screen."
+  },
+  "support_intro": {
+    "message": "Спасибо, что пользуешься ProxyPilot. Поддержка помогает развивать проект.",
+    "description": "Intro line on the support screen."
+  },
+  "support_method_card_label": {
+    "message": "Банковская карта",
+    "description": "Label of the bank-card support method."
+  },
+  "support_method_card_sub": {
+    "message": "Картой РФ через ЮMoney",
+    "description": "Subtitle clarifying the card method works with Russian cards."
+  },
+  "support_card_btn": {
+    "message": "💳 Перейти к оплате",
+    "description": "Button opening the YooMoney payment page."
+  },
+  "support_method_crypto_label": {
+    "message": "Криптовалюта",
+    "description": "Label of the crypto support method."
+  },
+  "support_crypto_sub": {
+    "message": "USDT или TON · сеть TON",
+    "description": "Subtitle under the crypto method describing accepted assets."
+  },
+  "support_copy": {
+    "message": "Копировать",
+    "description": "Button that copies the TON address to clipboard."
+  },
+  "support_copied": {
+    "message": "Скопировано ✓",
+    "description": "Transient label shown after the address is copied."
+  },
+  "support_crypto_note": {
+    "message": "Через Telegram → @wallet. Принимаю и USDT (TON), и TON.",
+    "description": "Hint explaining how to send the crypto donation."
+  },
   "main_services_label": {
     "message": "Сервисы",
     "description": "Section heading for the list of preset services."
