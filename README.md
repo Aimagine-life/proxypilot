@@ -17,9 +17,9 @@
 
 <br/>
 
-<a href="https://chromewebstore.google.com/detail/proxypilot/gmbihijfnafhpafknokdnkkafbbkbehj"><img src="https://storage.googleapis.com/web-dev-uploads/image/WlD8wC6g8khYWPJUsQceQkhXSlv1/UV4C4ybeBTsZt43U4xis.png" height="58" alt="Установить из Chrome Web Store" /></a>
+<a href="https://chromewebstore.google.com/detail/proxypilot/gmbihijfnafhpafknokdnkkafbbkbehj"><img src="https://img.shields.io/badge/Chrome%20Web%20Store-Установить-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white" height="46" alt="Установить из Chrome Web Store" /></a>
 &nbsp;
-<a href="https://addons.mozilla.org/firefox/addon/proxypilot/"><img src="https://blog.mozilla.org/addons/files/2020/04/get-the-addon-fx-apr-2020.svg" height="58" alt="Установить для Firefox" /></a>
+<a href="https://addons.mozilla.org/firefox/addon/proxypilot/"><img src="https://img.shields.io/badge/Firefox-Установить-FF7139?style=for-the-badge&logo=firefoxbrowser&logoColor=white" height="46" alt="Установить для Firefox" /></a>
 
 <br/><br/>
 
@@ -115,9 +115,9 @@ Everything else goes direct. No account, no tracking.
 
 <br/>
 
-<a href="https://chromewebstore.google.com/detail/proxypilot/gmbihijfnafhpafknokdnkkafbbkbehj"><img src="https://storage.googleapis.com/web-dev-uploads/image/WlD8wC6g8khYWPJUsQceQkhXSlv1/UV4C4ybeBTsZt43U4xis.png" height="58" alt="Available in the Chrome Web Store" /></a>
+<a href="https://chromewebstore.google.com/detail/proxypilot/gmbihijfnafhpafknokdnkkafbbkbehj"><img src="https://img.shields.io/badge/Chrome%20Web%20Store-Install-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white" height="46" alt="Available in the Chrome Web Store" /></a>
 &nbsp;
-<a href="https://addons.mozilla.org/firefox/addon/proxypilot/"><img src="https://blog.mozilla.org/addons/files/2020/04/get-the-addon-fx-apr-2020.svg" height="58" alt="Get the Firefox Add-on" /></a>
+<a href="https://addons.mozilla.org/firefox/addon/proxypilot/"><img src="https://img.shields.io/badge/Firefox-Install-FF7139?style=for-the-badge&logo=firefoxbrowser&logoColor=white" height="46" alt="Get the Firefox Add-on" /></a>
 
 <br/><br/>
 
