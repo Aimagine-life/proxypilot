@@ -99,7 +99,7 @@ function renderThemePills() {
 }
 
 function routeInitialScreen() {
-  const screens = ['main', 'settings', 'firstrun', 'about'];
+  const screens = ['main', 'settings', 'firstrun', 'about', 'support'];
   for (const s of screens) $(`#screen-${s}`).hidden = true;
 
   const hasManual = state.proxySource === 'manual' && state.proxy?.host;
@@ -126,6 +126,7 @@ function showMain({ animate = true } = {}) {
   $('#screen-settings').hidden = true;
   $('#screen-firstrun').hidden = true;
   $('#screen-about').hidden = true;
+  $('#screen-support').hidden = true;
   if (animate) animateScreen($('#screen-main'), 'back');
   renderMain();
 }
@@ -135,6 +136,7 @@ function showSettings() {
   $('#screen-settings').hidden = false;
   $('#screen-firstrun').hidden = true;
   $('#screen-about').hidden = true;
+  $('#screen-support').hidden = true;
   animateScreen($('#screen-settings'), 'forward');
   renderSettings();
 }
@@ -144,9 +146,19 @@ function showAbout() {
   $('#screen-settings').hidden = true;
   $('#screen-firstrun').hidden = true;
   $('#screen-about').hidden = false;
+  $('#screen-support').hidden = true;
   animateScreen($('#screen-about'), 'forward');
   const v = $('#about-version');
   if (v) v.textContent = 'v' + chrome.runtime.getManifest().version;
+}
+
+function showSupport() {
+  $('#screen-main').hidden = true;
+  $('#screen-settings').hidden = true;
+  $('#screen-firstrun').hidden = true;
+  $('#screen-about').hidden = true;
+  $('#screen-support').hidden = false;
+  animateScreen($('#screen-support'), 'forward');
 }
 
 function renderMain() {
@@ -305,12 +317,27 @@ function bindMain() {
     await persist();
     renderMain();
   });
-  // Клик по «Поддержать» = пользователь отреагировал — баннер больше не нужен
-  // (постоянная кнопка в футере остаётся). Переходу по ссылке не мешаем.
+  // Клик по «Поддержать» в баннере: пользователь отреагировал — баннер больше
+  // не нужен (постоянная кнопка в футере остаётся), открываем экран поддержки.
   $('#donate-banner-link').addEventListener('click', () => {
     state.donate.dismissed = true;
     donateBannerDue = false;
     persist();
+    showSupport();
+  });
+  $('#footer-donate').addEventListener('click', () => showSupport());
+  $('#about-donate').addEventListener('click', () => showSupport());
+  $('#back-from-support').addEventListener('click', () => showMain());
+  $('#support-copy').addEventListener('click', async () => {
+    const addr = $('#ton-address').textContent.trim();
+    try {
+      await navigator.clipboard.writeText(addr);
+    } catch {
+      // Буфер недоступен (редко в popup) — молча игнорируем, адрес виден и копируется вручную.
+    }
+    const btn = $('#support-copy');
+    btn.textContent = t('support_copied');
+    setTimeout(() => { btn.textContent = t('support_copy'); }, 1500);
   });
 
   $('#preset-search').addEventListener('input', (e) => {
