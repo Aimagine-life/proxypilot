@@ -25,7 +25,7 @@ Submit a New Add-on (https://addons.mozilla.org/developers/addon/submit/distribu
    - **Description** (подробно): блок «Подробное описание» оттуда же (§3).
    - **Categories:** отметь **Privacy & Security** (можно добавить **Other**). Если форма
      показывает отдельно категории для Firefox и для Android — выбери те же в обеих.
-   - **Tags** (опц.): proxy, vpn, ai, geo, unblock.
+   - **Tags** (опц.): proxy, vpn, ai, geo, routing.
    - **Support email:** твой контактный email.
    - **Homepage / Support site:** `https://wildbots.ru/` (или репозиторий на GitHub).
    - **License:** обязательно. Если код открытый — выбери **MIT** или **MPL-2.0**; если

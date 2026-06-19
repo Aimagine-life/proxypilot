@@ -35,10 +35,10 @@ test('getDefaultState: all presets disabled by default (neutral universal router
   assert.equal(s.presets.chatgpt.enabled, false);
 });
 
-test('getDefaultState: youtube preset includes preview/image CDN domains', () => {
-  const domains = getDefaultState().presets.youtube.domains;
-  assert.ok(domains.includes('ytimg.com'), 'ytimg.com present');
-  assert.ok(domains.includes('ggpht.com'), 'ggpht.com present');
+test('getDefaultState: netflix preset includes preview/image CDN domains', () => {
+  const domains = getDefaultState().presets.netflix.domains;
+  assert.ok(domains.includes('nflximg.net'), 'nflximg.net present');
+  assert.ok(domains.includes('nflxso.net'), 'nflxso.net present');
 });
 
 test('loadState: returns default state when storage empty', async () => {
@@ -242,7 +242,7 @@ test('loadState: backfills every current preset (disabled) when none stored', as
   const s = await loadState();
   const defaults = getDefaultState();
   const keys = Object.keys(defaults.presets);
-  assert.ok(keys.length >= 40); // 39 visible presets + hidden googleAuth
+  assert.ok(keys.length >= 39); // 38 visible presets + hidden googleAuth
   for (const key of keys) {
     assert.ok(s.presets[key], `preset ${key} backfilled`);
     assert.equal(s.presets[key].enabled, false, `preset ${key} backfilled disabled`);
@@ -253,18 +253,18 @@ test('loadState: backfills every current preset (disabled) when none stored', as
 test('loadState: merges newly added preset domains into an existing preset (enabled untouched)', async () => {
   await chrome.storage.local.clear();
   const old = getDefaultState();
-  // Simulate a state saved before ytimg.com/ggpht.com were added, with youtube on.
-  old.presets.youtube = {
+  // Simulate a state saved before nflximg.net/nflxso.net were added, with netflix on.
+  old.presets.netflix = {
     enabled: true,
-    domains: ['youtube.com', 'www.youtube.com', 'youtu.be', 'googlevideo.com'],
+    domains: ['netflix.com', 'www.netflix.com', 'nflxvideo.net', 'nflxext.com'],
   };
   await saveState(old);
   const s = await loadState();
-  assert.ok(s.presets.youtube.domains.includes('ytimg.com'), 'ytimg.com merged in');
-  assert.ok(s.presets.youtube.domains.includes('ggpht.com'), 'ggpht.com merged in');
-  assert.equal(s.presets.youtube.enabled, true, 'enabled flag preserved');
-  const ytd = s.presets.youtube.domains;
-  assert.equal(new Set(ytd).size, ytd.length, 'no duplicate domains after merge');
+  assert.ok(s.presets.netflix.domains.includes('nflximg.net'), 'nflximg.net merged in');
+  assert.ok(s.presets.netflix.domains.includes('nflxso.net'), 'nflxso.net merged in');
+  assert.equal(s.presets.netflix.enabled, true, 'enabled flag preserved');
+  const nfd = s.presets.netflix.domains;
+  assert.equal(new Set(nfd).size, nfd.length, 'no duplicate domains after merge');
 });
 
 test('getDefaultState: includes donate defaults', () => {

@@ -4,7 +4,7 @@
     "description": "Extension name shown in the browser and store. Brand name — keep as-is."
   },
   "app_description": {
-    "message": "Маршрутизация выбранных доменов через свой HTTP/SOCKS прокси или подобранный бесплатный пул прокси.",
+    "message": "Инструмент для переключения прокси и умной маршрутизации — направляйте выбранные домены через свой HTTP/SOCKS прокси или подобранный бесплатный пул.",
     "description": "Extension description shown in Chrome Web Store and Firefox Add-ons."
   },
 
@@ -62,8 +62,8 @@
     "description": "Label of the bank-card support method."
   },
   "support_method_card_sub": {
-    "message": "Картой РФ через ЮMoney",
-    "description": "Subtitle clarifying the card method works with Russian cards."
+    "message": "Картой через ЮMoney",
+    "description": "Subtitle clarifying the card payment method via YooMoney."
   },
   "support_card_btn": {
     "message": "💳 Перейти к оплате",
@@ -138,8 +138,8 @@
     "description": "Status line when no proxy is configured."
   },
   "main_rkn_banner_blocked": {
-    "message": "$1 — в реестре Роскомнадзора. Маршрутизация отключена согласно 149-ФЗ.",
-    "description": "Compliance banner. $1 is a comma-separated list of blocked service names."
+    "message": "$1 — в списке блокировки. Маршрутизация для этих доменов отключена.",
+    "description": "Banner shown when a routed domain is on the blocklist. $1 is a comma-separated list of service names."
   },
   "main_cat_count_enabled": {
     "message": "$1 вкл",
@@ -150,7 +150,7 @@
     "description": "Total number of enabled services. $1 is the count."
   },
   "main_toast_domain_added": {
-    "message": "✓ $1 добавлен — не в реестре РКН",
+    "message": "✓ $1 добавлен",
     "description": "Toast after adding a custom domain. $1 is the domain."
   },
 
@@ -312,12 +312,12 @@
     "description": "Protocol auto-detect failed with no specific reason."
   },
   "settings_test_russian_proxy_title": {
-    "message": "Это российский прокси",
-    "description": "Test result title when the proxy resolves to Russia."
+    "message": "Прокси в вашем регионе",
+    "description": "Test result title when the proxy resolves to the user's own region."
   },
   "settings_test_russian_proxy_sub": {
     "message": "Гео-блок им не обойти — нужен прокси другой страны.",
-    "description": "Test result subtitle for a Russian proxy."
+    "description": "Test result subtitle for a same-region proxy."
   },
   "settings_test_proxy_ok_title": {
     "message": "Прокси работает",
@@ -586,8 +586,8 @@
     "description": "Shown when adding a custom domain that is already present."
   },
   "err_domain_in_rkn_registry": {
-    "message": "⛔ $1 в реестре Роскомнадзора — добавить нельзя (149-ФЗ)",
-    "description": "Shown when a custom domain is RKN-blocked. $1 is the domain."
+    "message": "⛔ $1 в списке блокировки — маршрутизировать нельзя",
+    "description": "Shown when a custom domain is on the blocklist. $1 is the domain."
   },
   "err_no_domain_to_test": {
     "message": "нет домена для проверки",

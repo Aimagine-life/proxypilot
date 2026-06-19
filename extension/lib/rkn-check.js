@@ -10,6 +10,20 @@ const CACHE_KEY = 'rknListCache';
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 30000;
 
+// Always-blocked hosts: services that are restricted within the user's region by
+// the authorities (not geo-blocked by the service from its own side), so this
+// tool must never route them. Kept as a static set because the fetched list is
+// regenerated daily upstream and would not reliably contain these. Suffix match
+// via isHostInSet covers subdomains (e.g. m.youtube.com, www.youtube.com).
+const ALWAYS_BLOCKED = new Set([
+  'youtube.com',
+  'youtu.be',
+  'youtube-nocookie.com',
+  'googlevideo.com',
+  'ytimg.com',
+  'ggpht.com',
+]);
+
 // In-memory cache — persists for service worker lifetime.
 let memorySet = null;
 let memoryFetchedAt = 0;
@@ -77,6 +91,11 @@ function isHostInSet(host, set) {
  * Returns { blocked: boolean, reason: string }.
  */
 export async function checkDomain(domain) {
+  // Static always-blocked set takes precedence — resolved without any network or
+  // storage access, so these hosts are rejected even if the fetched list fails.
+  if (isHostInSet(domain, ALWAYS_BLOCKED)) {
+    return { blocked: true, reason: 'restricted' };
+  }
   try {
     const set = await loadRknList();
     const blocked = isHostInSet(domain, set);
@@ -107,7 +126,8 @@ export async function checkAllPresets(presets) {
   for (const [_key, preset] of Object.entries(presets)) {
     for (const domain of preset.domains || []) {
       if (results[domain]) continue;
-      results[domain] = isHostInSet(domain, set)
+      const blocked = isHostInSet(domain, ALWAYS_BLOCKED) || isHostInSet(domain, set);
+      results[domain] = blocked
         ? { blocked: true, reason: 'in RKN registry' }
         : { blocked: false, reason: 'not in registry' };
     }

@@ -17,8 +17,8 @@ never leaves the device:
 
 - Settings: chosen services/domains to route, the selected proxy source, your proxy
   address and credentials (if you entered them), and the theme.
-- Technical cache: the public free-proxy lists and the Roskomnadzor registry of blocked
-  domains — so the extension works without constant downloads.
+- Technical cache: the public free-proxy lists and a domain blocklist — so the extension
+  works without constant downloads.
 
 Your proxy credentials are used solely to connect to that proxy and are stored locally
 only.
@@ -28,7 +28,7 @@ only.
 The extension makes external requests only for its own operation:
 
 - Downloading public free-proxy lists (GitHub/CDN) — configuration data, not user data.
-- Downloading the registry of blocked domains (for Russian-law 149-FZ compliance).
+- Downloading a domain blocklist — used to mark domains that must not be routed.
 - Small test requests to check whether a proxy is alive.
 
 These requests do not contain your personal information.

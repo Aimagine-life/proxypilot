@@ -4,7 +4,7 @@
 
 # ProxyPilot
 
-### Открывай AI-сервисы и заблокированные сайты — без VPN
+### Инструмент для переключения прокси и умной маршрутизации
 
 Маршрутизация **только выбранных доменов** через твой прокси или подобранный бесплатный.
 Остальной трафик идёт напрямую. Без аккаунта, без слежки.
@@ -23,7 +23,7 @@
 
 <br/><br/>
 
-<img src="docs/chrome-web-store/screenshots/promo-marquee-1400x560.jpg" alt="ProxyPilot — открывай AI-сервисы без VPN" width="100%" />
+<img src="docs/chrome-web-store/screenshots/promo-marquee-1400x560.jpg" alt="ProxyPilot — переключение прокси и умная маршрутизация" width="100%" />
 
 </div>
 
@@ -44,7 +44,7 @@
 ## Что умеет
 
 - 🎯 **Точечная маршрутизация** — через прокси идут только выбранные сервисы/домены, остальной трафик напрямую. Это не «VPN на весь браузер».
-- 🤖 **40+ готовых сервисов** в один клик — Gemini, ChatGPT, Claude, Perplexity, YouTube, Spotify и другие.
+- 🤖 **35+ готовых сервисов** в один клик — Gemini, ChatGPT, Claude, Perplexity, Spotify и другие.
 - 🔌 **Три источника прокси** — свой прокси, свой пул с авто-ротацией, или бесплатный подобранный пул.
 - ⚡ **Умный бесплатный пул** — сам находит быстрый рабочий прокси, отсеивает медленные, держит запас для мгновенной замены.
 - 🔒 **Без слежки и аккаунта** — ничего не собирает, работает локально.
@@ -79,16 +79,16 @@
 ## Поддерживаемые сервисы
 
 **AI:** Gemini, AI Studio, NotebookLM, Google Labs, ChatGPT, Claude, Perplexity, Grok, MS Copilot, Poe, JetBrains AI, GitHub Copilot, Suno, Sora, ElevenLabs
-**Видео:** YouTube, Netflix, Disney+, Max, Prime Video, Apple TV+, Paramount+, Peacock, Hulu, Crunchyroll, MUBI
+**Видео:** Netflix, Disney+, Max, Prime Video, Apple TV+, Paramount+, Peacock, Hulu, Crunchyroll, MUBI
 **Музыка:** Spotify, Deezer, Tidal · **Прочее:** Figma, Notion, Slack, Shopify и др.
 
 Можно добавлять свои домены. Google Auth (`accounts.google.com`) подключается автоматически при включении любого Google-AI сервиса.
 
-> **⚠️ Часть сервисов блокирует по аккаунту/карте, не только по IP.** Прокси откроет сайт, но для полного доступа нужны не-РФ аккаунт и/или карта. Стриминг (Netflix, Disney+ и т.п.) детектит датацентровые прокси — надёжно работает только через резидентный/мобильный прокси.
+> **⚠️ Часть сервисов ограничивает по аккаунту/карте, не только по IP.** Прокси откроет сайт, но для полного доступа нужны зарубежный аккаунт и/или карта. Стриминг (Netflix, Disney+ и т.п.) детектит датацентровые прокси — надёжно работает только через резидентный/мобильный прокси.
 
-## Соответствие закону (РФ)
+## Список блокировки
 
-Расширение проверяет маршрутизируемые домены по реестру Роскомнадзора. Если домен в реестре РКН — маршрутизация автоматически отключается (149-ФЗ). Проверка при запуске и каждые 24 часа.
+Расширение проверяет маршрутизируемые домены по списку блокировки. Если домен в списке — маршрутизация для него автоматически отключается. Проверка при запуске и каждые 24 часа.
 
 ## Технологии
 
@@ -105,7 +105,7 @@ Manifest V3, чистый JS, без зависимостей и сборки. �
 
 # ProxyPilot
 
-### Reach AI services and geo-blocked sites — without a VPN
+### Proxy Toggle & Smart Routing Tool
 
 Routes **only the domains you pick** through your own proxy — or a curated free pool.
 Everything else goes direct. No account, no tracking.
@@ -124,7 +124,7 @@ Everything else goes direct. No account, no tracking.
 
 <br/><br/>
 
-<img src="docs/chrome-web-store/screenshots/en/promo-marquee.jpg" alt="ProxyPilot — reach blocked AI, video & more" width="100%" />
+<img src="docs/chrome-web-store/screenshots/en/promo-marquee.jpg" alt="ProxyPilot — proxy toggle & smart routing" width="100%" />
 
 </div>
 
@@ -145,7 +145,7 @@ Everything else goes direct. No account, no tracking.
 ## Features
 
 - 🎯 **Per-domain routing** — only the services/domains you pick go through the proxy, the rest stays direct. Not a "whole-browser VPN".
-- 🤖 **40+ ready services** in one click — Gemini, ChatGPT, Claude, Perplexity, YouTube, Spotify and more.
+- 🤖 **35+ ready services** in one click — Gemini, ChatGPT, Claude, Perplexity, Spotify and more.
 - 🔌 **Three proxy sources** — your own proxy, your own pool with auto-rotation, or a curated free pool.
 - ⚡ **Smart free pool** — finds a fast working proxy, skips slow ones, keeps a warm standby for instant switching.
 - 🔒 **No tracking, no account** — runs locally, collects nothing.
@@ -178,16 +178,16 @@ Three sources under **Settings → Proxy source**:
 ## Supported services
 
 **AI:** Gemini, AI Studio, NotebookLM, Google Labs, ChatGPT, Claude, Perplexity, Grok, MS Copilot, Poe, JetBrains AI, GitHub Copilot, Suno, Sora, ElevenLabs
-**Video:** YouTube, Netflix, Disney+, Max, Prime Video, Apple TV+, Paramount+, Peacock, Hulu, Crunchyroll, MUBI
+**Video:** Netflix, Disney+, Max, Prime Video, Apple TV+, Paramount+, Peacock, Hulu, Crunchyroll, MUBI
 **Music:** Spotify, Deezer, Tidal · **More:** Figma, Notion, Slack, Shopify, etc.
 
 Custom domains can be added too. Google Auth (`accounts.google.com`) is auto-routed when any Google-AI service is on.
 
-> **⚠️ Some services gate by account/card, not just IP.** The proxy opens the site, but full access also needs a non-RU account and/or card. Streaming (Netflix, Disney+, etc.) detects datacenter proxies — reliable only via a residential/mobile proxy.
+> **⚠️ Some services gate by account/card, not just IP.** The proxy opens the site, but full access also needs a foreign account and/or card. Streaming (Netflix, Disney+, etc.) detects datacenter proxies — reliable only via a residential/mobile proxy.
 
-## Legal compliance (Russia)
+## Blocklist
 
-The extension checks routed domains against the Roskomnadzor (RKN) registry. If a domain is listed, routing is automatically disabled to comply with Russian law (149-FZ). Checks run on startup and every 24 hours.
+The extension checks routed domains against its blocklist. If a domain is on the list, routing for it is disabled automatically. Checks run on startup and every 24 hours.
 
 ## Tech
 
