@@ -4,10 +4,11 @@
 
 # ProxyPilot
 
-### Инструмент для переключения прокси и умной маршрутизации
+### Proxy Toggle & Smart Routing Tool
 
-Маршрутизация **только выбранных доменов** через твой прокси или подобранный бесплатный.
-Остальной трафик идёт напрямую. Без аккаунта, без слежки.
+Маршрутизирует **только выбранные домены** через твой прокси или подобранный
+бесплатный пул — остальной трафик идёт напрямую. Точечно, а не «VPN на весь
+браузер». Без аккаунта, без слежки, всё локально.
 
 [![Chrome Web Store](https://img.shields.io/chrome-web-store/v/gmbihijfnafhpafknokdnkkafbbkbehj?logo=googlechrome&logoColor=white&label=Chrome%20Web%20Store&color=4285F4)](https://chromewebstore.google.com/detail/proxypilot/gmbihijfnafhpafknokdnkkafbbkbehj)
 [![Firefox Add-ons](https://img.shields.io/amo/v/proxypilot?logo=firefoxbrowser&logoColor=white&label=Firefox%20Add-ons&color=FF7139)](https://addons.mozilla.org/firefox/addon/proxypilot/)
@@ -43,12 +44,13 @@
 
 ## Что умеет
 
-- 🎯 **Точечная маршрутизация** — через прокси идут только выбранные сервисы/домены, остальной трафик напрямую. Это не «VPN на весь браузер».
-- 🤖 **35+ готовых сервисов** в один клик — Gemini, ChatGPT, Claude, Perplexity, Spotify и другие.
-- 🔌 **Три источника прокси** — свой прокси, свой пул с авто-ротацией, или бесплатный подобранный пул.
+- 🎯 **Точечная маршрутизация** — через прокси идут только выбранные домены, остальной трафик напрямую. Это не «VPN на весь браузер».
+- 🤖 **35+ готовых сервисов** в один клик — включаешь нужные пресеты, их домены сразу маршрутизируются.
+- 🔌 **Три источника прокси** — свой прокси, свой пул с авто-ротацией или бесплатный подобранный пул.
 - ⚡ **Умный бесплатный пул** — сам находит быстрый рабочий прокси, отсеивает медленные, держит запас для мгновенной замены.
-- 🔒 **Без слежки и аккаунта** — ничего не собирает, работает локально.
-- 🧩 **HTTP / HTTPS / SOCKS5 / SOCKS4** с автоопределением и авторизацией.
+- 🔒 **Без слежки и аккаунта** — ничего не собирает, всё хранится и работает локально.
+- 🧩 **HTTP / HTTPS / SOCKS5 / SOCKS4** с автоопределением протокола и авторизацией.
+- 🛡 **Список блокировки** — домены из списка блокировки расширение не маршрутизирует; проверка при запуске и каждые 24 часа.
 
 ## Как выглядит
 
@@ -74,21 +76,19 @@
 - **Свой пул** — список своих прокси, по строке. При отказе текущего плагин сам берёт следующий.
 - **Бесплатный пул** — расширение тянет несколько публичных списков, фильтрует и проверяет кандидатов, находит живой и быстрый. Кнопка **↻ Сменить** берёт другой.
 
-> ⚠️ **Бесплатные прокси публичные и не доверенные.** Не входи в Google и важные аккаунты, пока трафик идёт через них — вход почти наверняка пометят как подозрительный. В popup есть явный жёлтый баннер, когда бесплатный пул активен с AI-сервисом.
+> ⚠️ **Бесплатные прокси публичные и не доверенные.** Не входи в важные аккаунты, пока трафик идёт через них — вход почти наверняка пометят как подозрительный. Для надёжности используй свой прокси. В popup есть явный жёлтый баннер, когда бесплатный пул активен.
 
 ## Поддерживаемые сервисы
 
-**AI:** Gemini, AI Studio, NotebookLM, Google Labs, ChatGPT, Claude, Perplexity, Grok, MS Copilot, Poe, JetBrains AI, GitHub Copilot, Suno, Sora, ElevenLabs
-**Видео:** Netflix, Disney+, Max, Prime Video, Apple TV+, Paramount+, Peacock, Hulu, Crunchyroll, MUBI
-**Музыка:** Spotify, Deezer, Tidal · **Прочее:** Figma, Notion, Slack, Shopify и др.
+Пресеты сгруппированы по категориям — AI-ассистенты и инструменты, видео, музыка, дизайн, веб и работа. Включаешь нужные одним кликом, домены пресета сразу попадают в маршрутизацию.
 
-Можно добавлять свои домены. Google Auth (`accounts.google.com`) подключается автоматически при включении любого Google-AI сервиса.
+Можно добавлять и **свои домены**. Google Auth (`accounts.google.com`) подключается автоматически при включении любого Google-AI сервиса.
 
-> **⚠️ Часть сервисов ограничивает по аккаунту/карте, не только по IP.** Прокси откроет сайт, но для полного доступа нужны зарубежный аккаунт и/или карта. Стриминг (Netflix, Disney+ и т.п.) детектит датацентровые прокси — надёжно работает только через резидентный/мобильный прокси.
+> **⚠️ Часть сервисов ограничивает доступ по аккаунту/карте, не только по IP.** Прокси откроет сайт, но для полного доступа могут понадобиться зарубежный аккаунт и/или карта. Стриминговые сервисы детектят датацентровые прокси — надёжно работают только через резидентный/мобильный прокси.
 
 ## Список блокировки
 
-Расширение проверяет маршрутизируемые домены по списку блокировки. Если домен в списке — маршрутизация для него автоматически отключается. Проверка при запуске и каждые 24 часа.
+Расширение проверяет маршрутизируемые домены по списку блокировки. Если домен в списке — маршрутизация для него автоматически отключается. Проверка выполняется при запуске и каждые 24 часа.
 
 ## Технологии
 
@@ -107,8 +107,9 @@ Manifest V3, чистый JS, без зависимостей и сборки. �
 
 ### Proxy Toggle & Smart Routing Tool
 
-Routes **only the domains you pick** through your own proxy — or a curated free pool.
-Everything else goes direct. No account, no tracking.
+Routes **only the domains you pick** through your own proxy — or a curated free
+pool. Everything else goes direct. Per-domain, not a "whole-browser VPN". No
+account, no tracking, all local.
 
 [![Chrome Web Store](https://img.shields.io/chrome-web-store/v/gmbihijfnafhpafknokdnkkafbbkbehj?logo=googlechrome&logoColor=white&label=Chrome%20Web%20Store&color=4285F4)](https://chromewebstore.google.com/detail/proxypilot/gmbihijfnafhpafknokdnkkafbbkbehj)
 [![Firefox Add-ons](https://img.shields.io/amo/v/proxypilot?logo=firefoxbrowser&logoColor=white&label=Firefox%20Add-ons&color=FF7139)](https://addons.mozilla.org/firefox/addon/proxypilot/)
@@ -144,12 +145,13 @@ Everything else goes direct. No account, no tracking.
 
 ## Features
 
-- 🎯 **Per-domain routing** — only the services/domains you pick go through the proxy, the rest stays direct. Not a "whole-browser VPN".
-- 🤖 **35+ ready services** in one click — Gemini, ChatGPT, Claude, Perplexity, Spotify and more.
+- 🎯 **Per-domain routing** — only the domains you pick go through the proxy, the rest stays direct. Not a "whole-browser VPN".
+- 🤖 **35+ ready services** in one click — enable the presets you need and their domains route immediately.
 - 🔌 **Three proxy sources** — your own proxy, your own pool with auto-rotation, or a curated free pool.
 - ⚡ **Smart free pool** — finds a fast working proxy, skips slow ones, keeps a warm standby for instant switching.
 - 🔒 **No tracking, no account** — runs locally, collects nothing.
 - 🧩 **HTTP / HTTPS / SOCKS5 / SOCKS4** with auto-detection and auth.
+- 🛡 **Blocklist** — domains on the blocklist are never routed; checked on startup and every 24 hours.
 
 ## Screenshots
 
@@ -173,17 +175,15 @@ Three sources under **Settings → Proxy source**:
 - **Own pool** — your own list, one per line. If the current one fails, the extension picks the next.
 - **Free pool** — fetches several public lists, filters and validates candidates, finds a fast live one. **↻ Rotate** grabs another.
 
-> ⚠️ **Free proxies are public and untrusted.** Don't sign into Google or important accounts while routed through them — the sign-in will likely be flagged. The popup shows a clear warning banner when the free pool is active with an AI service.
+> ⚠️ **Free proxies are public and untrusted.** Don't sign into important accounts while routed through them — the sign-in will likely be flagged. Use your own proxy for reliability. The popup shows a clear warning banner when the free pool is active.
 
 ## Supported services
 
-**AI:** Gemini, AI Studio, NotebookLM, Google Labs, ChatGPT, Claude, Perplexity, Grok, MS Copilot, Poe, JetBrains AI, GitHub Copilot, Suno, Sora, ElevenLabs
-**Video:** Netflix, Disney+, Max, Prime Video, Apple TV+, Paramount+, Peacock, Hulu, Crunchyroll, MUBI
-**Music:** Spotify, Deezer, Tidal · **More:** Figma, Notion, Slack, Shopify, etc.
+Presets are grouped by category — AI assistants and tools, video, music, design, web and work. Toggle the ones you need and their domains route instantly.
 
-Custom domains can be added too. Google Auth (`accounts.google.com`) is auto-routed when any Google-AI service is on.
+You can also add **custom domains**. Google Auth (`accounts.google.com`) is auto-routed when any Google-AI service is on.
 
-> **⚠️ Some services gate by account/card, not just IP.** The proxy opens the site, but full access also needs a foreign account and/or card. Streaming (Netflix, Disney+, etc.) detects datacenter proxies — reliable only via a residential/mobile proxy.
+> **⚠️ Some services gate by account/card, not just IP.** The proxy opens the site, but full access may also need a foreign account and/or card. Streaming services detect datacenter proxies — reliable only via a residential/mobile proxy.
 
 ## Blocklist
 
