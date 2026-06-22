@@ -113,6 +113,13 @@ export const PRESET_DEFINITIONS = {
   },
 
   // ─────────────────────────── Видео ───────────────────────────
+  youtube: {
+    label: 'YouTube', icon: '▶', logo: 'youtube.svg', category: 'video',
+    // ytimg.com / ggpht.com host video thumbnails and channel avatars — without
+    // them previews and images fail to load through the proxy.
+    domains: ['youtube.com', 'www.youtube.com', 'youtu.be', 'googlevideo.com', 'ytimg.com', 'ggpht.com'],
+    couplesGoogleAuth: false,
+  },
   netflix: {
     label: 'Netflix', icon: '🅽', logo: 'netflix.svg', category: 'video',
     domains: ['netflix.com', 'www.netflix.com', 'nflxvideo.net', 'nflxext.com', 'nflximg.net', 'nflxso.net'],
@@ -259,7 +266,7 @@ export const PRESET_ORDER = [
   // aiTools
   'jetbrainsAi', 'githubCopilot', 'suno', 'sora', 'elevenlabs',
   // video
-  'netflix', 'disneyPlus', 'max', 'primeVideo', 'appleTv',
+  'youtube', 'netflix', 'disneyPlus', 'max', 'primeVideo', 'appleTv',
   'paramountPlus', 'peacock', 'hulu', 'crunchyroll', 'mubi',
   // music
   'spotify', 'deezer', 'tidal',
