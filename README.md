@@ -24,6 +24,10 @@
 
 <br/><br/>
 
+<a href="https://www.producthunt.com/products/proxypilot?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-proxypilot" target="_blank" rel="noopener noreferrer"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1178035&theme=light&t=1782129789279" alt="ProxyPilot — Use any AI from anywhere, no VPN, no signup | Product Hunt" width="250" height="54" /></a>
+
+<br/><br/>
+
 <img src="docs/chrome-web-store/screenshots/promo-marquee-1400x560.jpg" alt="ProxyPilot — переключение прокси и умная маршрутизация" width="100%" />
 
 </div>
@@ -122,6 +126,10 @@ account, no tracking, all local.
 <a href="https://chromewebstore.google.com/detail/proxypilot/gmbihijfnafhpafknokdnkkafbbkbehj"><img src="https://img.shields.io/badge/Chrome%20Web%20Store-Install-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white" height="46" alt="Available in the Chrome Web Store" /></a>
 &nbsp;
 <a href="https://addons.mozilla.org/firefox/addon/proxypilot/"><img src="https://img.shields.io/badge/Firefox-Install-FF7139?style=for-the-badge&logo=firefoxbrowser&logoColor=white" height="46" alt="Get the Firefox Add-on" /></a>
+
+<br/><br/>
+
+<a href="https://www.producthunt.com/products/proxypilot?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-proxypilot" target="_blank" rel="noopener noreferrer"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1178035&theme=light&t=1782129789279" alt="ProxyPilot — Use any AI from anywhere, no VPN, no signup | Product Hunt" width="250" height="54" /></a>
 
 <br/><br/>
 
