@@ -1,5 +1,16 @@
 # Публикация в Opera Add-ons
 
+## 📍 Куда заливать (коротко)
+
+1. **Дашборд:** https://addons.opera.com/developer/ → войти → форма загрузки: https://addons.opera.com/developer/upload/
+2. **Файл:** `dist/chrome/proxypilot-<ver>.zip` — **chrome-вариант**, не firefox. Нет локально → `sh scripts/build.sh` или скачать из [GitHub Release](https://github.com/Aimagine-life/proxypilot/releases).
+3. **Готовые ассеты в репо:** промо `docs/opera-addons/promo-300x188-en.jpg`, иконка `docs/opera-addons/icon-64.png`. Тексты (summary/description ru+en, privacy policy, текст модераторам) — в этом файле ниже / в истории чата.
+4. **Отправка на ревью:** заполнить вкладку **General** + **Translations** (Description обязателен на ru и en) → вкладка **General** → зелёная **Submit changes**.
+
+⚠️ **Только вручную.** Официального API/CLI/GitHub Action у Opera нет (проверено 2026 — есть лишь хрупкие Puppeteer-скраперы, не используем). Chrome и Firefox публикуются автоматом по git-тегу, **Opera — каждый релиз руками**.
+
+---
+
 Opera построена на Chromium и принимает тот же пакет Manifest V3, что и Chrome —
 **отдельная сборка не нужна**, грузится `dist/chrome/proxypilot-<ver>.zip`.
 
