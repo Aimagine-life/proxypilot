@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProxyPilot — Use any AI from anywhere, no VPN, no signup</title>
+<meta name="description" content="A browser extension that routes only the services you pick through a proxy — Gemini, Claude, ChatGPT and 40+ more. Not a whole-browser VPN. No account, no tracking.">
+<link rel="icon" type="image/png" href="chrome-web-store/icon/proxypilot-128.png">
+
+<!-- Open Graph / social preview -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="ProxyPilot — Use any AI from anywhere, no VPN, no signup">
+<meta property="og:description" content="Routes only the services you pick through a proxy. Reach Gemini, Claude, ChatGPT and 40+ more — not a whole-browser VPN. No account, no tracking.">
+<meta property="og:image" content="chrome-web-store/screenshots/en/promo-marquee.jpg">
+<meta property="og:url" content="https://aimagine-life.github.io/proxypilot/">
+<meta name="twitter:card" content="summary_large_image">
+
+<style>
+  :root{
+    --violet:#7c6cf2; --indigo:#6366f1; --cyan:#22b8d4; --teal:#5eead4;
+    --grad:linear-gradient(118deg,#7c6cf2 0%,#6366f1 38%,#22b8d4 100%);
+    --ink:#0f172a; --body:#334155; --muted:#64748b;
+    --bg:#ffffff; --bg-soft:#f6f7fb; --card:#ffffff; --line:#e7e9f2;
+    --radius:16px; --maxw:1080px;
+    --shadow:0 12px 40px rgba(15,23,42,.10);
+    --shadow-lg:0 32px 90px rgba(15,23,42,.22);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ink:#f1f5f9; --body:#cbd5e1; --muted:#94a3b8;
+      --bg:#0b1020; --bg-soft:#0e1426; --card:#141b30; --line:#232c45;
+      --shadow:0 12px 40px rgba(0,0,0,.4);
+    }
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    color:var(--body); background:var(--bg); line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  h1,h2,h3{color:var(--ink);line-height:1.15;letter-spacing:-.01em}
+  .eyebrow{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--indigo)}
+  @media (prefers-color-scheme:dark){.eyebrow{color:var(--teal)}}
+
+  /* ---- top nav ---- */
+  header{position:sticky;top:0;z-index:20;backdrop-filter:saturate(140%) blur(10px);
+    background:color-mix(in srgb,var(--bg) 82%,transparent);border-bottom:1px solid var(--line)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:64px}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:800;color:var(--ink);font-size:19px}
+  .brand img{width:34px;height:34px;border-radius:9px;box-shadow:0 3px 10px rgba(15,23,42,.18)}
+  .nav-links{display:flex;align-items:center;gap:26px;font-size:15px;font-weight:600;color:var(--muted)}
+  .nav-links a:hover{color:var(--ink)}
+  .nav-cta{padding:9px 18px;border-radius:999px;background:var(--indigo);color:#fff!important}
+  .nav-cta:hover{background:#4f52e6}
+  @media (max-width:720px){.nav-links a:not(.nav-cta){display:none}}
+
+  /* ---- hero ---- */
+  .hero{position:relative;overflow:hidden;background:var(--grad);color:#fff;
+    padding:84px 0 96px;text-align:center}
+  .hero .glow1,.hero .glow2{position:absolute;border-radius:50%;pointer-events:none}
+  .hero .glow1{width:760px;height:760px;top:-340px;left:-220px;
+    background:radial-gradient(circle,rgba(255,255,255,.16),transparent 70%)}
+  .hero .glow2{width:620px;height:620px;bottom:-300px;right:-160px;
+    background:radial-gradient(circle,rgba(94,234,212,.28),transparent 70%)}
+  .hero .wrap{position:relative;z-index:1}
+  .hero h1{color:#fff;font-size:clamp(34px,5.4vw,60px);font-weight:850;margin:0 auto 18px;max-width:14ch;
+    text-shadow:0 2px 22px rgba(15,23,42,.22)}
+  .hero p.lead{font-size:clamp(17px,2.1vw,21px);color:rgba(255,255,255,.92);max-width:620px;margin:0 auto 32px}
+  .hero-badge{display:inline-block;font-size:13px;font-weight:700;letter-spacing:.04em;
+    padding:7px 16px;border-radius:999px;margin-bottom:24px;
+    background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.32)}
+  .cta-row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:18px}
+  .btn{display:inline-flex;align-items:center;gap:10px;padding:14px 26px;border-radius:12px;
+    font-weight:700;font-size:16px;transition:transform .12s ease,box-shadow .12s ease}
+  .btn svg{width:20px;height:20px;flex-shrink:0}
+  .btn-light{background:#fff;color:var(--indigo)}
+  .btn-ghost{background:rgba(255,255,255,.13);color:#fff;border:1px solid rgba(255,255,255,.4)}
+  .btn:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(15,23,42,.25)}
+  .hero-note{font-size:13.5px;color:rgba(255,255,255,.78)}
+  .hero-shot{margin:46px auto 0;max-width:880px;border-radius:18px;overflow:hidden;
+    box-shadow:var(--shadow-lg);border:1px solid rgba(255,255,255,.22);background:#fff}
+  .hero-shot img{display:block;width:100%;height:auto}
+  .chips{display:flex;gap:9px;flex-wrap:wrap;justify-content:center;margin-top:30px;max-width:720px;margin-left:auto;margin-right:auto}
+  .chip{padding:7px 15px;border-radius:999px;font-size:14px;font-weight:600;
+    background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3)}
+
+  /* ---- sections ---- */
+  section{padding:84px 0}
+  .section-head{text-align:center;max-width:640px;margin:0 auto 52px}
+  .section-head h2{font-size:clamp(26px,3.6vw,38px);font-weight:800;margin:12px 0 14px}
+  .section-head p{font-size:17px;color:var(--muted)}
+
+  /* not-a-vpn trio */
+  .trio{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  .trio .cell{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:30px 26px;box-shadow:var(--shadow)}
+  .trio .ic{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;margin-bottom:16px;
+    background:linear-gradient(135deg,var(--violet),var(--cyan));color:#fff}
+  .trio .ic svg{width:24px;height:24px}
+  .trio h3{font-size:19px;margin-bottom:8px}
+  .trio p{font-size:15px;color:var(--muted)}
+  @media (max-width:760px){.trio{grid-template-columns:1fr}}
+
+  /* features grid */
+  .features{background:var(--bg-soft)}
+  .grid6{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .feat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:26px;box-shadow:var(--shadow)}
+  .feat .emoji{font-size:26px;margin-bottom:12px;display:block}
+  .feat h3{font-size:17px;margin-bottom:7px}
+  .feat p{font-size:14.5px;color:var(--muted)}
+  @media (max-width:860px){.grid6{grid-template-columns:1fr 1fr}}
+  @media (max-width:560px){.grid6{grid-template-columns:1fr}}
+
+  /* screenshots */
+  .shots{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+  .shots figure{border-radius:var(--radius);overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow);background:var(--card)}
+  .shots img{display:block;width:100%;height:auto}
+  @media (max-width:760px){.shots{grid-template-columns:1fr}}
+
+  /* services list */
+  .svc{max-width:820px;margin:0 auto;text-align:center}
+  .svc .row{margin-bottom:20px}
+  .svc .row b{display:block;color:var(--ink);font-size:14px;letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px}
+  .svc .tags{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+  .svc .tag{padding:6px 13px;border-radius:8px;font-size:14px;font-weight:600;
+    background:var(--bg-soft);border:1px solid var(--line);color:var(--body)}
+
+  /* honest note */
+  .note{background:linear-gradient(135deg,#fff7ed,#fef3c7);border:1px solid #fcd34d;
+    border-radius:var(--radius);padding:30px 32px;max-width:760px;margin:0 auto;color:#7c2d12}
+  @media (prefers-color-scheme:dark){.note{background:linear-gradient(135deg,#2a210e,#332410);border-color:#a16207;color:#fde68a}}
+  .note h3{color:inherit;font-size:19px;margin-bottom:10px;display:flex;align-items:center;gap:10px}
+  .note p{font-size:15px;margin-bottom:8px}
+  .note p:last-child{margin-bottom:0}
+
+  /* faq */
+  .faq{max-width:760px;margin:0 auto}
+  details{border:1px solid var(--line);border-radius:12px;background:var(--card);margin-bottom:12px;overflow:hidden}
+  summary{cursor:pointer;padding:20px 24px;font-weight:700;color:var(--ink);font-size:16.5px;list-style:none;
+    display:flex;justify-content:space-between;align-items:center;gap:16px}
+  summary::-webkit-details-marker{display:none}
+  summary::after{content:"+";font-size:22px;color:var(--muted);font-weight:400;transition:transform .2s}
+  details[open] summary::after{transform:rotate(45deg)}
+  details .ans{padding:0 24px 22px;font-size:15px;color:var(--muted)}
+
+  /* final cta */
+  .final{background:var(--grad);color:#fff;text-align:center;border-radius:24px;
+    padding:64px 28px;margin:0 24px;max-width:calc(var(--maxw) - 0px);}
+  .final-wrap{max-width:var(--maxw);margin:84px auto}
+  .final h2{color:#fff;font-size:clamp(26px,3.6vw,40px);margin-bottom:16px}
+  .final p{font-size:18px;color:rgba(255,255,255,.9);margin-bottom:28px}
+
+  /* footer */
+  footer{border-top:1px solid var(--line);padding:40px 0;color:var(--muted);font-size:14px}
+  .foot{display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap}
+  .foot a{font-weight:600}.foot a:hover{color:var(--ink)}
+  .foot .links{display:flex;gap:22px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="#top"><img src="chrome-web-store/icon/proxypilot-128.png" alt="ProxyPilot logo">ProxyPilot</a>
+    <nav class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#faq">FAQ</a>
+      <a class="nav-cta" href="https://chromewebstore.google.com/detail/proxypilot/gmbihijfnafhpafknokdnkkafbbkbehj">Add to browser</a>
+    </nav>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero" id="top">
+  <div class="glow1"></div><div class="glow2"></div>
+  <div class="wrap">
+    <span class="hero-badge">Browser extension · Chrome · Edge · Brave · Opera · Firefox</span>
+    <h1>Use any AI from anywhere</h1>
+    <p class="lead">ProxyPilot routes <b>only the services you pick</b> through a proxy — Gemini, Claude, ChatGPT and 40+ more. Everything else stays direct. No VPN, no signup.</p>
+    <div class="cta-row">
+      <a class="btn btn-light" href="https://chromewebstore.google.com/detail/proxypilot/gmbihijfnafhpafknokdnkkafbbkbehj">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 1 8.66 5H12a5 5 0 0 0-4.9 6.07L3.34 6.6A10 10 0 0 1 12 2Zm9.54 5.5A10 10 0 0 1 12 22l4.34-7.5A5 5 0 0 0 12 7h9.54ZM2.46 7.93 6.8 15.4A5 5 0 0 0 12 17a5 5 0 0 0 .2 0l-4.3 4.86A10 10 0 0 1 2.46 7.93ZM12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6Z"/></svg>
+        Chrome Web Store
+      </a>
+      <a class="btn btn-ghost" href="https://addons.mozilla.org/firefox/addon/proxypilot/">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm0 16a6 6 0 1 1 6-6 6 6 0 0 1-6 6Z"/></svg>
+        Firefox Add-ons
+      </a>
+    </div>
+    <p class="hero-note">Free &amp; open source · MIT · No account · No tracking</p>
+
+    <div class="hero-shot">
+      <img src="chrome-web-store/screenshots/en/01-main.png" alt="ProxyPilot popup — main screen" loading="lazy">
+    </div>
+
+    <div class="chips">
+      <span class="chip">Gemini</span><span class="chip">Claude</span><span class="chip">ChatGPT</span>
+      <span class="chip">Perplexity</span><span class="chip">Grok</span><span class="chip">AI Studio</span>
+      <span class="chip">Suno</span><span class="chip">+ 40 services</span>
+    </div>
+  </div>
+</section>
+
+<!-- HOW / NOT A VPN -->
+<section id="how">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Not a whole-browser VPN</span>
+      <h2>Route what you want, leave the rest alone</h2>
+      <p>A VPN sends <em>everything</em> through one tunnel — slower, and your bank suddenly thinks you're in another country. ProxyPilot only touches the domains you enable.</p>
+    </div>
+    <div class="trio">
+      <div class="cell">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h6m6 0h6"/><circle cx="12" cy="12" r="3"/></svg></div>
+        <h3>Per-domain routing</h3>
+        <p>Only the services you switch on go through the proxy. Implemented via a PAC script (Chromium) or <code>proxy.onRequest</code> (Firefox).</p>
+      </div>
+      <div class="cell">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></div>
+        <h3>Everything else stays direct</h3>
+        <p>Your bank, your email, your local sites — untouched and full speed. Nothing else is tunneled or slowed down.</p>
+      </div>
+      <div class="cell">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/></svg></div>
+        <h3>No account, no tracking</h3>
+        <p>Runs entirely locally. No signup, no telemetry, no analytics. Settings live in your browser and never leave your device.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Features</span>
+      <h2>Built to just work</h2>
+      <p>Bring your own proxy, your own pool, or let ProxyPilot find a working free one for you.</p>
+    </div>
+    <div class="grid6">
+      <div class="feat"><span class="emoji">🎯</span><h3>Per-domain routing</h3><p>Pick the services that route through a proxy; the rest connects directly. Add your own custom domains too.</p></div>
+      <div class="feat"><span class="emoji">🤖</span><h3>40+ ready services</h3><p>Gemini, ChatGPT, Claude, Perplexity, Grok and more — enable any of them in one click.</p></div>
+      <div class="feat"><span class="emoji">🔌</span><h3>Three proxy sources</h3><p>Your own proxy, your own pool with auto-rotation, or a curated free public pool.</p></div>
+      <div class="feat"><span class="emoji">⚡</span><h3>Smart free pool</h3><p>Finds a fast, working proxy, skips dead ones, and keeps a warm standby for instant switching.</p></div>
+      <div class="feat"><span class="emoji">🧩</span><h3>HTTP · SOCKS4/5</h3><p>Auto-detects the protocol and handles authentication. Just paste a proxy in almost any format.</p></div>
+      <div class="feat"><span class="emoji">🔒</span><h3>Private by design</h3><p>A client only — it doesn't run, host, or sell any proxy, and collects nothing about you.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- SCREENSHOTS -->
+<section id="shots">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">A look inside</span>
+      <h2>Clean, fast, out of your way</h2>
+    </div>
+    <div class="shots">
+      <figure><img src="chrome-web-store/screenshots/en/01-main.png" alt="Main screen — toggle services on and off" loading="lazy"></figure>
+      <figure><img src="chrome-web-store/screenshots/en/02-free-pool.png" alt="Free pool — automatically finds a working proxy" loading="lazy"></figure>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section class="features">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Supported services</span>
+      <h2>One click away</h2>
+      <p>And you can add any custom domain of your own.</p>
+    </div>
+    <div class="svc">
+      <div class="row"><b>AI</b><div class="tags">
+        <span class="tag">Gemini</span><span class="tag">AI Studio</span><span class="tag">NotebookLM</span><span class="tag">Google Labs</span><span class="tag">ChatGPT</span><span class="tag">Claude</span><span class="tag">Perplexity</span><span class="tag">Grok</span><span class="tag">MS Copilot</span><span class="tag">Poe</span><span class="tag">JetBrains AI</span><span class="tag">GitHub Copilot</span><span class="tag">Suno</span><span class="tag">Sora</span><span class="tag">ElevenLabs</span>
+      </div></div>
+      <div class="row"><b>Video</b><div class="tags">
+        <span class="tag">YouTube</span><span class="tag">Netflix</span><span class="tag">Disney+</span><span class="tag">Max</span><span class="tag">Prime Video</span><span class="tag">Apple TV+</span><span class="tag">Paramount+</span><span class="tag">Peacock</span><span class="tag">Hulu</span><span class="tag">Crunchyroll</span><span class="tag">MUBI</span>
+      </div></div>
+      <div class="row"><b>Music &amp; more</b><div class="tags">
+        <span class="tag">Spotify</span><span class="tag">Deezer</span><span class="tag">Tidal</span><span class="tag">Figma</span><span class="tag">Notion</span><span class="tag">Slack</span><span class="tag">Shopify</span>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- HONEST NOTE -->
+<section id="freepool">
+  <div class="wrap">
+    <div class="note">
+      <h3>⚠️ About the free pool — straight talk</h3>
+      <p>The free pool is the fastest way to start: zero config, ProxyPilot finds a live proxy for you. But public free proxies are <b>untrusted by definition</b> — anyone can run one.</p>
+      <p>Don't sign in to Google, banking, or any important account while routed through a free proxy — that sign-in will likely be flagged. For anything sensitive, <b>bring your own proxy</b>. The extension shows a clear warning banner when the free pool is active with an AI service.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="features" id="faq">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">FAQ</span>
+      <h2>Good questions</h2>
+    </div>
+    <div class="faq">
+      <details open>
+        <summary>Is this a VPN?</summary>
+        <div class="ans">No. A VPN tunnels your whole browser through one server. ProxyPilot routes <em>only the domains you enable</em> through a proxy; everything else connects directly — so it's faster and your other sites keep seeing your real location.</div>
+      </details>
+      <details>
+        <summary>Do I need an account?</summary>
+        <div class="ans">No signup, no account, no telemetry. All settings (proxy config, enabled services, custom domains) are stored locally in your browser and never leave your device.</div>
+      </details>
+      <details>
+        <summary>Is the free proxy pool safe?</summary>
+        <div class="ans">It's convenient but the proxies are public and untrusted. Don't sign in to important accounts while routed through them. For sensitive use, bring your own proxy — ProxyPilot supports HTTP/HTTPS/SOCKS4/SOCKS5. The app warns you in the UI.</div>
+      </details>
+      <details>
+        <summary>How is it different from a proxy switcher like SwitchyOmega?</summary>
+        <div class="ans">40+ ready-made services in one click, automatic protocol detection, proxy testing, auto-rotation when a proxy dies, and a smart free pool that finds a fast working proxy for you. One catch: only one extension can control the browser proxy — disable other proxy/VPN extensions to avoid conflicts.</div>
+      </details>
+      <details>
+        <summary>Is it open source?</summary>
+        <div class="ans">Yes — MIT licensed, Manifest V3, vanilla JavaScript, no bundler. The shipped code matches the GitHub source almost verbatim. <a href="https://github.com/Aimagine-life/proxypilot" style="color:var(--indigo);font-weight:600">Read it on GitHub →</a></div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<div class="final-wrap">
+  <div class="final">
+    <h2>Reach the AI tools you need — in two clicks</h2>
+    <p>Free, open source, no account. Add it to your browser and pick your services.</p>
+    <div class="cta-row">
+      <a class="btn btn-light" href="https://chromewebstore.google.com/detail/proxypilot/gmbihijfnafhpafknokdnkkafbbkbehj">Add to Chrome / Edge / Brave</a>
+      <a class="btn btn-ghost" href="https://addons.mozilla.org/firefox/addon/proxypilot/">Get for Firefox</a>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap foot">
+    <span>© ProxyPilot · MIT License</span>
+    <div class="links">
+      <a href="https://github.com/Aimagine-life/proxypilot">GitHub</a>
+      <a href="https://chromewebstore.google.com/detail/proxypilot/gmbihijfnafhpafknokdnkkafbbkbehj">Chrome Web Store</a>
+      <a href="https://addons.mozilla.org/firefox/addon/proxypilot/">Firefox Add-ons</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
