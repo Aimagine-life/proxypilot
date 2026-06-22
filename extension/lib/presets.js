@@ -27,7 +27,6 @@ export const CATEGORIES = [
   { key: 'design',  labelKey: 'cat_design' },
   { key: 'web',     labelKey: 'cat_web' },
   { key: 'work',    labelKey: 'cat_work' },
-  { key: 'adult',   labelKey: 'cat_adult' },
 ];
 
 export const PRESET_DEFINITIONS = {
@@ -242,15 +241,6 @@ export const PRESET_DEFINITIONS = {
     couplesGoogleAuth: false,
   },
 
-  // ─────────────────────────── 18+ ───────────────────────────
-  pornhub: {
-    label: 'Pornhub', icon: '🔞', logo: 'pornhub.png', category: 'adult',
-    // Из РФ Pornhub требует вход через VK (age-gate сервиса); не-РФ IP его минует.
-    // Апекс не в реестре РКН (24h RKN-проверка отключит роутинг, если изменится).
-    domains: ['pornhub.com', 'www.pornhub.com', 'phncdn.com', 'ev-h.phncdn.com'],
-    couplesGoogleAuth: false,
-  },
-
   // Hidden preset — auto-routes Google login when ANY couplesGoogleAuth preset is on.
   // Not exposed in UI; managed by pac.js.
   googleAuth: {
@@ -279,8 +269,6 @@ export const PRESET_ORDER = [
   'wix', 'shopify', 'namecheap',
   // work
   'slack', 'mailchimp', 'upwork', 'circleci',
-  // adult
-  'pornhub',
 ];
 
 // Keys of presets that need accounts.google.com coupled in. Single source of

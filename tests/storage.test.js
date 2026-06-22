@@ -242,7 +242,7 @@ test('loadState: backfills every current preset (disabled) when none stored', as
   const s = await loadState();
   const defaults = getDefaultState();
   const keys = Object.keys(defaults.presets);
-  assert.ok(keys.length >= 39); // 38 visible presets + hidden googleAuth
+  assert.ok(keys.length >= 38); // 37 visible presets + hidden googleAuth
   for (const key of keys) {
     assert.ok(s.presets[key], `preset ${key} backfilled`);
     assert.equal(s.presets[key].enabled, false, `preset ${key} backfilled disabled`);

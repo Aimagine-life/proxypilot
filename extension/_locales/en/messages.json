@@ -4,7 +4,7 @@
     "description": "Extension name shown in the browser and store. Brand name — keep as-is."
   },
   "app_description": {
-    "message": "Proxy Toggle & Smart Routing Tool — route selected domains through your own HTTP/SOCKS proxy or a curated free proxy pool.",
+    "message": "Route selected domains through your own HTTP/SOCKS proxy or a curated free pool — everything else goes direct.",
     "description": "Extension description shown in Chrome Web Store and Firefox Add-ons."
   },
 
@@ -625,9 +625,5 @@
   "cat_work": {
     "message": "Work · teams · dev",
     "description": "Service category: work, teams and dev tools."
-  },
-  "cat_adult": {
-    "message": "18+",
-    "description": "Service category: adult content. Kept identical in all languages."
   }
 }

@@ -29,14 +29,14 @@ sh scripts/build.sh
 
 **Название:** `ProxyPilot`
 
-**Краткое описание** (summary, до 132 символов):
+**Краткое описание** (summary, до 132 символов — CWS берёт его из локализованного `manifest.description`, поэтому держим идентичным `_locales/ru/messages.json` → `app_description`):
 ```
-Proxy Toggle & Smart Routing Tool — направляй выбранные домены через свой прокси или подобранный бесплатный. Без VPN, по доменам.
+Направляйте выбранные домены через свой HTTP/SOCKS-прокси или подобранный бесплатный пул. Остальной трафик — напрямую.
 ```
 
 **Подробное описание:**
 ```
-ProxyPilot маршрутизирует только выбранные вами сайты через прокси — остальной трафик идёт напрямую. Удобно открывать AI-сервисы и другие гео-ограниченные ресурсы без полного VPN.
+ProxyPilot маршрутизирует только выбранные вами сайты через прокси — остальной трафик идёт напрямую. Удобно открывать AI-сервисы и другие гео-ограниченные ресурсы: через прокси идёт только то, что вы выбрали.
 
 ВОЗМОЖНОСТИ
 • Три источника прокси: свой прокси, свой пул с авто-ротацией, и бесплатный публичный пул.
@@ -64,14 +64,14 @@ AI-ассистенты, видео, музыка, дизайн и другие 
 
 **Name:** `ProxyPilot`
 
-**Summary** (≤132 chars):
+**Summary** (≤132 chars — CWS pulls this from the localized `manifest.description`; keep identical to `_locales/en/messages.json` → `app_description`):
 ```
-Proxy Toggle & Smart Routing Tool — route selected domains through your own proxy or a curated free one. No full VPN — routed per domain.
+Route selected domains through your own HTTP/SOCKS proxy or a curated free pool — everything else goes direct.
 ```
 
 **Description:**
 ```
-ProxyPilot routes only the sites you choose through a proxy — everything else goes direct. Great for opening AI services and other geo-restricted sites without a full VPN.
+ProxyPilot routes only the sites you choose through a proxy — everything else goes direct. Great for opening AI services and other geo-restricted sites: only what you choose is routed.
 
 FEATURES
 • Three proxy sources: your own proxy, your own pool with auto-rotation, and a free public pool.

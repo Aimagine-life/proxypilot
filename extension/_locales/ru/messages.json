@@ -4,7 +4,7 @@
     "description": "Extension name shown in the browser and store. Brand name — keep as-is."
   },
   "app_description": {
-    "message": "Инструмент для переключения прокси и умной маршрутизации — направляйте выбранные домены через свой HTTP/SOCKS прокси или подобранный бесплатный пул.",
+    "message": "Направляйте выбранные домены через свой HTTP/SOCKS-прокси или подобранный бесплатный пул. Остальной трафик — напрямую.",
     "description": "Extension description shown in Chrome Web Store and Firefox Add-ons."
   },
 
@@ -625,9 +625,5 @@
   "cat_work": {
     "message": "Работа · команды · dev",
     "description": "Service category: work, teams and dev tools."
-  },
-  "cat_adult": {
-    "message": "18+",
-    "description": "Service category: adult content. Kept identical in all languages."
   }
 }
