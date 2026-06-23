@@ -773,13 +773,13 @@ html, body {
   color: var(--amber-ink);
   border: 1px solid rgba(245, 158, 11, 0.32);
 }
-/* «Оценить» — тизер до публикации в Chrome Web Store (некликабельный). */
-.about-cta-soon {
+/* «Оценить» — ведёт на страницу отзывов в магазине (Chrome Web Store / AMO). */
+.about-cta-rate {
   background: var(--bg-2);
-  color: var(--text-mute);
-  border: 1px dashed var(--border-strong);
-  cursor: default;
+  border: 1px solid var(--border-strong);
+  cursor: pointer;
 }
+.about-cta-rate:hover { background: var(--bg-hover); border-color: var(--indigo); }
 .about-version-bar { justify-content: center; }
 
 .rkn-banner {

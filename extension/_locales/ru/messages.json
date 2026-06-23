@@ -381,13 +381,9 @@
     "message": "💛 Поддержать проект",
     "description": "Donation call-to-action on the about screen."
   },
-  "about_rate_soon": {
-    "message": "⭐ Скоро в Chrome Web Store",
-    "description": "Placeholder for the not-yet-available store rating link. Chrome Web Store is a brand."
-  },
-  "about_rate_soon_title": {
-    "message": "Появится после публикации в Chrome Web Store",
-    "description": "Tooltip on the coming-soon store link."
+  "about_rate": {
+    "message": "⭐ Оценить расширение",
+    "description": "Rate link on the about screen — opens the store reviews page."
   },
 
   "free_searching_title": {

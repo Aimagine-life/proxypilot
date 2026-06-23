@@ -4,6 +4,18 @@
 [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версионирование — [SemVer](https://semver.org/lang/ru/).
 
+## [0.16.2] — 2026-06-24
+
+### Добавлено
+- **Кнопка «Оценить расширение» на экране «О разработчике».** Ведёт на страницу
+  отзывов в магазине — Chrome Web Store или Firefox AMO, в зависимости от браузера.
+  Заменяет прежнюю неактивную заглушку «Скоро» (расширение опубликовано в обоих
+  магазинах). Формулировка нейтральная, без просьбы конкретной оценки. Внутри
+  расширения по-прежнему ничего не отслеживается — это обычная ссылка на магазин.
+
+> Store changelog (EN): Added a "Rate the extension" button on the About screen —
+> it opens the store reviews page (Chrome Web Store or Firefox AMO, per browser).
+
 ## [0.16.1] — 2026-06-24
 
 ### Изменено

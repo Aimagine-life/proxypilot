@@ -327,6 +327,15 @@ function bindMain() {
   });
   $('#footer-donate').addEventListener('click', () => showSupport());
   $('#about-donate').addEventListener('click', () => showSupport());
+  $('#about-rate').addEventListener('click', () => {
+    // Open the store's reviews page for the current browser. No analytics —
+    // a plain outbound link to the store, matching the "no tracking" stance.
+    const isFirefox = navigator.userAgent.includes('Firefox');
+    const url = isFirefox
+      ? 'https://addons.mozilla.org/firefox/addon/proxypilot/reviews/'
+      : 'https://chromewebstore.google.com/detail/proxypilot/gmbihijfnafhpafknokdnkkafbbkbehj/reviews';
+    chrome.tabs.create({ url });
+  });
   $('#back-from-support').addEventListener('click', () => showMain());
   $('#support-copy').addEventListener('click', async () => {
     const addr = $('#ton-address').textContent.trim();
