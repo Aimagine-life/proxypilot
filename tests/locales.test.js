@@ -83,3 +83,21 @@ test('locales: manifest __MSG__ keys exist in every locale and default_locale is
     }
   }
 });
+
+// ASO guards: store metadata derived from the manifest has hard limits.
+// app_name → Chrome Web Store title (max 75 chars); app_description →
+// Chrome Web Store summary (max 132 chars). Keep them within limits so the
+// listing is never silently truncated after a release.
+test('locales: app_name fits Chrome Web Store title limit (<=75)', () => {
+  for (const lang of LOCALES) {
+    const name = data[lang].app_name.message;
+    assert.ok(name.length <= 75, `${lang}.app_name is ${name.length} chars (max 75)`);
+  }
+});
+
+test('locales: app_description fits Chrome Web Store summary limit (<=132)', () => {
+  for (const lang of LOCALES) {
+    const desc = data[lang].app_description.message;
+    assert.ok(desc.length <= 132, `${lang}.app_description is ${desc.length} chars (max 132)`);
+  }
+});

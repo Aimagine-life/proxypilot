@@ -27,16 +27,16 @@ sh scripts/build.sh
 
 ## 3. Карточка магазина (готовый текст, RU)
 
-**Название:** `ProxyPilot`
+**Название:** `ProxyPilot — менеджер прокси и маршрутизация`
 
 **Краткое описание** (summary, до 132 символов — CWS берёт его из локализованного `manifest.description`, поэтому держим идентичным `_locales/ru/messages.json` → `app_description`):
 ```
-Направляйте выбранные домены через свой HTTP/SOCKS-прокси или подобранный бесплатный пул. Остальной трафик — напрямую.
+Менеджер и переключатель прокси: только выбранные домены идут через ваш HTTP/SOCKS5-прокси, остальной трафик — напрямую.
 ```
 
 **Подробное описание:**
 ```
-ProxyPilot маршрутизирует только выбранные вами сайты через прокси — остальной трафик идёт напрямую. Удобно открывать AI-сервисы и другие гео-ограниченные ресурсы: через прокси идёт только то, что вы выбрали.
+ProxyPilot — менеджер и переключатель прокси по доменам. Через ваш HTTP/HTTPS/SOCKS5/SOCKS4-прокси (или подобранный бесплатный пул) идут только выбранные сайты — остальной трафик напрямую. Без аккаунта, без слежки, всё локально.
 
 ВОЗМОЖНОСТИ
 • Три источника прокси: свой прокси, свой пул с авто-ротацией, и бесплатный публичный пул.
@@ -62,16 +62,16 @@ AI-ассистенты, видео, музыка, дизайн и другие 
 
 ## 3-EN. Store listing — English locale
 
-**Name:** `ProxyPilot`
+**Name:** `ProxyPilot — Proxy Manager & Smart Routing`
 
 **Summary** (≤132 chars — CWS pulls this from the localized `manifest.description`; keep identical to `_locales/en/messages.json` → `app_description`):
 ```
-Route selected domains through your own HTTP/SOCKS proxy or a curated free pool — everything else goes direct.
+Per-site proxy manager & switcher: route only the sites you choose through your HTTP/SOCKS5 proxy — the rest goes direct.
 ```
 
 **Description:**
 ```
-ProxyPilot routes only the sites you choose through a proxy — everything else goes direct. Great for opening AI services and other geo-restricted sites: only what you choose is routed.
+ProxyPilot is a per-site proxy manager and switcher. Route only the sites you choose through your own HTTP/HTTPS/SOCKS5/SOCKS4 proxy (or a curated free pool) — everything else connects directly. No account, no tracking, all local.
 
 FEATURES
 • Three proxy sources: your own proxy, your own pool with auto-rotation, and a free public pool.

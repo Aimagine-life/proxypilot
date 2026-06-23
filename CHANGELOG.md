@@ -4,6 +4,24 @@
 [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версионирование — [SemVer](https://semver.org/lang/ru/).
 
+## [0.16.1] — 2026-06-24
+
+### Изменено
+- **ASO-оптимизация листинга магазинов (Chrome Web Store / Firefox AMO).** Заголовок
+  дополнен ключевыми словами для поиска: «ProxyPilot — менеджер прокси и
+  маршрутизация» / «ProxyPilot — Proxy Manager & Smart Routing». Краткое описание
+  переписано под поисковые запросы (RU/EN). Заголовок и краткое описание
+  подтягиваются в магазины из манифеста при релизе; полное описание, скриншоты и
+  теги обновляются вручную в дашбордах. **Бренд в интерфейсе расширения не изменился** —
+  `app_name` влияет только на название в магазине и тултип иконки. Формулировки
+  нейтральные, без «VPN/обхода».
+- **Из тегов Firefox AMO убран «vpn»** — противоречит позиционированию и юридически
+  рискован (ФЗ 332-ФЗ о рекламе средств обхода).
+
+> Store changelog (EN): ASO listing optimization — search keywords added to the
+> title («Proxy Manager & Smart Routing»), summary rewritten (RU/EN), «vpn» tag
+> removed on AMO. In-extension branding unchanged.
+
 ## [0.16.0] — 2026-06-23
 
 ### Добавлено

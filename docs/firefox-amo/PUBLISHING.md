@@ -20,12 +20,12 @@ Submit a New Add-on (https://addons.mozilla.org/developers/addon/submit/distribu
    манифест, минификации нет → исходники загружать не нужно. Если форма всё равно
    попросит — дай ссылку на репозиторий в «Notes to reviewer».
 4. **Add-on details** (поля):
-   - **Name:** `ProxyPilot`
-   - **Summary** (кратко): текст из `docs/chrome-web-store/PUBLISHING.md` §3 (110 символов).
+   - **Name:** `ProxyPilot — Proxy Manager & Smart Routing` (берётся из манифеста, default_locale=en; ASO-заголовок с ключом). RU-перевод листинга: `ProxyPilot — менеджер прокси и маршрутизация`.
+   - **Summary** (кратко): текст из `docs/chrome-web-store/PUBLISHING.md` §3 (≤132 символов, с ключами).
    - **Description** (подробно): блок «Подробное описание» оттуда же (§3).
    - **Categories:** отметь **Privacy & Security** (можно добавить **Other**). Если форма
      показывает отдельно категории для Firefox и для Android — выбери те же в обеих.
-   - **Tags** (опц.): proxy, vpn, ai, geo, routing.
+   - **Tags** (опц.): proxy, socks, http proxy, proxy manager, routing. (Тег «vpn» НЕ использовать — противоречит позиционированию и юр-рискован, ФЗ 332-ФЗ.)
    - **Support email:** твой контактный email.
    - **Homepage / Support site:** `https://wildbots.ru/` (или репозиторий на GitHub).
    - **License:** обязательно. Если код открытый — выбери **MIT** или **MPL-2.0**; если

@@ -13,21 +13,20 @@ owner can do. Copy-paste the texts below into the AMO submission form.
 
 ## 1. Listing metadata
 
-**Name:** ProxyPilot
+**Name:** ProxyPilot — Proxy Manager & Smart Routing
 
 **Summary (≤250 chars)**
 
-- EN: `Route only the sites you choose through your own HTTP/SOCKS proxy or a curated free proxy pool. Everything else stays direct. Bring your own proxy — no account, no tracking.`
-- RU: `Маршрутизирует через ваш HTTP/SOCKS-прокси или подобранный бесплатный пул только выбранные сайты — остальной трафик идёт напрямую. Свой прокси, без аккаунта и слежки.`
+- EN: `Per-site proxy manager & switcher. Route only the sites you choose through your own HTTP/SOCKS5 proxy or a curated free pool — everything else stays direct. Bring your own proxy — no account, no tracking.`
+- RU: `Менеджер и переключатель прокси по доменам. Через ваш HTTP/SOCKS5-прокси или подобранный бесплатный пул идут только выбранные сайты — остальной трафик напрямую. Свой прокси, без аккаунта и слежки.`
 
 **Description (full)**
 
 - EN:
 ```
-ProxyPilot is a per-domain proxy router. You pick which services route through a
-proxy (AI assistants, video, music, design and dev tools, and your own custom
-domains); everything else connects directly. Useful for reaching sites that
-geo-block your region, without sending all your traffic through a proxy.
+ProxyPilot is a per-site proxy manager and switcher. Route only the sites you
+choose through your own HTTP/HTTPS/SOCKS5/SOCKS4 proxy (or a curated free pool)
+— everything else connects directly. No account, no tracking, all local.
 
 • Bring your own proxy (HTTP/HTTPS/SOCKS4/SOCKS5) — or let ProxyPilot pick a
   working one from a free public pool.
@@ -47,10 +46,9 @@ while routing through them. The app warns you about this in the UI.
 
 - RU:
 ```
-ProxyPilot — маршрутизатор прокси по доменам. Вы выбираете, какие сервисы идут
-через прокси (AI-ассистенты, видео, музыка, дизайн и dev-инструменты, плюс свои
-домены), а весь остальной трафик идёт напрямую. Помогает открывать сайты,
-которые блокируют ваш регион, не пропуская через прокси всё подряд.
+ProxyPilot — менеджер и переключатель прокси по доменам. Через ваш
+HTTP/HTTPS/SOCKS5/SOCKS4-прокси (или подобранный бесплатный пул) идут только
+выбранные сайты — остальной трафик напрямую. Без аккаунта, без слежки, всё локально.
 
 • Свой прокси (HTTP/HTTPS/SOCKS4/SOCKS5) — или подбор рабочего из бесплатного
   публичного пула.
@@ -69,7 +67,7 @@ ProxyPilot — маршрутизатор прокси по доменам. Вы
 ```
 
 **Category:** Privacy & Security
-**Tags:** proxy, socks, http proxy, geo-routing, routing
+**Tags:** proxy, socks, http proxy, proxy manager, routing
 **Homepage:** https://wildbots.ru/
 **Support site:** https://github.com/Aimagine-life/proxypilot
 **Support email:** hello@wildbots.ru

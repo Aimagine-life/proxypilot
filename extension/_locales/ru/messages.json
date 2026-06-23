@@ -1,11 +1,11 @@
 {
   "app_name": {
-    "message": "ProxyPilot",
-    "description": "Extension name shown in the browser and store. Brand name — keep as-is."
+    "message": "ProxyPilot — менеджер прокси и маршрутизация",
+    "description": "Extension name shown in the browser and store. Brand 'ProxyPilot' + ASO descriptor (≤75 chars). Neutral wording — no VPN/bypass."
   },
   "app_description": {
-    "message": "Направляйте выбранные домены через свой HTTP/SOCKS-прокси или подобранный бесплатный пул. Остальной трафик — напрямую.",
-    "description": "Extension description shown in Chrome Web Store and Firefox Add-ons."
+    "message": "Менеджер и переключатель прокси: только выбранные домены идут через ваш HTTP/SOCKS5-прокси, остальной трафик — напрямую.",
+    "description": "Extension description / Chrome Web Store summary (≤132 chars). Neutral — no VPN/bypass wording."
   },
 
   "back": {

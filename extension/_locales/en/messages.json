@@ -1,11 +1,11 @@
 {
   "app_name": {
-    "message": "ProxyPilot",
-    "description": "Extension name shown in the browser and store. Brand name — keep as-is."
+    "message": "ProxyPilot — Proxy Manager & Smart Routing",
+    "description": "Extension name shown in the browser and store. Brand 'ProxyPilot' + ASO descriptor (≤75 chars). Neutral wording — no VPN/bypass."
   },
   "app_description": {
-    "message": "Route selected domains through your own HTTP/SOCKS proxy or a curated free pool — everything else goes direct.",
-    "description": "Extension description shown in Chrome Web Store and Firefox Add-ons."
+    "message": "Per-site proxy manager & switcher: route only the sites you choose through your HTTP/SOCKS5 proxy — the rest goes direct.",
+    "description": "Extension description / Chrome Web Store summary (≤132 chars). Neutral — no VPN/bypass wording."
   },
 
   "back": {
