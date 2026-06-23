@@ -26,7 +26,7 @@ const appMarkup = appMatch
 const BANNERS = {
   main: {
     grad: 'linear-gradient(135deg, #6d5cf6 0%, #5b6cf0 55%, #4f7cf2 100%)',
-    title: { en: 'Open AI services without a VPN', ru: 'Открывай AI-сервисы без VPN' },
+    title: { en: 'Use AI tools through your own proxy', ru: 'Открывай AI-сервисы через свой прокси' },
     sub: {
       en: 'Route only the sites you need through a proxy — everything else goes direct.',
       ru: 'Маршрутизируй только нужные сайты через прокси — остальное идёт напрямую.',
@@ -42,7 +42,7 @@ const BANNERS = {
   },
   settings: {
     grad: 'linear-gradient(135deg, #2f7cf6 0%, #3aa0e8 55%, #34c0d6 100%)',
-    title: { en: "Always clear what's running", ru: 'Всегда ясно, что работает' },
+    title: { en: 'Three proxy sources, one tap', ru: 'Три источника прокси в один тап' },
     sub: {
       en: 'Your proxy, your pool, or free — the active source is visible at a glance.',
       ru: 'Свой прокси, свой пул или бесплатный — активный источник виден сразу.',
@@ -51,7 +51,7 @@ const BANNERS = {
   // Wide marquee tile (1400x560) — shows the main screen.
   marquee: {
     grad: 'linear-gradient(120deg, #6d5cf6 0%, #6160ee 45%, #36c2ad 100%)',
-    title: { en: 'Reach blocked AI, video & more', ru: 'Открывай заблокированные AI, видео и не только' },
+    title: { en: 'AI, video & music — through your own proxy', ru: 'AI, видео и музыка — через свой прокси' },
     sub: {
       en: 'Per-domain routing through your own proxy or a free pool. No account, no tracking.',
       ru: 'Маршрутизация по доменам через свой прокси или бесплатный пул. Без аккаунта и слежки.',
@@ -193,8 +193,8 @@ console.log('wrote extension/popup/_shot.html');
 
 // --- Small promo tile (440x280): logo + name + tagline, no popup. ---
 const PROMO_TAG = {
-  en: 'AI & sites without a VPN — through your own or a free proxy',
-  ru: 'AI и сайты без VPN — через свой или бесплатный прокси',
+  en: 'AI & sites through your own or a free proxy',
+  ru: 'AI и сайты — через свой или бесплатный прокси',
 };
 const promoHtml = `<!DOCTYPE html>
 <html><head><meta charset="UTF-8" /><style>
