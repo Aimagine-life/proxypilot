@@ -4,6 +4,20 @@
 [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версионирование — [SemVer](https://semver.org/lang/ru/).
 
+## [0.16.3] — 2026-06-24
+
+### Исправлено
+- **Пресет восстанавливается, когда домен выходит из реестра РКН.** Раньше, если
+  домен сервиса попадал в реестр РКН, расширение выключало его пресет — но когда
+  домен из реестра убирали, пресет так и оставался выключенным (приходилось
+  включать вручную). Это, в частности, касалось YouTube. Теперь расширение
+  запоминает, что выключило пресет именно из-за РКН, и само включает его обратно,
+  когда блокировка снимается. Пресеты, выключенные пользователем вручную, не трогаются.
+
+> Store changelog (EN): Fixed — a preset auto-disabled because its domain entered
+> the RKN registry is now restored automatically once the domain leaves the
+> registry (affected YouTube). User-disabled presets are left untouched.
+
 ## [0.16.2] — 2026-06-24
 
 ### Добавлено

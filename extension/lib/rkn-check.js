@@ -119,3 +119,41 @@ export function isCheckDue(lastCheckAt) {
   if (!lastCheckAt) return true;
   return (Date.now() - lastCheckAt) > CHECK_INTERVAL_MS;
 }
+
+/**
+ * Apply RKN results to presets (mutates `preset.enabled`) and track which
+ * presets WE auto-disabled — so we can restore them when a domain later leaves
+ * the registry, WITHOUT touching presets the user disabled themselves.
+ *
+ * Rules:
+ *  - blocked & enabled        → disable, remember it (auto[key] = true)
+ *  - not blocked & auto[key]  → re-enable, forget it (RKN unblocked → restore)
+ *  - blocked & already off    → no-op (never flag; it wasn't our doing)
+ *  - not blocked & not auto   → no-op (respect the user's own choice)
+ *
+ * @param presets         state.presets ({ key: { domains, enabled } })
+ * @param results         checkAllPresets() output ({ domain: { blocked } })
+ * @param rknAutoDisabled previous auto-disabled map ({ key: true })
+ * @returns { rknAutoDisabled, changed }
+ */
+export function applyRknResults(presets, results, rknAutoDisabled = {}) {
+  const auto = { ...rknAutoDisabled };
+  let changed = false;
+  for (const [key, preset] of Object.entries(presets || {})) {
+    const blocked = (preset.domains || []).some((d) => results?.[d]?.blocked);
+    if (blocked) {
+      if (preset.enabled) {
+        preset.enabled = false;
+        auto[key] = true;
+        changed = true;
+      }
+    } else if (auto[key]) {
+      if (!preset.enabled) {
+        preset.enabled = true;
+        changed = true;
+      }
+      delete auto[key];
+    }
+  }
+  return { rknAutoDisabled: auto, changed };
+}

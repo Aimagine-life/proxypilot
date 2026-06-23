@@ -39,6 +39,9 @@ export function getDefaultState() {
     // with an active proxy; the thank-you banner shows at >=3 uses, at most
     // once per 14 days, until dismissed.
     donate: { uses: 0, lastShownAt: 0, dismissed: false },
+    // Presets WE auto-disabled because their domains are RKN-blocked, so we can
+    // restore them when a domain later leaves the registry (see applyRknResults).
+    rknAutoDisabled: {},
   };
 }
 
@@ -95,6 +98,11 @@ export async function loadState() {
 
   // donate backfill (added in 0.12.0).
   if (!saved.donate) saved.donate = { ...defaults.donate };
+
+  // rknAutoDisabled backfill (added in 0.16.3).
+  if (!saved.rknAutoDisabled || typeof saved.rknAutoDisabled !== 'object') {
+    saved.rknAutoDisabled = {};
+  }
 
   return saved;
 }

@@ -272,6 +272,22 @@ test('getDefaultState: includes donate defaults', () => {
   assert.deepEqual(s.donate, { uses: 0, lastShownAt: 0, dismissed: false });
 });
 
+test('getDefaultState: includes rknAutoDisabled default', () => {
+  assert.deepEqual(getDefaultState().rknAutoDisabled, {});
+});
+
+test('loadState: backfills rknAutoDisabled for users upgrading from before 0.16.3', async () => {
+  await chrome.storage.local.clear();
+  await saveState({
+    schemaVersion: 2, enabled: false, proxy: null, proxySource: 'manual',
+    manualProxy: null, freeProxy: { selected: null, lastError: null, deadHosts: {}, poolFetchedAt: 0 },
+    theme: 'auto', resolvedTheme: 'light', presets: {}, customDomains: [],
+    // no rknAutoDisabled (pre-0.16.3 state)
+  });
+  const s = await loadState();
+  assert.deepEqual(s.rknAutoDisabled, {});
+});
+
 test('loadState: backfills donate for users upgrading from before 0.12.0', async () => {
   await chrome.storage.local.clear();
   await saveState({

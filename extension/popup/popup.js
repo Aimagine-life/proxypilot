@@ -358,6 +358,9 @@ function bindMain() {
     for (const k of PRESET_ORDER) {
       if (state.presets[k]) state.presets[k].enabled = false;
     }
+    // Reset is an explicit user choice — clear all RKN auto-disabled marks so the
+    // periodic check won't later re-enable anything the user just turned off.
+    state.rknAutoDisabled = {};
     await persist();
     renderMain();
   });
@@ -482,6 +485,9 @@ async function removeCustom(entry) {
 
 async function togglePreset(key) {
   state.presets[key].enabled = !state.presets[key].enabled;
+  // Manual toggle is the user's explicit choice — drop any RKN auto-disabled
+  // mark so the periodic check won't later override it.
+  if (state.rknAutoDisabled) delete state.rknAutoDisabled[key];
   await persist();
   renderMain();
 }

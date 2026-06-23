@@ -8,7 +8,7 @@ import { loadState, saveState } from './lib/storage.js';
 import { applyProxy, registerProxyAuth, probeThroughProxy } from './lib/proxy-backend.js';
 import { setIconState } from './lib/icon.js';
 import { isHostRouted } from './lib/pac.js';
-import { checkAllPresets, isCheckDue, checkDomain } from './lib/rkn-check.js';
+import { checkAllPresets, isCheckDue, checkDomain, applyRknResults } from './lib/rkn-check.js';
 import { pickAndValidate, fetchPool, nextLiveProxy, nextWarmProxy, DEAD_HOST_TTL_MS } from './lib/free-pool.js';
 import { registerFailureAndDecide } from './lib/rotation-policy.js';
 
@@ -88,15 +88,11 @@ async function runRknCheck(state) {
   state.rknResults = results;
   state.rknLastCheckAt = Date.now();
 
-  // Disable presets whose domains are RKN-blocked.
-  let changed = false;
-  for (const [_key, preset] of Object.entries(state.presets || {})) {
-    const blocked = (preset.domains || []).some((d) => results[d]?.blocked);
-    if (blocked && preset.enabled) {
-      preset.enabled = false;
-      changed = true;
-    }
-  }
+  // Disable presets RKN blocks, and restore the ones WE auto-disabled once their
+  // domains leave the registry — without touching user-disabled presets.
+  const { rknAutoDisabled, changed } = applyRknResults(
+    state.presets || {}, results, state.rknAutoDisabled || {});
+  state.rknAutoDisabled = rknAutoDisabled;
 
   await saveState(state);
   if (changed) await applyProxy(state);
