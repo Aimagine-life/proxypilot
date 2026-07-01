@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildPacScript, isHostRouted } from '../extension/lib/pac.js';
+import { buildPacScript, isHostRouted, socksAuthUnsupported } from '../extension/lib/pac.js';
 
 function makeState(overrides = {}) {
   return {
@@ -175,6 +175,29 @@ test('isHostRouted: matches preset domain + subdomain, not others', () => {
   assert.equal(isHostRouted('netflix.com', state), true);
   assert.equal(isHostRouted('www.netflix.com', state), true);
   assert.equal(isHostRouted('example.com', state), false);
+});
+
+// SOCKS + credentials can't authenticate in Chrome (no proxy-auth API for SOCKS,
+// onAuthRequired never fires for it); Firefox passes them inline. This predicate is
+// the single source of truth for the popup warning + background diagnostics.
+test('socksAuthUnsupported: SOCKS5/SOCKS4 + user in Chrome → unsupported', () => {
+  assert.equal(socksAuthUnsupported('socks5', 'u', false), true);
+  assert.equal(socksAuthUnsupported('socks4', 'u', false), true);
+});
+
+test('socksAuthUnsupported: SOCKS without a user is fine (no auth needed)', () => {
+  assert.equal(socksAuthUnsupported('socks5', '', false), false);
+  assert.equal(socksAuthUnsupported('socks5', undefined, false), false);
+});
+
+test('socksAuthUnsupported: HTTP/HTTPS + user is fine (onAuthRequired covers it)', () => {
+  assert.equal(socksAuthUnsupported('http', 'u', false), false);
+  assert.equal(socksAuthUnsupported('https', 'u', false), false);
+});
+
+test('socksAuthUnsupported: Firefox authenticates SOCKS inline → supported', () => {
+  assert.equal(socksAuthUnsupported('socks5', 'u', true), false);
+  assert.equal(socksAuthUnsupported('socks4', 'u', true), false);
 });
 
 test('isHostRouted: googleLabs couples accounts.google.com for icon state too', () => {

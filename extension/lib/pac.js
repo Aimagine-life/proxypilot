@@ -82,6 +82,20 @@ export function buildPacScript(state) {
 }
 
 /**
+ * SOCKS proxies with a username/password can't authenticate in Chrome: the
+ * chrome.proxy API has no credential field for SOCKS, and webRequest.onAuthRequired
+ * never fires for SOCKS (only HTTP/HTTPS). So the password is silently dropped and
+ * the connection fails with ERR_SOCKS_CONNECTION_FAILED. Firefox passes credentials
+ * inline in the proxy descriptor, so it's fine there. Pure predicate so the popup,
+ * the background diagnostics, and the tests all agree on the exact condition.
+ * See Chromium net/docs/proxy.md ("No authentication methods are supported for
+ * SOCKSv5 in Chrome") and crbug 40323993 (ex-256785).
+ */
+export function socksAuthUnsupported(scheme, user, isFirefox) {
+  return !isFirefox && (scheme === 'socks5' || scheme === 'socks4') && !!user;
+}
+
+/**
  * Does `host` get routed through the proxy under the current state? Used for
  * toolbar icon state in non-PAC (regular JS) contexts. Shares collectDomains()
  * with buildPacScript so the googleAuth coupling and host matching can never

@@ -311,6 +311,14 @@
     "message": "Не удалось определить протокол",
     "description": "Protocol auto-detect failed with no specific reason."
   },
+  "settings_socks_auth_warn": {
+    "message": "⚠ Chrome не передаёт логин/пароль SOCKS-прокси. Уберите пароль и ограничьте доступ по IP, выберите HTTP/HTTPS или установите ProxyPilot для Firefox.",
+    "description": "Inline warning under the auth fields when SOCKS + credentials are set in Chrome."
+  },
+  "err_socks_auth_unsupported": {
+    "message": "Chrome не поддерживает SOCKS-прокси с паролем. Уберите пароль (доступ по IP), выберите HTTP/HTTPS или используйте ProxyPilot для Firefox.",
+    "description": "Test/connection error shown when a SOCKS proxy needs auth that Chrome can't provide."
+  },
   "settings_test_russian_proxy_title": {
     "message": "Прокси в вашем регионе",
     "description": "Test result title when the proxy resolves to the user's own region."

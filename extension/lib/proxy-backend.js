@@ -9,7 +9,7 @@ const VALIDATE_TIMEOUT_MS = 4_000;
 // Firefox exposes its promise APIs on `browser` natively (Chrome has no `browser`).
 // After the compat shim, `chrome` === `browser` in Firefox; detect by presence of
 // chrome.proxy.onRequest (available in Firefox, absent in Chrome).
-const isFirefox = typeof chrome !== 'undefined' && !!(chrome.proxy && chrome.proxy.onRequest);
+export const isFirefox = typeof chrome !== 'undefined' && !!(chrome.proxy && chrome.proxy.onRequest);
 
 // ---- shared ----
 function pacDirective({ scheme, host, port }) {

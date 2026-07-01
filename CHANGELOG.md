@@ -4,6 +4,27 @@
 [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версионирование — [SemVer](https://semver.org/lang/ru/).
 
+## [0.16.4] — 2026-07-01
+
+### Исправлено
+- **Понятное сообщение о SOCKS-прокси с паролем в Chrome.** Chrome не умеет
+  передавать логин/пароль SOCKS-прокси — это ограничение самого браузера: в его
+  API нет поля для этого, а событие авторизации (`onAuthRequired`) для SOCKS не
+  срабатывает. Раньше пароль молча игнорировался, и подключение падало с невнятным
+  «failed to fetch». Теперь расширение честно предупреждает об этом в форме под полем
+  авторизации и в результате проверки прокси — и подсказывает рабочие варианты: убрать
+  пароль и ограничить доступ по IP, выбрать HTTP/HTTPS или использовать ProxyPilot для
+  Firefox (там SOCKS с паролем работает). «Свой пул» больше не помечает такой прокси
+  «мёртвым» и не запускает бесполезную ротацию. Спасибо
+  [@vasyna](https://github.com/vasyna) за баг-репорт (#9).
+
+> Store changelog (EN): Fixed — clearer handling of password-protected SOCKS proxies
+> in Chrome. Chrome structurally can't send credentials to SOCKS proxies (a browser
+> limitation), so the password was silently dropped and the connection failed with a
+> cryptic "failed to fetch". ProxyPilot now warns about this in the settings form and the
+> proxy test, and suggests working alternatives — allow access by IP, use HTTP/HTTPS, or
+> ProxyPilot for Firefox (where SOCKS auth works). Thanks @vasyna (#9).
+
 ## [0.16.3] — 2026-06-24
 
 ### Исправлено
