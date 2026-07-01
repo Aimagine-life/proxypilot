@@ -5,9 +5,9 @@
 import './lib/compat.js';
 import { t } from './lib/i18n.js';
 import { loadState, saveState } from './lib/storage.js';
-import { applyProxy, registerProxyAuth, probeThroughProxy } from './lib/proxy-backend.js';
+import { applyProxy, registerProxyAuth, probeThroughProxy, isFirefox } from './lib/proxy-backend.js';
 import { setIconState } from './lib/icon.js';
-import { isHostRouted } from './lib/pac.js';
+import { isHostRouted, socksAuthUnsupported } from './lib/pac.js';
 import { checkAllPresets, isCheckDue, checkDomain, applyRknResults } from './lib/rkn-check.js';
 import { pickAndValidate, fetchPool, nextLiveProxy, nextWarmProxy, DEAD_HOST_TTL_MS } from './lib/free-pool.js';
 import { registerFailureAndDecide } from './lib/rotation-policy.js';
@@ -278,7 +278,14 @@ async function runProxyTest(url) {
   const state = await loadState();
   if (!state.proxy?.host) return { ok: false, error: t('err_no_proxy_configured') };
   const r = await probeThroughProxy(url, state.proxy, { timeoutMs: 8000, parseJson: url.includes('ipinfo.io') });
-  if (!r.ok) { await applyProxy(state); return { ok: false, error: r.error }; }
+  if (!r.ok) {
+    await applyProxy(state);
+    // Replace the opaque "Failed to fetch" with the real cause when it's a SOCKS
+    // proxy needing auth that Chrome structurally can't provide.
+    const p = state.proxy;
+    const error = socksAuthUnsupported(p.scheme, p.user, isFirefox) ? t('err_socks_auth_unsupported') : r.error;
+    return { ok: false, error };
+  }
   let extra = {};
   if (url.includes('ipinfo.io') && r.json) {
     extra = { ip: r.json.ip, country: r.json.country };
@@ -442,6 +449,20 @@ async function handleProxyError(details) {
   const state = await loadState();
   if (state.proxySource !== 'free' && state.proxySource !== 'own') return;
 
+  // SOCKS+auth always fails with ERR_SOCKS_CONNECTION_FAILED in Chrome — a browser
+  // limitation, not a dead proxy. Rotating can't help (every SOCKS+auth pick fails
+  // the same way), so surface the reason on the own-pool card and stop, without
+  // marking anything dead. Free-pool proxies carry no credentials, so this never
+  // trips for them.
+  if (socksAuthUnsupported(state.proxy?.scheme, state.proxy?.user, isFirefox)) {
+    if (state.proxySource === 'own' && state.ownPool &&
+        state.ownPool.lastError !== t('err_socks_auth_unsupported')) {
+      state.ownPool.lastError = t('err_socks_auth_unsupported');
+      await saveState(state);
+    }
+    return;
+  }
+
   // Tolerate a slow first connection: only rotate when a proxy fails repeatedly
   // in a short window (a genuinely dead proxy keeps failing). registerFailure-
   // AndDecide tracks per-proxy failures and resets when we rotate or switch.
@@ -520,7 +541,11 @@ async function detectScheme(host, port, user, pass) {
   }
 
   state.proxy = origProxy;
-  state.detectStatus = { running: false, ok: false, error: t('settings_detect_failed') };
+  // A password was provided but nothing probed OK. In Chrome the usual culprit is a
+  // SOCKS proxy that needs auth (unsupported) — point the user at the fix instead of
+  // a bare "couldn't detect".
+  const failKey = (pass && !isFirefox) ? 'settings_detect_failed_socks_auth' : 'settings_detect_failed';
+  state.detectStatus = { running: false, ok: false, error: t(failKey) };
   await saveState(state);
   if (origProxy) await applyProxy(state);
 }
