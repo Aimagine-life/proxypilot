@@ -311,10 +311,6 @@
     "message": "Не удалось определить протокол",
     "description": "Protocol auto-detect failed with no specific reason."
   },
-  "settings_detect_failed_socks_auth": {
-    "message": "Не удалось определить протокол. Если это SOCKS с логином/паролем — Chrome его не поддерживает, см. примечание ниже.",
-    "description": "Protocol auto-detect failed and a password was set — likely SOCKS auth, unsupported in Chrome."
-  },
   "settings_socks_auth_warn": {
     "message": "⚠ Chrome не передаёт логин/пароль SOCKS-прокси. Уберите пароль и ограничьте доступ по IP, выберите HTTP/HTTPS или установите ProxyPilot для Firefox.",
     "description": "Inline warning under the auth fields when SOCKS + credentials are set in Chrome."

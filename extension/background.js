@@ -541,11 +541,12 @@ async function detectScheme(host, port, user, pass) {
   }
 
   state.proxy = origProxy;
-  // A password was provided but nothing probed OK. In Chrome the usual culprit is a
-  // SOCKS proxy that needs auth (unsupported) — point the user at the fix instead of
-  // a bare "couldn't detect".
-  const failKey = (pass && !isFirefox) ? 'settings_detect_failed_socks_auth' : 'settings_detect_failed';
-  state.detectStatus = { running: false, ok: false, error: t(failKey) };
+  // Don't speculate about SOCKS auth here: auto-detect can't tell "SOCKS needs a
+  // password" apart from "an HTTP/HTTPS proxy is simply unreachable" — both fail
+  // every probe — so a SOCKS hint would false-positive on unreachable HTTP proxies.
+  // The precise SOCKS-auth warning lives where the scheme is known for sure: the
+  // settings form (socksAuthUnsupported) and the proxy test.
+  state.detectStatus = { running: false, ok: false, error: t('settings_detect_failed') };
   await saveState(state);
   if (origProxy) await applyProxy(state);
 }

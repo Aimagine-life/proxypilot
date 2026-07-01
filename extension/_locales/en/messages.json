@@ -311,10 +311,6 @@
     "message": "Couldn't detect protocol",
     "description": "Protocol auto-detect failed with no specific reason."
   },
-  "settings_detect_failed_socks_auth": {
-    "message": "Couldn't detect the protocol. If this is a SOCKS proxy with a login/password, Chrome doesn't support it — see the note below.",
-    "description": "Protocol auto-detect failed and a password was set — likely SOCKS auth, unsupported in Chrome."
-  },
   "settings_socks_auth_warn": {
     "message": "⚠ Chrome can't send a login/password to SOCKS proxies. Remove the password and allow access by IP instead, choose HTTP/HTTPS, or install ProxyPilot for Firefox.",
     "description": "Inline warning under the auth fields when SOCKS + credentials are set in Chrome."
