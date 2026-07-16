@@ -319,6 +319,14 @@
     "message": "Chrome не поддерживает SOCKS-прокси с паролем. Уберите пароль (доступ по IP), выберите HTTP/HTTPS или используйте ProxyPilot для Firefox.",
     "description": "Test/connection error shown when a SOCKS proxy needs auth that Chrome can't provide."
   },
+  "err_proxy_control_other": {
+    "message": "Настройками прокси Chrome управляет другое расширение — ProxyPilot сейчас не действует. Отключите другое VPN/прокси-расширение или переустановите ProxyPilot, чтобы вернуть ему контроль.",
+    "description": "Warning when chrome.proxy levelOfControl says another extension owns the proxy settings."
+  },
+  "err_proxy_control_system": {
+    "message": "Настройки прокси заблокированы системной политикой (корпоративная политика или антивирус) — ProxyPilot не может их изменить.",
+    "description": "Warning when chrome.proxy levelOfControl is not_controllable (policy/OS lock)."
+  },
   "settings_test_russian_proxy_title": {
     "message": "Прокси в вашем регионе",
     "description": "Test result title when the proxy resolves to the user's own region."

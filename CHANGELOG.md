@@ -4,6 +4,32 @@
 [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версионирование — [SemVer](https://semver.org/lang/ru/).
 
+## [0.16.5] — 2026-07-16
+
+### Исправлено
+- **«Проверить прокси» больше не отключает прокси.** После любого теста прокси
+  (а также автоопределения протокола) расширение временно подменяло PAC-скрипт и
+  затем сбрасывало настройки, но из-за кэша «PAC не изменился» не применяло их
+  обратно — браузер оставался вообще без прокси до ближайшего перезапуска
+  service worker'а, и трафик шёл с реального IP при зелёном статусе. Теперь
+  рабочий PAC восстанавливается сразу после теста.
+- **Предупреждение, когда настройками прокси управляет не ProxyPilot.** Chrome
+  отдаёт контроль над прокси тому расширению, что установлено позже; проигравший
+  `set()` молча игнорируется — ProxyPilot думал, что всё применил, показывал
+  зелёный статус, а трафик шёл напрямую (казалось «прокси подключен, но регион
+  RU»; временно лечилось переустановкой). Теперь расширение проверяет
+  `levelOfControl` и честно сообщает: янтарный баннер на главном экране и в
+  настройках, явная ошибка вместо бессмысленного результата в «Проверить прокси»
+  и автоопределении протокола. Отдельное сообщение для блокировки системной
+  политикой (антивирус / корпоративная политика). Спасибо Георгию за баг-репорт.
+
+> Store changelog (EN): Fixed — testing the proxy no longer silently disables it
+> (the routing PAC is restored right after each probe; previously traffic could
+> bypass the proxy with your real IP until the service worker restarted). Added —
+> ProxyPilot now detects when another extension or a system policy controls
+> Chrome's proxy settings and shows a clear warning instead of a false green
+> status. Thanks to a user bug report.
+
 ## [0.16.4] — 2026-07-01
 
 ### Исправлено
