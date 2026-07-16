@@ -5,9 +5,9 @@
 import './lib/compat.js';
 import { t } from './lib/i18n.js';
 import { loadState, saveState } from './lib/storage.js';
-import { applyProxy, registerProxyAuth, probeThroughProxy } from './lib/proxy-backend.js';
+import { applyProxy, registerProxyAuth, probeThroughProxy, proxyControlStatus, isFirefox } from './lib/proxy-backend.js';
 import { setIconState } from './lib/icon.js';
-import { isHostRouted } from './lib/pac.js';
+import { isHostRouted, socksAuthUnsupported } from './lib/pac.js';
 import { checkAllPresets, isCheckDue, checkDomain, applyRknResults } from './lib/rkn-check.js';
 import { pickAndValidate, fetchPool, nextLiveProxy, nextWarmProxy, DEAD_HOST_TTL_MS } from './lib/free-pool.js';
 import { registerFailureAndDecide } from './lib/rotation-policy.js';
@@ -282,11 +282,28 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
 });
 
+// Human message for a lost proxy-settings war (see proxyControlStatus).
+function controlErrorText(control) {
+  return t(control === 'system' ? 'err_proxy_control_system' : 'err_proxy_control_other');
+}
+
 async function runProxyTest(url) {
   const state = await loadState();
   if (!state.proxy?.host) return { ok: false, error: t('err_no_proxy_configured') };
+  // With control lost, the probe PAC never takes effect: the fetch goes DIRECT and
+  // "succeeds" with the user's real IP — a green result that means nothing. Fail
+  // fast with the actual cause instead.
+  const control = await proxyControlStatus();
+  if (control !== 'ok') return { ok: false, error: controlErrorText(control) };
   const r = await probeThroughProxy(url, state.proxy, { timeoutMs: 8000, parseJson: url.includes('ipinfo.io') });
-  if (!r.ok) { await applyProxy(state); return { ok: false, error: r.error }; }
+  if (!r.ok) {
+    await applyProxy(state);
+    // Replace the opaque "Failed to fetch" with the real cause when it's a SOCKS
+    // proxy needing auth that Chrome structurally can't provide.
+    const p = state.proxy;
+    const error = socksAuthUnsupported(p.scheme, p.user, isFirefox) ? t('err_socks_auth_unsupported') : r.error;
+    return { ok: false, error };
+  }
   let extra = {};
   if (url.includes('ipinfo.io') && r.json) {
     extra = { ip: r.json.ip, country: r.json.country };
@@ -454,6 +471,20 @@ async function handleProxyError(details) {
   if (!state.enabled) return;
   if (state.proxySource !== 'free' && state.proxySource !== 'own') return;
 
+  // SOCKS+auth always fails with ERR_SOCKS_CONNECTION_FAILED in Chrome — a browser
+  // limitation, not a dead proxy. Rotating can't help (every SOCKS+auth pick fails
+  // the same way), so surface the reason on the own-pool card and stop, without
+  // marking anything dead. Free-pool proxies carry no credentials, so this never
+  // trips for them.
+  if (socksAuthUnsupported(state.proxy?.scheme, state.proxy?.user, isFirefox)) {
+    if (state.proxySource === 'own' && state.ownPool &&
+        state.ownPool.lastError !== t('err_socks_auth_unsupported')) {
+      state.ownPool.lastError = t('err_socks_auth_unsupported');
+      await saveState(state);
+    }
+    return;
+  }
+
   // Tolerate a slow first connection: only rotate when a proxy fails repeatedly
   // in a short window (a genuinely dead proxy keeps failing). registerFailure-
   // AndDecide tracks per-proxy failures and resets when we rotate or switch.
@@ -513,6 +544,16 @@ async function detectScheme(host, port, user, pass) {
   const state = await loadState();
   const origProxy = state.proxy;
 
+  // With control lost every probe goes DIRECT, so the FIRST candidate (http)
+  // would falsely "succeed" against a live internet connection. Bail out with
+  // the real cause before probing.
+  const control = await proxyControlStatus();
+  if (control !== 'ok') {
+    state.detectStatus = { running: false, ok: false, error: controlErrorText(control) };
+    await saveState(state);
+    return;
+  }
+
   state.proxy = { host, port: Number(port), scheme: 'auto', user: user || '', pass: pass || '' };
   state.detectStatus = { running: true, trying: candidates[0] };
   await saveState(state);
@@ -532,6 +573,11 @@ async function detectScheme(host, port, user, pass) {
   }
 
   state.proxy = origProxy;
+  // Don't speculate about SOCKS auth here: auto-detect can't tell "SOCKS needs a
+  // password" apart from "an HTTP/HTTPS proxy is simply unreachable" — both fail
+  // every probe — so a SOCKS hint would false-positive on unreachable HTTP proxies.
+  // The precise SOCKS-auth warning lives where the scheme is known for sure: the
+  // settings form (socksAuthUnsupported) and the proxy test.
   state.detectStatus = { running: false, ok: false, error: t('settings_detect_failed') };
   await saveState(state);
   if (origProxy) await applyProxy(state);

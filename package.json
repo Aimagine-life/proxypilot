@@ -1,6 +1,6 @@
 {
   "name": "proxypilot",
-  "version": "0.16.4",
+  "version": "0.16.6",
   "private": true,
   "license": "MIT",
   "type": "module",

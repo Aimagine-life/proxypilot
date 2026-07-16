@@ -74,15 +74,33 @@ test('Firefox validateProxy: probe-override роутит тест-URL через
 });
 
 // Chrome env helper: chrome.proxy WITHOUT onRequest → isFirefox=false → chromeApply path.
-function chromeEnv() {
+// Tracks every set/clear call (with the PAC data passed) and the "live" browser
+// setting, so tests can assert what the network stack would actually be using.
+function chromeEnv({ levelOfControl = 'controlled_by_this_extension' } = {}) {
   let setCount = 0;
   let clearCount = 0;
+  const calls = [];        // [{op: 'set', data} | {op: 'clear'}] in order
+  let liveValue = null;    // what the browser proxy setting currently holds
   globalThis.chrome = {
-    proxy: { settings: { set: async () => { setCount++; }, clear: async () => { clearCount++; } } },
+    proxy: {
+      settings: {
+        set: async ({ value }) => {
+          setCount++;
+          liveValue = value?.pacScript?.data ?? null;
+          calls.push({ op: 'set', data: liveValue });
+        },
+        clear: async () => {
+          clearCount++;
+          liveValue = null;
+          calls.push({ op: 'clear' });
+        },
+        get: async () => ({ levelOfControl }),
+      },
+    },
     storage: { local: { get: async () => ({}), set: async () => {} } },
     webRequest: { onAuthRequired: { addListener: () => {} } },
   };
-  return { counts: () => ({ setCount, clearCount }) };
+  return { counts: () => ({ setCount, clearCount }), calls, live: () => liveValue };
 }
 
 test('Chrome applyProxy: re-applying identical state does NOT re-set PAC', async () => {
@@ -101,26 +119,64 @@ test('Chrome applyProxy: changed proxy host DOES re-set PAC', async () => {
   assert.equal(env.counts().setCount, 2);
 });
 
-// Регрессия: chromeProbe очищает реальные настройки прокси в finally. Если после
-// этого applyProxy с ТЕМ ЖЕ state пропустит set из-за dedupe-кэша, роутинг молча
-// останется выключенным после каждого «Проверить прокси» / автоопределения схемы.
-test('Chrome probeThroughProxy: applyProxy after a probe re-sets PAC (probe cleared real settings)', async () => {
+// Regression (0.16.4): chromeProbe cleared the proxy settings in finally without
+// resetting lastAppliedPac, so the follow-up applyProxy() saw "unchanged" and
+// skipped the re-set — every "Проверить прокси" left the browser with NO proxy
+// (real-IP leak) until the next service-worker restart.
+test('Chrome probe: restores the routing PAC after the probe (not cleared)', async () => {
   const env = chromeEnv();
   globalThis.fetch = async () => ({ ok: true, status: 200 });
-  const m = await import(`../extension/lib/proxy-backend.js?probe=${Date.now()}`);
-  await m.applyProxy(ROUTED_STATE);                                   // set #1
-  const r = await m.probeThroughProxy('https://probe.test/', ROUTED_STATE.proxy, { timeoutMs: 200 }); // set #2 + clear
+  const m = await import(`../extension/lib/proxy-backend.js?probe1=${Date.now()}`);
+  await m.applyProxy(ROUTED_STATE);
+  const routingPac = env.live();
+  assert.match(routingPac, /dnsDomainIs/, 'sanity: routing PAC is live before probe');
+
+  const r = await m.probeThroughProxy('https://example.test/x', ROUTED_STATE.proxy, { timeoutMs: 1000 });
   assert.equal(r.ok, true);
-  await m.applyProxy(ROUTED_STATE);                                   // must set again — settings are cleared
-  assert.equal(env.counts().setCount, 3);
-  assert.equal(env.counts().clearCount, 1);
+  assert.equal(env.live(), routingPac, 'routing PAC is live again after the probe');
 });
 
-test('Chrome clearProxy: applyProxy of the same state after clear re-sets PAC', async () => {
+test('Chrome probe: with no PAC applied, ends cleared (no stray probe PAC)', async () => {
   const env = chromeEnv();
-  const m = await import(`../extension/lib/proxy-backend.js?clear=${Date.now()}`);
+  globalThis.fetch = async () => ({ ok: true, status: 200 });
+  const m = await import(`../extension/lib/proxy-backend.js?probe2=${Date.now()}`);
+  await m.probeThroughProxy('https://example.test/x', ROUTED_STATE.proxy, { timeoutMs: 1000 });
+  assert.equal(env.live(), null, 'browser proxy setting is cleared after the probe');
+});
+
+test('Chrome clearProxy resets the PAC cache → applyProxy re-sets after clear', async () => {
+  const env = chromeEnv();
+  const m = await import(`../extension/lib/proxy-backend.js?clearcache=${Date.now()}`);
   await m.applyProxy(ROUTED_STATE);
   await m.clearProxy();
-  await m.applyProxy(ROUTED_STATE);
-  assert.equal(env.counts().setCount, 2);
+  await m.applyProxy(ROUTED_STATE); // same PAC string, but the browser was cleared
+  assert.equal(env.counts().setCount, 2, 'PAC re-applied after clear despite identical string');
+  assert.match(env.live(), /dnsDomainIs/, 'routing PAC live again');
+});
+
+// proxyControlStatus: Chrome resolves extension conflicts by install time; a
+// losing set() is silently ignored, so surfacing levelOfControl is the only way
+// to tell the user why "everything is green" yet traffic bypasses the proxy.
+test('proxyControlStatus: controlled_by_this_extension → ok', async () => {
+  chromeEnv({ levelOfControl: 'controlled_by_this_extension' });
+  const m = await import(`../extension/lib/proxy-backend.js?ctl1=${Date.now()}`);
+  assert.equal(await m.proxyControlStatus(), 'ok');
+});
+
+test('proxyControlStatus: controlled_by_other_extensions → other_extension', async () => {
+  chromeEnv({ levelOfControl: 'controlled_by_other_extensions' });
+  const m = await import(`../extension/lib/proxy-backend.js?ctl2=${Date.now()}`);
+  assert.equal(await m.proxyControlStatus(), 'other_extension');
+});
+
+test('proxyControlStatus: not_controllable → system', async () => {
+  chromeEnv({ levelOfControl: 'not_controllable' });
+  const m = await import(`../extension/lib/proxy-backend.js?ctl3=${Date.now()}`);
+  assert.equal(await m.proxyControlStatus(), 'system');
+});
+
+test('proxyControlStatus: Firefox (onRequest backend) → always ok, no settings.get', async () => {
+  // beforeEach set the Firefox env (proxy.onRequest present, no settings.get at all).
+  const m = await import(`../extension/lib/proxy-backend.js?ctlff=${Date.now()}`);
+  assert.equal(await m.proxyControlStatus(), 'ok');
 });

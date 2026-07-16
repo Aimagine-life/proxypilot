@@ -311,6 +311,22 @@
     "message": "Couldn't detect protocol",
     "description": "Protocol auto-detect failed with no specific reason."
   },
+  "settings_socks_auth_warn": {
+    "message": "⚠ Chrome can't send a login/password to SOCKS proxies. Remove the password and allow access by IP instead, choose HTTP/HTTPS, or install ProxyPilot for Firefox.",
+    "description": "Inline warning under the auth fields when SOCKS + credentials are set in Chrome."
+  },
+  "err_socks_auth_unsupported": {
+    "message": "Chrome doesn't support password-protected SOCKS proxies. Remove the password (allow access by IP), choose HTTP/HTTPS, or use ProxyPilot for Firefox.",
+    "description": "Test/connection error shown when a SOCKS proxy needs auth that Chrome can't provide."
+  },
+  "err_proxy_control_other": {
+    "message": "Another extension is controlling Chrome's proxy settings, so ProxyPilot has no effect right now. Disable the other VPN/proxy extension (or reinstall ProxyPilot) to hand control back.",
+    "description": "Warning when chrome.proxy levelOfControl says another extension owns the proxy settings."
+  },
+  "err_proxy_control_system": {
+    "message": "Proxy settings are locked by a system policy (enterprise policy or antivirus) — ProxyPilot can't change them.",
+    "description": "Warning when chrome.proxy levelOfControl is not_controllable (policy/OS lock)."
+  },
   "settings_test_russian_proxy_title": {
     "message": "Proxy is in your region",
     "description": "Test result title when the proxy resolves to the user's own region."

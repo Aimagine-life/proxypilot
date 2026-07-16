@@ -3,8 +3,14 @@ import { t, plural, localizeDom, uiLang } from '../lib/i18n.js';
 import { loadState, saveState } from '../lib/storage.js';
 import { parseEntry, ValidationError } from '../lib/domain.js';
 import { PRESET_DEFINITIONS, PRESET_ORDER, CATEGORIES } from '../lib/presets.js';
+import { socksAuthUnsupported } from '../lib/pac.js';
+import { proxyControlStatus } from '../lib/proxy-backend.js';
 
 const $ = (sel) => document.querySelector(sel);
+
+// Chrome can't authenticate SOCKS proxies; Firefox can. Detected once for the
+// popup session and reused (store links, SOCKS-auth warning).
+const IS_FIREFOX = navigator.userAgent.includes('Firefox');
 
 let state = null;
 let searchQuery = '';            // live preset filter (popup-session only)
@@ -52,6 +58,7 @@ async function init() {
   bindSettings();
   bindFirstRun();
   bindThemeSwitcher();
+  updateControlWarn(); // fire-and-forget — must not delay first paint
 }
 
 const systemDarkMedia = matchMedia('(prefers-color-scheme: dark)');
@@ -330,8 +337,7 @@ function bindMain() {
   $('#about-rate').addEventListener('click', () => {
     // Open the store's reviews page for the current browser. No analytics —
     // a plain outbound link to the store, matching the "no tracking" stance.
-    const isFirefox = navigator.userAgent.includes('Firefox');
-    const url = isFirefox
+    const url = IS_FIREFOX
       ? 'https://addons.mozilla.org/firefox/addon/proxypilot/reviews/'
       : 'https://chromewebstore.google.com/detail/proxypilot/gmbihijfnafhpafknokdnkkafbbkbehj/reviews';
     chrome.tabs.create({ url });
@@ -561,6 +567,7 @@ function bindSettings() {
       state.proxy[key] = parse(el.value);
       mirrorManual();
       await persist();
+      updateSocksAuthWarn();
     });
   }
 
@@ -644,6 +651,39 @@ function bindSettings() {
   });
 }
 
+// Chrome resolves proxy-settings conflicts between extensions by install time —
+// when another extension (VPN, antivirus) wins, our set() is silently ignored and
+// traffic bypasses the proxy while every indicator stays green. Surface that loss
+// of control as a banner on both screens (see proxyControlStatus).
+async function updateControlWarn() {
+  const status = await proxyControlStatus().catch(() => 'ok');
+  const text = status === 'ok'
+    ? ''
+    : t(status === 'system' ? 'err_proxy_control_system' : 'err_proxy_control_other');
+  const mainBanner = $('#control-warn-main');
+  if (mainBanner) {
+    mainBanner.hidden = !text;
+    $('#control-warn-main-text').textContent = text;
+  }
+  const settingsWarn = $('#control-warn-settings');
+  if (settingsWarn) {
+    settingsWarn.hidden = !text;
+    settingsWarn.textContent = text ? `⚠ ${text}` : '';
+  }
+}
+
+// SOCKS proxies with a login/password can't authenticate in Chrome (no API for
+// it; onAuthRequired never fires for SOCKS), so the credentials are silently
+// dropped and the connection fails with "failed to fetch". Surface an inline
+// warning instead. Firefox passes them inline, so it stays hidden there.
+function updateSocksAuthWarn() {
+  const el = $('#socks-auth-warn');
+  if (!el) return;
+  const blocked = socksAuthUnsupported(state.proxy?.scheme, state.proxy?.user, IS_FIREFOX);
+  el.hidden = !blocked;
+  if (blocked) el.textContent = t('settings_socks_auth_warn');
+}
+
 function renderSettings() {
   ensureProxyObject();
 
@@ -667,6 +707,7 @@ function renderSettings() {
   for (const pill of document.querySelectorAll('#scheme-pills .pill')) {
     pill.classList.toggle('active', pill.dataset.scheme === state.proxy?.scheme);
   }
+  updateSocksAuthWarn();
 
   // Free-block render
   if (isFree) renderFreeBlock();
@@ -676,6 +717,7 @@ function renderSettings() {
 
   renderThemePills();
   $('#test-result').hidden = true;
+  updateControlWarn(); // fire-and-forget
 }
 
 function countryFlag(cc) {

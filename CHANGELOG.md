@@ -4,15 +4,9 @@
 [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версионирование — [SemVer](https://semver.org/lang/ru/).
 
-## [0.16.4] — 2026-07-16
+## [0.16.6] — 2026-07-16
 
 ### Исправлено
-- **Прокси молча отключался после «Проверить прокси» и автоопределения схемы.**
-  Любая проверка (тест прокси, тест сервиса, автоопределение протокола, скан
-  бесплатного пула) временно перенастраивает системный прокси и затем сбрасывает
-  его — но внутренний кэш «какой PAC уже применён» не сбрасывался, и повторное
-  применение той же конфигурации пропускалось как «ничего не изменилось».
-  В итоге после проверки трафик шёл напрямую, пока настройки не менялись ещё раз.
 - **PAC-скрипт роутил домены-двойники.** `dnsDomainIs` в браузерах — простое
   сравнение суффикса строки: `fakegoogle.com` подпадал под правило `google.com`
   и уходил через прокси (для бесплатного пула — через недоверенный), хотя иконка
@@ -45,15 +39,61 @@
   warm-standby прокси (`validatedAt`) фиксируется в момент проверки, а не в конце
   скана.
 
-> Store changelog (EN): Fixed — routing silently stayed off after "Test proxy" /
-> scheme auto-detect (proxy settings were cleared but not re-applied); PAC no
-> longer routes lookalike domains (`fakegoogle.com` matched `google.com` due to
-> dnsDomainIs suffix matching); scheme auto-detect result no longer disappears
-> instantly or reappears stale on later popup opens; a disabled extension no
-> longer touches proxy settings when an external proxy fails; the popup resyncs
-> to the real proxy source if switching fails mid-way; the main screen updates
-> live while the popup is open; proxy/service tests always report a result;
-> "all sources unavailable" error is now properly localized.
+> Store changelog (EN): Fixed — PAC no longer routes lookalike domains
+> (`fakegoogle.com` matched `google.com` due to dnsDomainIs suffix matching);
+> scheme auto-detect result no longer disappears instantly or reappears stale on
+> later popup opens; a disabled extension no longer touches proxy settings when
+> an external proxy fails; the popup resyncs to the real proxy source if
+> switching fails mid-way; the main screen updates live while the popup is open;
+> proxy/service tests always report a result; "all sources unavailable" error is
+> now properly localized.
+
+## [0.16.5] — 2026-07-16
+
+### Исправлено
+- **«Проверить прокси» больше не отключает прокси.** После любого теста прокси
+  (а также автоопределения протокола) расширение временно подменяло PAC-скрипт и
+  затем сбрасывало настройки, но из-за кэша «PAC не изменился» не применяло их
+  обратно — браузер оставался вообще без прокси до ближайшего перезапуска
+  service worker'а, и трафик шёл с реального IP при зелёном статусе. Теперь
+  рабочий PAC восстанавливается сразу после теста.
+- **Предупреждение, когда настройками прокси управляет не ProxyPilot.** Chrome
+  отдаёт контроль над прокси тому расширению, что установлено позже; проигравший
+  `set()` молча игнорируется — ProxyPilot думал, что всё применил, показывал
+  зелёный статус, а трафик шёл напрямую (казалось «прокси подключен, но регион
+  RU»; временно лечилось переустановкой). Теперь расширение проверяет
+  `levelOfControl` и честно сообщает: янтарный баннер на главном экране и в
+  настройках, явная ошибка вместо бессмысленного результата в «Проверить прокси»
+  и автоопределении протокола. Отдельное сообщение для блокировки системной
+  политикой (антивирус / корпоративная политика). Спасибо Георгию за баг-репорт.
+
+> Store changelog (EN): Fixed — testing the proxy no longer silently disables it
+> (the routing PAC is restored right after each probe; previously traffic could
+> bypass the proxy with your real IP until the service worker restarted). Added —
+> ProxyPilot now detects when another extension or a system policy controls
+> Chrome's proxy settings and shows a clear warning instead of a false green
+> status. Thanks to a user bug report.
+
+## [0.16.4] — 2026-07-01
+
+### Исправлено
+- **Понятное сообщение о SOCKS-прокси с паролем в Chrome.** Chrome не умеет
+  передавать логин/пароль SOCKS-прокси — это ограничение самого браузера: в его
+  API нет поля для этого, а событие авторизации (`onAuthRequired`) для SOCKS не
+  срабатывает. Раньше пароль молча игнорировался, и подключение падало с невнятным
+  «failed to fetch». Теперь расширение честно предупреждает об этом в форме под полем
+  авторизации и в результате проверки прокси — и подсказывает рабочие варианты: убрать
+  пароль и ограничить доступ по IP, выбрать HTTP/HTTPS или использовать ProxyPilot для
+  Firefox (там SOCKS с паролем работает). «Свой пул» больше не помечает такой прокси
+  «мёртвым» и не запускает бесполезную ротацию. Спасибо
+  [@vasyna](https://github.com/vasyna) за баг-репорт (#9).
+
+> Store changelog (EN): Fixed — clearer handling of password-protected SOCKS proxies
+> in Chrome. Chrome structurally can't send credentials to SOCKS proxies (a browser
+> limitation), so the password was silently dropped and the connection failed with a
+> cryptic "failed to fetch". ProxyPilot now warns about this in the settings form and the
+> proxy test, and suggests working alternatives — allow access by IP, use HTTP/HTTPS, or
+> ProxyPilot for Firefox (where SOCKS auth works). Thanks @vasyna (#9).
 
 ## [0.16.3] — 2026-06-24
 
