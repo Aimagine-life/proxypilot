@@ -70,6 +70,10 @@ async function chromeProbe(url, proxy, timeoutMs) {
     // re-set when the PAC string is unchanged (lastAppliedPac), which used to
     // leave the browser with NO proxy after every test — a silent real-IP leak
     // until the next service-worker restart.
+    // Known limitation: right after an SW restart lastAppliedPac is undefined even
+    // if the browser still holds a PAC from the previous SW life — a probe in that
+    // window ends with clear() instead of restore. Same behaviour as before this
+    // fix, and boot() re-applies the PAC on every SW wake, so the window is tiny.
     if (typeof lastAppliedPac === 'string') {
       await chrome.proxy.settings.set({
         value: { mode: 'pac_script', pacScript: { data: lastAppliedPac, mandatory: true } },
