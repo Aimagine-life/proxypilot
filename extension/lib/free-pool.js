@@ -238,7 +238,14 @@ export async function fetchAllSources() {
     if (settled[i].status === 'fulfilled') { okCount++; merged.push(...settled[i].value); }
     else console.warn(`[FreePool] источник ${SOURCES[i].name} недоступен:`, settled[i].reason?.message || settled[i].reason);
   }
-  if (okCount === 0) throw new Error('все источники недоступны');
+  if (okCount === 0) {
+    // Russian message = fallback for logs/tests; `code` lets pickAndValidate map
+    // this to a fully localized errorCode instead of embedding raw Russian text
+    // into the localized error shown to non-RU users.
+    const err = new Error('все источники недоступны');
+    err.code = 'all_sources_failed';
+    throw err;
+  }
   return dedupePool(merged);
 }
 
@@ -340,14 +347,15 @@ export async function pickAndValidate(state, { onProgress, validate = _validateP
   try {
     pool = await fetchPool();
   } catch (err) {
+    const allDown = err.code === 'all_sources_failed';
     return {
       pick: null,
       warm: [],
       attemptedHosts: [],
       poolSize: 0,
       error: `не удалось загрузить список: ${err.message}`,
-      errorCode: 'load_list_failed',
-      errorParams: [err.message],
+      errorCode: allDown ? 'all_sources_failed' : 'load_list_failed',
+      errorParams: allDown ? null : [err.message],
     };
   }
   const candidates = filterPool(pool, { deadHosts });
@@ -378,7 +386,9 @@ export async function pickAndValidate(state, { onProgress, validate = _validateP
     }
     const result = await validate(cand);
     if (!result.ok) continue;
-    working.push({ cand, latencyMs: result.latencyMs });
+    // Stamp validation time NOW — the scan can run for minutes, and a stamp taken
+    // at return time would overstate warm-standby freshness (WARM_MAX_AGE_MS).
+    working.push({ cand, latencyMs: result.latencyMs, validatedAt: Date.now() });
     // Fast enough → stop scanning. It becomes the pick; anything slower already
     // collected becomes the warm standby (validated, just not the fastest).
     if (result.latencyMs <= FAST_LATENCY_MS) break;
@@ -389,8 +399,8 @@ export async function pickAndValidate(state, { onProgress, validate = _validateP
     working.sort((a, b) => a.latencyMs - b.latencyMs);
     const [first, ...rest] = working;
     return {
-      pick: makePick(first.cand, first.latencyMs),
-      warm: rest.map((w) => makePick(w.cand, w.latencyMs)),
+      pick: makePick(first.cand, first.latencyMs, first.validatedAt),
+      warm: rest.map((w) => makePick(w.cand, w.latencyMs, w.validatedAt)),
       attemptedHosts: attempted,
       poolSize: pool.length,
       error: null,
@@ -410,14 +420,14 @@ export async function pickAndValidate(state, { onProgress, validate = _validateP
 }
 
 /** Build a free-pick object from a validated candidate + measured latency. */
-function makePick(cand, latencyMs) {
+function makePick(cand, latencyMs, validatedAt = Date.now()) {
   return {
     host: cand.host,
     port: cand.port,
     scheme: cand.protocol,
     country: cand.country || null,
     latencyMs,
-    validatedAt: Date.now(),
+    validatedAt,
   };
 }
 

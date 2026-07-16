@@ -67,9 +67,11 @@ export async function loadState() {
   // merge in any domains added to the definition since (e.g. new CDN hosts):
   // routing reads domains from state, so without this an upgrade never reaches
   // existing users. Only extends the domain list — never touches `enabled`.
-  saved.presets = saved.presets || {};
+  if (!saved.presets || typeof saved.presets !== 'object') saved.presets = {};
   for (const [key, def] of Object.entries(defaults.presets)) {
-    if (!saved.presets[key]) {
+    // Missing OR corrupted (non-object) entry → replace with the disabled default;
+    // assigning .domains to a primitive would throw in strict mode.
+    if (!saved.presets[key] || typeof saved.presets[key] !== 'object') {
       saved.presets[key] = { ...def, enabled: false };
       continue;
     }

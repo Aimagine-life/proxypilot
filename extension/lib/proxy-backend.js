@@ -50,6 +50,7 @@ async function chromeApply(state) {
 }
 async function chromeClear() {
   await chrome.proxy.settings.clear({ scope: 'regular' });
+  lastAppliedPac = null; // actual settings are now cleared — invalidate the dedupe cache
 }
 async function chromeProbe(url, proxy, timeoutMs) {
   try {
@@ -63,6 +64,10 @@ async function chromeProbe(url, proxy, timeoutMs) {
     return await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(timeoutMs) });
   } finally {
     await chrome.proxy.settings.clear({ scope: 'regular' });
+    // The clear above wiped the real settings, so the dedupe cache must not claim
+    // the old PAC is still applied — otherwise the caller's applyProxy() after the
+    // probe would be skipped and routing would silently stay off.
+    lastAppliedPac = null;
   }
 }
 function chromeRegisterAuth(loadState) {

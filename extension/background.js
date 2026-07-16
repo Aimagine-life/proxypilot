@@ -139,8 +139,12 @@ async function refreshTabIcon(tabId, state) {
 // --- popup messaging ------------------------------------------------------
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  // Every async branch must answer even on an unexpected throw — a dropped
+  // sendResponse leaves the popup's await hanging with no error card.
+  const respondError = (err) => sendResponse({ ok: false, error: String(err?.message || err) });
+
   if (msg?.type === 'TEST_PROXY') {
-    runProxyTest('https://ipinfo.io/json').then(sendResponse);
+    runProxyTest('https://ipinfo.io/json').then(sendResponse).catch(respondError);
     return true; // async response
   }
   if (msg?.type === 'TEST_SERVICE') {
@@ -148,13 +152,14 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     // comes from a runtime message).
     const domain = String(msg.domain || '').replace(/[^a-z0-9.-]/gi, '');
     if (!domain) { sendResponse({ ok: false, error: t('err_no_domain_to_test') }); return false; }
-    runProxyTest(`https://${domain}/`).then(sendResponse);
+    runProxyTest(`https://${domain}/`).then(sendResponse).catch(respondError);
     return true;
   }
   if (msg?.type === 'DETECT_SCHEME') {
     // Fire-and-forget: run detection in background, write result to storage.
     // Popup watches storage changes to update UI.
-    detectScheme(msg.host, msg.port, msg.user, msg.pass);
+    detectScheme(msg.host, msg.port, msg.user, msg.pass)
+      .catch((err) => console.warn('[bg] detectScheme failed:', err));
     sendResponse({ started: true });
     return false;
   }
@@ -169,7 +174,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       const st = await loadState();
       await runRknCheck(st);
       sendResponse(st.rknResults || {});
-    })();
+    })().catch((err) => {
+      console.warn('[bg] RKN_CHECK failed:', err);
+      sendResponse({});
+    });
     return true;
   }
 
@@ -440,6 +448,10 @@ async function handleProxyError(details) {
   if (!PROXY_ERROR_CODES.has(details.error)) return;
 
   const state = await loadState();
+  // Disabled → our PAC is cleared, so these proxy errors come from something
+  // else (system/other-extension proxy). Rotating would hijack chrome.proxy
+  // settings during validation while the user has us switched OFF.
+  if (!state.enabled) return;
   if (state.proxySource !== 'free' && state.proxySource !== 'own') return;
 
   // Tolerate a slow first connection: only rotate when a proxy fails repeatedly

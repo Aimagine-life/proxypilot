@@ -62,15 +62,19 @@ export function buildPacScript(state) {
 
   const directiveJson = JSON.stringify(directive);
 
+  // NB: Chrome's/Firefox's dnsDomainIs() is a PLAIN suffix match ("fakegoogle.com"
+  // matches "google.com"), so match on '.' + domain to enforce the label boundary,
+  // plus an exact-equality check for the domain itself. Keeps PAC routing identical
+  // to isHostRouted() below.
   return [
     'function FindProxyForURL(url, host) {',
     `  var suffixes = ${JSON.stringify(suffixes)};`,
     '  for (var i = 0; i < suffixes.length; i++) {',
-    `    if (dnsDomainIs(host, suffixes[i])) return ${directiveJson};`,
+    `    if (host === suffixes[i] || dnsDomainIs(host, "." + suffixes[i])) return ${directiveJson};`,
     '  }',
     `  var wildcards = ${JSON.stringify(wildcards)};`,
     '  for (var i = 0; i < wildcards.length; i++) {',
-    `    if (host !== wildcards[i] && dnsDomainIs(host, wildcards[i])) return ${directiveJson};`,
+    `    if (dnsDomainIs(host, "." + wildcards[i])) return ${directiveJson};`,
     '  }',
     `  var exacts = ${JSON.stringify(exacts)};`,
     '  for (var i = 0; i < exacts.length; i++) {',

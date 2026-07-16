@@ -184,3 +184,49 @@ test('isHostRouted: googleLabs couples accounts.google.com for icon state too', 
 test('isHostRouted: false when extension disabled', () => {
   assert.equal(isHostRouted('netflix.com', { ...labsState, enabled: false }), false);
 });
+
+// --- Регрессия: dnsDomainIs в Chrome/Firefox — голый суффикс-матч ---
+// ("fakegoogle.com" матчится под "google.com"). PAC обязан проверять границу
+// метки ('.' + domain) и точное равенство, иначе левые домены-двойники уходят
+// через прокси, а isHostRouted (иконка) при этом считает их DIRECT.
+
+// Выполняем сгенерированный PAC с канонической реализацией dnsDomainIs из Chromium.
+function evalPac(pac) {
+  const dnsDomainIs = (host, domain) =>
+    host.length >= domain.length && host.substring(host.length - domain.length) === domain;
+  return new Function('dnsDomainIs', `${pac}\nreturn FindProxyForURL;`)(dnsDomainIs);
+}
+
+test('PAC: suffix — сам домен и поддомены роутятся, домен-двойник — нет', () => {
+  const fn = evalPac(buildPacScript(makeState()));
+  assert.match(fn('https://gemini.google.com/', 'gemini.google.com'), /^PROXY /);
+  assert.match(fn('https://sub.gemini.google.com/', 'sub.gemini.google.com'), /^PROXY /);
+  assert.equal(fn('https://evilgemini.google.com/', 'evilgemini.google.com'), 'DIRECT');
+  assert.equal(fn('https://example.com/', 'example.com'), 'DIRECT');
+});
+
+test('PAC: wildcard — только поддомены, ни сам домен, ни двойник', () => {
+  const fn = evalPac(buildPacScript(makeState({
+    customDomains: [{ value: 'anthropic.com', mode: 'wildcard' }],
+  })));
+  assert.match(fn('https://console.anthropic.com/', 'console.anthropic.com'), /^PROXY /);
+  assert.equal(fn('https://anthropic.com/', 'anthropic.com'), 'DIRECT');
+  assert.equal(fn('https://evilanthropic.com/', 'evilanthropic.com'), 'DIRECT');
+});
+
+test('PAC: exact — только точное совпадение', () => {
+  const fn = evalPac(buildPacScript(makeState({
+    customDomains: [{ value: 'api.mistral.ai', mode: 'exact' }],
+  })));
+  assert.match(fn('https://api.mistral.ai/', 'api.mistral.ai'), /^PROXY /);
+  assert.equal(fn('https://sub.api.mistral.ai/', 'sub.api.mistral.ai'), 'DIRECT');
+});
+
+test('PAC и isHostRouted согласованы на доменах-двойниках', () => {
+  const state = makeState();
+  const fn = evalPac(buildPacScript(state));
+  for (const host of ['gemini.google.com', 'sub.gemini.google.com', 'evilgemini.google.com', 'accounts.google.com']) {
+    const pacRouted = fn(`https://${host}/`, host) !== 'DIRECT';
+    assert.equal(pacRouted, isHostRouted(host, state), `расхождение PAC/isHostRouted на ${host}`);
+  }
+});

@@ -464,14 +464,14 @@ function makeCard(key, rknResults) {
 function showToast(msg) {
   const existing = document.querySelector('.toast');
   if (existing) existing.remove();
-  const t = document.createElement('div');
-  t.className = 'toast';
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(() => t.classList.add('show'), 10);
+  const el = document.createElement('div'); // NB: not `t` — would shadow i18n t()
+  el.className = 'toast';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.classList.add('show'), 10);
   setTimeout(() => {
-    t.classList.remove('show');
-    setTimeout(() => t.remove(), 300);
+    el.classList.remove('show');
+    setTimeout(() => el.remove(), 300);
   }, 2400);
 }
 
@@ -583,11 +583,18 @@ function bindSettings() {
       try {
         const res = await chrome.runtime.sendMessage({ type: 'SWITCH_SOURCE', source });
         pickingFree = false;
-        if (res?.state) state = res.state;
-        else if (res?.error && source === 'free' && state.freeProxy) state.freeProxy.lastError = res.error;
+        if (res?.state) {
+          state = res.state;
+        } else {
+          // Background failed before saving — the optimistic proxySource flip
+          // above no longer matches storage. Resync so the UI shows reality.
+          state = await loadState();
+          if (res?.error && source === 'free' && state.freeProxy) state.freeProxy.lastError = res.error;
+        }
         renderSettings();
       } catch (err) {
         pickingFree = false;
+        state = await loadState();
         if (source === 'free' && state.freeProxy) state.freeProxy.lastError = err.message;
         renderSettings();
       }
@@ -1011,12 +1018,15 @@ function tryParseProxyUrl(input) {
   if (atIdx !== -1) {
     const userinfo = rest.slice(0, atIdx);
     rest = rest.slice(atIdx + 1);
+    // Percent-decode, but tolerate raw '%' in passwords (decodeURIComponent throws
+    // on malformed sequences — a thrown blur handler would silently drop the input).
+    const dec = (s) => { try { return decodeURIComponent(s); } catch { return s; } };
     const colonIdx = userinfo.indexOf(':');
     if (colonIdx !== -1) {
-      user = decodeURIComponent(userinfo.slice(0, colonIdx));
-      pass = decodeURIComponent(userinfo.slice(colonIdx + 1));
+      user = dec(userinfo.slice(0, colonIdx));
+      pass = dec(userinfo.slice(colonIdx + 1));
     } else {
-      user = decodeURIComponent(userinfo);
+      user = dec(userinfo);
     }
   }
 
@@ -1083,7 +1093,7 @@ async function autoDetectScheme() {
     port: state.proxy.port,
     user: state.proxy.user || '',
     pass: state.proxy.pass || '',
-  });
+  }).catch(() => { /* popup may close before the ack — background carries on */ });
 }
 
 // Receive live progress from background's pickAndValidate. Guarded by pickingFree
@@ -1100,6 +1110,10 @@ chrome.runtime.onMessage.addListener((msg) => {
 });
 
 // Watch storage changes for detect progress + general state updates.
+// detectWasRunning tracks a live detection THIS popup has observed: the final
+// found/failed card is only rendered on the running\u2192done transition, so a stale
+// detectStatus left in storage from an old run can't resurface on later opens.
+let detectWasRunning = false;
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== 'local' || !changes.state) return;
   const newState = changes.state.newValue;
@@ -1108,26 +1122,36 @@ chrome.storage.onChanged.addListener((changes, area) => {
   applyTheme();
   renderThemePills();
 
+  // Keep the main screen live: background can rotate the free proxy / apply an
+  // RKN check while the popup is open. Settings screen is deliberately NOT
+  // re-rendered here — that would clobber form fields mid-typing (background
+  // bumps poolFetchedAt every 5 minutes).
+  if (!$('#screen-main').hidden) renderMain();
+
   const ds = state.detectStatus;
   const result = $('#test-result');
   const autoPill = document.querySelector('.pill[data-scheme="auto"]');
 
   if (ds?.running) {
+    detectWasRunning = true;
     result.hidden = false;
     result.className = 'result-block detecting';
     result.textContent = t('settings_detect_running', ds.trying?.toUpperCase() || '');
     if (autoPill) autoPill.classList.add('detecting');
-  } else if (ds && !ds.running) {
+  } else if (ds && !ds.running && detectWasRunning) {
+    detectWasRunning = false;
     if (autoPill) autoPill.classList.remove('detecting');
-    result.hidden = false;
     if (ds.ok) {
+      // renderSettings() first (it refreshes the scheme pills AND hides
+      // #test-result) \u2014 then show the result card so it stays visible.
+      renderSettings();
       result.className = 'result-block ok';
       result.textContent = t('settings_detect_found', ds.scheme.toUpperCase());
-      renderSettings();
     } else {
       result.className = 'result-block err';
       result.textContent = '\u2717 ' + (ds.error || t('settings_detect_failed'));
     }
+    result.hidden = false;
   }
 });
 
@@ -1158,7 +1182,7 @@ async function runTest(type) {
     const res = await chrome.runtime.sendMessage(
       type === 'TEST_SERVICE' ? { type, domain: target.domain } : { type },
     );
-    if (res.ok) {
+    if (res?.ok) {
       if (type === 'TEST_PROXY') {
         const cc = String(res.country || '').toUpperCase();
         const place = `${countryFlag(cc)} ${regionName(cc) || cc || '\u2014'}`.trim();
@@ -1185,7 +1209,7 @@ async function runTest(type) {
       }
       state = await loadState();
     } else {
-      renderTestCard('err', { title: t('settings_test_failed_title'), sub: res.error });
+      renderTestCard('err', { title: t('settings_test_failed_title'), sub: res?.error || '' });
     }
   } finally {
     btnProxy.disabled = false;

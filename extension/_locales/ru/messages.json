@@ -450,6 +450,10 @@
     "message": "Список обновлён $1 мин назад",
     "description": "Free-pool list freshness. $1 is minutes."
   },
+  "free_err_all_sources_failed": {
+    "message": "Не удалось загрузить списки бесплатных прокси — все источники недоступны. Проверь соединение и попробуй ещё раз.",
+    "description": "Free-pool error when every proxy list source failed to load."
+  },
   "free_err_load_list_failed": {
     "message": "не удалось загрузить список: $1",
     "description": "Free-pool error when the list fetch fails. $1 is the reason."

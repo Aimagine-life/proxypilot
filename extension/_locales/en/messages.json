@@ -450,6 +450,10 @@
     "message": "List updated $1 min ago",
     "description": "Free-pool list freshness. $1 is minutes."
   },
+  "free_err_all_sources_failed": {
+    "message": "Couldn't load the free proxy lists — all sources are unreachable. Check your connection and try again.",
+    "description": "Free-pool error when every proxy list source failed to load."
+  },
   "free_err_load_list_failed": {
     "message": "couldn't load the list: $1",
     "description": "Free-pool error when the list fetch fails. $1 is the reason."

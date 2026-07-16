@@ -100,3 +100,27 @@ test('Chrome applyProxy: changed proxy host DOES re-set PAC', async () => {
   await m.applyProxy({ ...ROUTED_STATE, proxy: { ...ROUTED_STATE.proxy, host: '9.9.9.9' } });
   assert.equal(env.counts().setCount, 2);
 });
+
+// Регрессия: chromeProbe очищает реальные настройки прокси в finally. Если после
+// этого applyProxy с ТЕМ ЖЕ state пропустит set из-за dedupe-кэша, роутинг молча
+// останется выключенным после каждого «Проверить прокси» / автоопределения схемы.
+test('Chrome probeThroughProxy: applyProxy after a probe re-sets PAC (probe cleared real settings)', async () => {
+  const env = chromeEnv();
+  globalThis.fetch = async () => ({ ok: true, status: 200 });
+  const m = await import(`../extension/lib/proxy-backend.js?probe=${Date.now()}`);
+  await m.applyProxy(ROUTED_STATE);                                   // set #1
+  const r = await m.probeThroughProxy('https://probe.test/', ROUTED_STATE.proxy, { timeoutMs: 200 }); // set #2 + clear
+  assert.equal(r.ok, true);
+  await m.applyProxy(ROUTED_STATE);                                   // must set again — settings are cleared
+  assert.equal(env.counts().setCount, 3);
+  assert.equal(env.counts().clearCount, 1);
+});
+
+test('Chrome clearProxy: applyProxy of the same state after clear re-sets PAC', async () => {
+  const env = chromeEnv();
+  const m = await import(`../extension/lib/proxy-backend.js?clear=${Date.now()}`);
+  await m.applyProxy(ROUTED_STATE);
+  await m.clearProxy();
+  await m.applyProxy(ROUTED_STATE);
+  assert.equal(env.counts().setCount, 2);
+});

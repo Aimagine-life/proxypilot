@@ -325,3 +325,22 @@ test('loadState: backfills ownPool for users upgrading from before 0.9.0', async
   assert.ok(Array.isArray(s.ownPool.proxies));
   assert.deepEqual(s.ownPool.deadHosts, {});
 });
+
+// --- Регрессия: битые записи presets в storage не должны ронять loadState ---
+// (присваивание .domains примитиву в strict mode бросает TypeError).
+test('loadState: пресет-примитив в storage заменяется выключенным дефолтом без TypeError', async () => {
+  await chrome.storage.local.clear();
+  await saveState({ schemaVersion: 2, enabled: false, proxy: null, presets: { gemini: true, chatgpt: 'oops' } });
+  const s = await loadState();
+  assert.equal(s.presets.gemini.enabled, false);
+  assert.ok(Array.isArray(s.presets.gemini.domains) && s.presets.gemini.domains.length > 0);
+  assert.equal(s.presets.chatgpt.enabled, false);
+});
+
+test('loadState: presets-не-объект целиком → полный дефолтный набор (выключенный)', async () => {
+  await chrome.storage.local.clear();
+  await saveState({ schemaVersion: 2, enabled: false, proxy: null, presets: 'corrupted' });
+  const s = await loadState();
+  assert.equal(typeof s.presets, 'object');
+  assert.equal(s.presets.gemini.enabled, false);
+});

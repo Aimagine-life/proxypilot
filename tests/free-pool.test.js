@@ -658,3 +658,28 @@ test('dedupePool: разные протоколы на одном host:port — 
 test('parseProxifly: битый JSON-массив → пусто, не throw', () => {
   assert.deepEqual(parseProxifly('[{bad json'), []);
 });
+
+// --- Регрессия: «все источники недоступны» должно уходить в UI локализованным ---
+// (errorCode без raw-русского текста в params), а не как русская строка внутри
+// англоязычного сообщения free_err_load_list_failed.
+test('pickAndValidate: все источники упали → errorCode all_sources_failed, params null', async () => {
+  __resetMemoryCache();
+  for (let i = 0; i < SOURCES.length; i++) mockFetchResponses.push(new Error('down'));
+  const result = await pickAndValidate({ freeProxy: { deadHosts: {} } });
+  assert.equal(result.pick, null);
+  assert.equal(result.errorCode, 'all_sources_failed');
+  assert.equal(result.errorParams, null);
+});
+
+// --- Регрессия: validatedAt ставится в момент проверки, а не в конце скана ---
+test('pickAndValidate: validatedAt зафиксирован во время валидации кандидата', async () => {
+  __resetMemoryCache();
+  queuePool([{ protocol: 'socks5', ip: '1.1.1.1', port: 1080, anonymity: 'elite', score: 50, geolocation: { country: 'NL' } }]);
+  let stampAtValidation = 0;
+  const validate = async () => { stampAtValidation = Date.now(); return { ok: true, latencyMs: 100 }; };
+  const result = await pickAndValidate({ freeProxy: { deadHosts: {} } }, { validate });
+  assert.ok(result.pick);
+  // штамп взят не позже чем через мгновение после validate, а не «когда-то потом»
+  assert.ok(Math.abs(result.pick.validatedAt - stampAtValidation) < 50,
+    `validatedAt=${result.pick.validatedAt} vs validation=${stampAtValidation}`);
+});

@@ -13,13 +13,21 @@ const FETCH_TIMEOUT_MS = 30000;
 // In-memory cache — persists for service worker lifetime.
 let memorySet = null;
 let memoryFetchedAt = 0;
+// In-flight load — concurrent callers (boot check + a popup CHECK_DOMAIN) share
+// one storage read / network fetch instead of each pulling the ~18MB list.
+let inflightLoad = null;
 
 async function loadRknList() {
   // 1. Hot path — in-memory cache.
   if (memorySet && (Date.now() - memoryFetchedAt) < CHECK_INTERVAL_MS) {
     return memorySet;
   }
+  if (inflightLoad) return inflightLoad;
+  inflightLoad = loadRknListUncached().finally(() => { inflightLoad = null; });
+  return inflightLoad;
+}
 
+async function loadRknListUncached() {
   // 2. Warm path — chrome.storage (requires unlimitedStorage for our 18MB list).
   try {
     const cached = (await chrome.storage.local.get(CACHE_KEY))[CACHE_KEY];
