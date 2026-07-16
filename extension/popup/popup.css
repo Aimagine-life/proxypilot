@@ -81,6 +81,7 @@ html, body {
 }
 #screen-main > .header,
 #screen-main > .rkn-banner,
+#screen-main > .control-banner,
 #screen-main > .ai-free-banner,
 #screen-main > .app-footer { flex: 0 0 auto; }
 #screen-main > .main-scroll {
@@ -254,9 +255,11 @@ html, body {
 .block-label-row .block-label { margin-bottom: 0; }
 .hint { font-size: 11px; color: var(--text-mute); }
 
-/* Inline warning under the auth fields: SOCKS + credentials can't authenticate
-   in Chrome (see socksAuthUnsupported / pac.js). Amber, non-blocking. */
-.socks-auth-warn {
+/* Amber inline warnings: SOCKS + credentials can't authenticate in Chrome
+   (.socks-auth-warn, see socksAuthUnsupported / pac.js); proxy settings hijacked
+   by another extension / system policy (.inline-warn, see proxyControlStatus). */
+.socks-auth-warn,
+.inline-warn {
   margin: 10px 0 0;
   padding: 8px 10px;
   border-radius: 7px;
@@ -266,7 +269,24 @@ html, body {
   background: rgba(245, 158, 11, 0.09);
   border: 1px solid rgba(245, 158, 11, 0.32);
 }
-.socks-auth-warn[hidden] { display: none; }
+.socks-auth-warn[hidden],
+.inline-warn[hidden] { display: none; }
+#control-warn-settings { margin: 0 0 10px; }
+
+/* Full-width control-hijack banner on the main screen, same shape as .rkn-banner
+   but amber (a warning we can act on, not a legal notice). */
+.control-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(245, 158, 11, 0.08);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.35);
+  font-size: 11px;
+  color: var(--amber-ink);
+  line-height: 1.4;
+}
+.control-banner[hidden] { display: none; }
 
 .preset-grid {
   display: grid;

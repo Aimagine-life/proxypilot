@@ -50,6 +50,9 @@ async function chromeApply(state) {
 }
 async function chromeClear() {
   await chrome.proxy.settings.clear({ scope: 'regular' });
+  // The browser now has no PAC; without this reset chromeApply would compare the
+  // next PAC against the stale string, see "unchanged", and skip the re-set.
+  lastAppliedPac = null;
 }
 async function chromeProbe(url, proxy, timeoutMs) {
   try {
@@ -62,7 +65,24 @@ async function chromeProbe(url, proxy, timeoutMs) {
     await new Promise((r) => setTimeout(r, 50));
     return await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(timeoutMs) });
   } finally {
-    await chrome.proxy.settings.clear({ scope: 'regular' });
+    // Restore the routing PAC that was live before the probe. Clearing and relying
+    // on the caller's later applyProxy() is not enough: chromeApply skips the
+    // re-set when the PAC string is unchanged (lastAppliedPac), which used to
+    // leave the browser with NO proxy after every test — a silent real-IP leak
+    // until the next service-worker restart.
+    // Known limitation: right after an SW restart lastAppliedPac is undefined even
+    // if the browser still holds a PAC from the previous SW life — a probe in that
+    // window ends with clear() instead of restore. Same behaviour as before this
+    // fix, and boot() re-applies the PAC on every SW wake, so the window is tiny.
+    if (typeof lastAppliedPac === 'string') {
+      await chrome.proxy.settings.set({
+        value: { mode: 'pac_script', pacScript: { data: lastAppliedPac, mandatory: true } },
+        scope: 'regular',
+      });
+    } else {
+      await chrome.proxy.settings.clear({ scope: 'regular' });
+      lastAppliedPac = null;
+    }
   }
 }
 function chromeRegisterAuth(loadState) {
@@ -153,5 +173,21 @@ export async function validateProxy(candidate) {
 export function registerProxyAuth(loadState) {
   if (isFirefox) return; // Firefox: inline auth in the proxy descriptor (Task 3)
   chromeRegisterAuth(loadState);
+}
+/**
+ * Who effectively owns the browser proxy settings. Chrome resolves conflicts
+ * between extensions by install time (most recently installed wins), and a
+ * losing set() is silently ignored — the extension believes it's routing while
+ * traffic bypasses the proxy entirely (shows the user's real IP). Returns
+ * 'other_extension' when another extension holds the setting, 'system' when
+ * enterprise policy / the OS locks it, 'ok' otherwise. Firefox's backend is
+ * proxy.onRequest — no shared setting to fight over — so it's always 'ok'.
+ */
+export async function proxyControlStatus() {
+  if (isFirefox) return 'ok';
+  const { levelOfControl } = await chrome.proxy.settings.get({});
+  if (levelOfControl === 'controlled_by_other_extensions') return 'other_extension';
+  if (levelOfControl === 'not_controllable') return 'system';
+  return 'ok';
 }
 export { VALIDATE_URL }; // exported for tests

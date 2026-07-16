@@ -5,7 +5,7 @@
 import './lib/compat.js';
 import { t } from './lib/i18n.js';
 import { loadState, saveState } from './lib/storage.js';
-import { applyProxy, registerProxyAuth, probeThroughProxy, isFirefox } from './lib/proxy-backend.js';
+import { applyProxy, registerProxyAuth, probeThroughProxy, proxyControlStatus, isFirefox } from './lib/proxy-backend.js';
 import { setIconState } from './lib/icon.js';
 import { isHostRouted, socksAuthUnsupported } from './lib/pac.js';
 import { checkAllPresets, isCheckDue, checkDomain, applyRknResults } from './lib/rkn-check.js';
@@ -274,9 +274,19 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
 });
 
+// Human message for a lost proxy-settings war (see proxyControlStatus).
+function controlErrorText(control) {
+  return t(control === 'system' ? 'err_proxy_control_system' : 'err_proxy_control_other');
+}
+
 async function runProxyTest(url) {
   const state = await loadState();
   if (!state.proxy?.host) return { ok: false, error: t('err_no_proxy_configured') };
+  // With control lost, the probe PAC never takes effect: the fetch goes DIRECT and
+  // "succeeds" with the user's real IP — a green result that means nothing. Fail
+  // fast with the actual cause instead.
+  const control = await proxyControlStatus();
+  if (control !== 'ok') return { ok: false, error: controlErrorText(control) };
   const r = await probeThroughProxy(url, state.proxy, { timeoutMs: 8000, parseJson: url.includes('ipinfo.io') });
   if (!r.ok) {
     await applyProxy(state);
@@ -521,6 +531,16 @@ async function detectScheme(host, port, user, pass) {
   const candidates = ['http', 'socks5', 'socks4', 'https'];
   const state = await loadState();
   const origProxy = state.proxy;
+
+  // With control lost every probe goes DIRECT, so the FIRST candidate (http)
+  // would falsely "succeed" against a live internet connection. Bail out with
+  // the real cause before probing.
+  const control = await proxyControlStatus();
+  if (control !== 'ok') {
+    state.detectStatus = { running: false, ok: false, error: controlErrorText(control) };
+    await saveState(state);
+    return;
+  }
 
   state.proxy = { host, port: Number(port), scheme: 'auto', user: user || '', pass: pass || '' };
   state.detectStatus = { running: true, trying: candidates[0] };
