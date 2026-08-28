@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildPacScript, isHostRouted, socksAuthUnsupported } from '../extension/lib/pac.js';
+import { PRESET_DEFINITIONS } from '../extension/lib/presets.js';
 
 function makeState(overrides = {}) {
   return {
@@ -252,4 +253,24 @@ test('PAC и isHostRouted согласованы на доменах-двойн�
     const pacRouted = fn(`https://${host}/`, host) !== 'DIRECT';
     assert.equal(pacRouted, isHostRouted(host, state), `расхождение PAC/isHostRouted на ${host}`);
   }
+});
+
+// Регрессия на переезд доменов сервиса (июль 2026: NotebookLM → Gemini Notebook).
+// Если сервис редиректит на хост вне пресета, редирект уходит DIRECT с реального
+// IP — ровно то, ради чего расширение и ставят. Домены берём из PRESET_DEFINITIONS,
+// а не из локальной копии, чтобы тест ловил реальную настройку.
+test('PAC: вся цепочка редиректов NotebookLM/Gemini Notebook роутится', () => {
+  const state = makeState({
+    presets: {
+      ...makeState().presets,
+      notebookLM: { enabled: true, domains: PRESET_DEFINITIONS.notebookLM.domains },
+    },
+  });
+  const fn = evalPac(buildPacScript(state));
+  for (const host of ['notebooklm.google.com', 'notebook.google.com', 'notebooklm.google', 'notebook.google']) {
+    assert.match(fn(`https://${host}/`, host), /^PROXY /, `${host} должен идти через прокси`);
+    assert.equal(isHostRouted(host, state), true, `isHostRouted расходится с PAC на ${host}`);
+  }
+  // Граница домена всё ещё держится: двойник мимо.
+  assert.equal(fn('https://evilnotebook.google/', 'evilnotebook.google'), 'DIRECT');
 });

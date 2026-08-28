@@ -4,6 +4,25 @@
 [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версионирование — [SemVer](https://semver.org/lang/ru/).
 
+## [0.16.7] — 2026-08-28
+
+### Исправлено
+- **NotebookLM перестал открываться через прокси.** В июле 2026 Google
+  переименовал сервис в Gemini Notebook и переехал: `notebooklm.google.com`
+  теперь отдаёт 302 на `notebook.google.com`, лендинг `notebooklm.google` — на
+  `notebook.google`. В пресете был только старый хост, поэтому редирект выпадал
+  из маршрутизации и уходил напрямую с реального IP — и сервис снова упирался в
+  гео-блок. Пресет теперь покрывает все четыре домена; у уже установленных
+  расширений новые домены дописываются в пресет при обновлении, выбор сервисов
+  не сбрасывается. Название пресета оставлено прежним — по нему сервис ищут.
+
+> Store changelog (EN): Fixed — NotebookLM (now Gemini Notebook) stopped working
+> through the proxy: Google moved the app from notebooklm.google.com to
+> notebook.google.com (and the landing page from notebooklm.google to
+> notebook.google), so the redirect fell outside the preset and went direct from
+> your real IP. The preset now covers all four hosts; existing installs get the
+> new domains on update without losing their selected services.
+
 ## [0.16.6] — 2026-07-16
 
 ### Исправлено

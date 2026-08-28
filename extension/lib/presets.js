@@ -43,7 +43,11 @@ export const PRESET_DEFINITIONS = {
   },
   notebookLM: {
     label: 'NotebookLM', icon: '📓', logo: 'notebookLM.png', category: 'aiChat',
-    domains: ['notebooklm.google.com'],
+    // Переезд июля 2026 (переименование в Gemini Notebook): приложение уехало с
+    // notebooklm.google.com на notebook.google.com, лендинг notebooklm.google →
+    // notebook.google. Без всех четырёх хостов 302-редирект выпадает из PAC и
+    // уходит DIRECT с реального IP. Ключ пресета менять нельзя — слетит выбор.
+    domains: ['notebooklm.google.com', 'notebook.google.com', 'notebooklm.google', 'notebook.google'],
     couplesGoogleAuth: true,
   },
   googleLabs: {
