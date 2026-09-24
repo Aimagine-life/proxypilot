@@ -403,6 +403,7 @@ function bindMain() {
     // RKN compliance check
     btn.disabled = true;
     btn.textContent = t('main_add_domain_btn_checking');
+    let unverified = false;
     try {
       const result = await chrome.runtime.sendMessage({
         type: 'CHECK_DOMAIN',
@@ -413,6 +414,7 @@ function bindMain() {
         errEl.hidden = false;
         return;
       }
+      unverified = !!result?.unverified;
     } finally {
       btn.disabled = false;
       btn.textContent = t('main_add_domain_btn');
@@ -424,7 +426,7 @@ function bindMain() {
     input.value = '';
     renderMain();
 
-    showToast(t('main_toast_domain_added', entry.value));
+    showToast(t(unverified ? 'main_toast_domain_added_unverified' : 'main_toast_domain_added', entry.value));
   });
 }
 

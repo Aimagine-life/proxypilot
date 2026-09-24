@@ -153,6 +153,10 @@
     "message": "✓ $1 added",
     "description": "Toast after adding a custom domain. $1 is the domain."
   },
+  "main_toast_domain_added_unverified": {
+    "message": "✓ $1 added (blocklist is unreachable right now — check skipped)",
+    "description": "Toast after adding a custom domain when the blocklist could not be loaded. $1 is the domain."
+  },
 
   "settings_title": {
     "message": "Proxy settings",

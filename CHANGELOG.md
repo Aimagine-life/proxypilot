@@ -4,6 +4,24 @@
 [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версионирование — [SemVer](https://semver.org/lang/ru/).
 
+## [0.16.8] — 2026-09-25
+
+### Исправлено
+- **Обычные домены ложно помечались как заблокированные РКН.** Если список
+  блокировок не удавалось скачать (16 МБ с raw.githubusercontent.com — из
+  российских сетей часто медленно или недоступно), проверка считала любой
+  домен заблокированным и писала «⛔ … в списке блокировки — маршрутизировать
+  нельзя» — например, для `*.bitrix24.ru`, которого в реестре нет. Теперь при
+  сбое загрузки используется последняя сохранённая копия списка, а если её нет
+  совсем — домен добавляется с пометкой, что проверка пропущена. «В списке
+  блокировки» показывается только при реальном совпадении с реестром.
+
+> Store changelog (EN): Fixed — ordinary domains were falsely reported as
+> blocklisted when the blocklist couldn't be downloaded (e.g. `*.bitrix24.ru`).
+> A failed download now falls back to the last saved copy; with no copy at all
+> the domain is added with a "check skipped" note. The blocklist error now
+> appears only for a real registry match.
+
 ## [0.16.7] — 2026-08-28
 
 ### Исправлено

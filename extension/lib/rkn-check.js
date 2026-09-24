@@ -29,8 +29,9 @@ async function loadRknList() {
 
 async function loadRknListUncached() {
   // 2. Warm path — chrome.storage (requires unlimitedStorage for our 18MB list).
+  let cached = null;
   try {
-    const cached = (await chrome.storage.local.get(CACHE_KEY))[CACHE_KEY];
+    cached = (await chrome.storage.local.get(CACHE_KEY))[CACHE_KEY];
     if (cached && typeof cached.text === 'string' && (Date.now() - cached.at) < CHECK_INTERVAL_MS) {
       memorySet = textToSet(cached.text);
       memoryFetchedAt = cached.at;
@@ -40,13 +41,25 @@ async function loadRknListUncached() {
     console.warn('[RKN] Cache read failed:', err.message);
   }
 
-  // 3. Cold path — fetch from GitHub.
-  const res = await fetch(LIST_URL, {
-    cache: 'no-store',
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const text = await res.text();
+  // 3. Cold path — fetch from GitHub. The 16MB list on raw.githubusercontent.com
+  // is often slow or unreachable from RU networks; a stale copy is far better than
+  // no data, so on failure fall back to the expired cache instead of throwing.
+  let text;
+  try {
+    const res = await fetch(LIST_URL, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    text = await res.text();
+  } catch (err) {
+    if (cached && typeof cached.text === 'string') {
+      console.warn('[RKN] Fetch failed, using stale cache:', err.message);
+      // Not stored in memorySet cache: the next call retries the fetch.
+      return textToSet(cached.text);
+    }
+    throw err;
+  }
 
   memorySet = textToSet(text);
   memoryFetchedAt = Date.now();
@@ -82,7 +95,12 @@ function isHostInSet(host, set) {
 
 /**
  * Check a single domain against the RKN registry.
- * Returns { blocked: boolean, reason: string }.
+ * Returns { blocked: boolean, unverified?: true, reason: string }.
+ *
+ * `unverified` means the list could not be loaded at all (no network, no cache).
+ * That is NOT a registry hit: reporting it as `blocked` told users that ordinary
+ * domains (e.g. *.bitrix24.ru) were on the blocklist. The caller decides how to
+ * surface it; `blocked` is only ever true for a real registry match.
  */
 export async function checkDomain(domain) {
   try {
@@ -93,9 +111,8 @@ export async function checkDomain(domain) {
       reason: blocked ? 'in RKN registry' : 'not in RKN registry',
     };
   } catch (err) {
-    console.error('[RKN] Check failed:', err);
-    // Fail closed for safety — if we can't verify, don't allow.
-    return { blocked: true, reason: `cannot verify: ${err.message}` };
+    console.warn('[RKN] Check failed:', err);
+    return { blocked: false, unverified: true, reason: `cannot verify: ${err.message}` };
   }
 }
 
