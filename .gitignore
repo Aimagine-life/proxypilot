@@ -5,3 +5,8 @@ dist/
 .DS_Store
 *.zip
 Gemini Unblock Design System/
+
+# Секреты публикации (scripts/publish.mjs)
+.env*
+!.env.example
+*.local.*
