@@ -6,7 +6,7 @@
 // Шаг стора без ключей пропускается с предупреждением; ошибка любого стора не
 // останавливает остальные, но итоговый код выхода = 1.
 
-import { readFileSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { readFileSync, existsSync, mkdtempSync, rmSync, copyFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
@@ -14,7 +14,12 @@ import { fileURLToPath } from 'node:url';
 import { parseEnv, missingKeys, publishToCws, CWS_KEYS, AMO_KEYS } from './publish-lib.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const run = (cmd, args, opts = {}) => execFileSync(cmd, args, { cwd: root, stdio: 'inherit', shell: process.platform === 'win32', ...opts });
+// Оболочка нужна только npm/npx (на Windows это .cmd). Для остальных — без неё:
+// shell склеивает аргументы, и пробелы в них (заголовок релиза) ломают вызов.
+const NEEDS_SHELL = new Set(['npm', 'npx']);
+const run = (cmd, args, opts = {}) => execFileSync(cmd, args, {
+  cwd: root, stdio: 'inherit', shell: process.platform === 'win32' && NEEDS_SHELL.has(cmd), ...opts,
+});
 
 const envPath = join(root, '.env.local');
 const env = { ...(existsSync(envPath) ? parseEnv(readFileSync(envPath, 'utf8')) : {}), ...process.env };
@@ -39,7 +44,8 @@ function stepAmo() {
   if (miss.length) return console.warn(`AMO пропущен: нет ${miss.join(', ')} в .env.local`);
   const src = mkdtempSync(join(tmpdir(), 'proxypilot-ff-'));
   try {
-    run('tar', ['-xf', firefoxZip, '-C', src]);
+    // Python, а не tar: GNU tar из Git Bash принимает «C:» в пути за удалённый хост.
+    run('python', ['-c', 'import sys, zipfile; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])', firefoxZip, src]);
     // Ключи — через env, а не аргументами: не светятся в списке процессов.
     run('npx', ['--yes', 'web-ext@8', 'sign', '--source-dir', src, '--channel', 'listed', '--approval-timeout', '0'], {
       env: { ...process.env, WEB_EXT_API_KEY: env.AMO_API_KEY, WEB_EXT_API_SECRET: env.AMO_API_SECRET },
@@ -60,8 +66,8 @@ function stepGithub() {
   try {
     const c = join(staged, `proxypilot-chrome-${ver}.zip`);
     const f = join(staged, `proxypilot-firefox-${ver}.zip`);
-    run('cp', [chromeZip, c]);
-    run('cp', [firefoxZip, f]);
+    copyFileSync(chromeZip, c);
+    copyFileSync(firefoxZip, f);
     run('gh', ['release', 'create', tag, '--title', `ProxyPilot ${tag}`, '--generate-notes', c, f]);
   } finally {
     rmSync(staged, { recursive: true, force: true });
