@@ -148,7 +148,7 @@ const html = `<!DOCTYPE html>
       freeProxy: { selected: null, lastError: null, deadHosts: {}, poolFetchedAt: Date.now() - 120000 },
       ownPool: { raw: '', proxies: [], selected: null, lastError: null, deadHosts: {} },
       presets, customDomains: [{ value: 'huggingface.co', mode: 'suffix' }],
-      donate: { uses: 0, lastShownAt: 0, dismissed: true }, rknResults: {},
+      donate: { uses: 0, lastShownAt: 0, dismissed: true },
     };
     if (SCREEN === 'free') {
       base.proxySource = 'free';

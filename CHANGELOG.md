@@ -4,6 +4,19 @@
 [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версионирование — [SemVer](https://semver.org/lang/ru/).
 
+## [0.17.0] — 2026-10-21
+
+### Изменено
+- Расширение больше не скачивает служебный список доменов (~18 МБ) при запуске
+  и раз в сутки; домены добавляются сразу. Старый кэш списка удаляется из
+  хранилища при обновлении.
+
+> Store changelog (RU): Ускорен запуск и освобождено ~18 МБ памяти — расширение
+> больше не скачивает большой служебный список доменов.
+>
+> Store changelog (EN): Faster startup and ~18 MB of storage freed — the
+> extension no longer downloads a large service list of domains.
+
 ## [0.16.9] — 2026-10-21
 
 ### Исправлено

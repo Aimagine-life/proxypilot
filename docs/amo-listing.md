@@ -88,8 +88,6 @@ never leaves your device.
 Network requests the extension makes on its own:
 - Fetching public free-proxy lists from GitHub-hosted sources (only when you use
   the free pool).
-- Fetching a public domain blocklist snapshot to mark domains that must not be
-  routed (compliance check).
 - A test request through your configured proxy when you press "Test proxy".
 
 Your traffic is routed through the proxy YOU configure. ProxyPilot does not
@@ -109,7 +107,7 @@ operate any proxy server and cannot see your traffic.
 | `webRequest` | Listens to `onErrorOccurred` to detect a dead proxy connection and auto-rotate to the next free proxy. On Chromium also used for proxy auth. Read-only — no request blocking or content modification. |
 | `webRequestAuthProvider` | **Chromium only** — supplies the proxy username/password via `onAuthRequired`. The Firefox build **removes** this permission (the build script strips it; Firefox uses inline auth in the proxy descriptor). |
 | `tabs` | Reads the active tab's URL to show the per-tab toolbar icon state (routed vs direct). No content scripts, no page access. |
-| `alarms` | Periodic free-pool refresh (~5 min) and a daily blocklist compliance check. |
+| `alarms` | Periodic free-pool refresh (~5 min). |
 | `host_permissions: <all_urls>` | The PAC script / `proxy.onRequest` handler and the `onErrorOccurred` listener must be able to apply to any domain the user adds to their routing list. The extension does **not** read or modify page content on any site. |
 
 ---

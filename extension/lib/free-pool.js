@@ -7,7 +7,7 @@
 //   - network fetches to the feeds in SOURCES
 //   - temporary chrome.proxy.settings.set during validateProxy (restored on return)
 //
-// Three-tier cache (memory → chrome.storage → network) mirrors lib/rkn-check.js.
+// Three-tier cache: memory → chrome.storage → network.
 
 import { validateProxy as _validateProxy } from './proxy-backend.js';
 export { validateProxy } from './proxy-backend.js';

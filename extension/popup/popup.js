@@ -192,22 +192,6 @@ function renderMain() {
 
   $('#master-toggle').checked = !!state.enabled;
 
-  // RKN compliance banner
-  const rknResults = state.rknResults || {};
-  const blockedNames = [];
-  for (const key of PRESET_ORDER) {
-    const def = PRESET_DEFINITIONS[key];
-    const isBlocked = (def.domains || []).some((d) => rknResults[d]?.blocked);
-    if (isBlocked) blockedNames.push(def.label);
-  }
-  const banner = $('#rkn-banner');
-  if (blockedNames.length) {
-    $('#rkn-text').textContent = t('main_rkn_banner_blocked', blockedNames.join(', '));
-    banner.hidden = false;
-  } else {
-    banner.hidden = true;
-  }
-
   // Preset grid — grouped by category. Search filters live; enabled presets sort
   // to the top of each group; group headers collapse.
   const grid = $('#preset-grid');
@@ -259,7 +243,7 @@ function renderMain() {
 
     if (collapsed) continue;
     for (const key of matched) {
-      grid.appendChild(makeCard(key, rknResults));
+      grid.appendChild(makeCard(key));
       totalShown++;
     }
   }
@@ -364,9 +348,6 @@ function bindMain() {
     for (const k of PRESET_ORDER) {
       if (state.presets[k]) state.presets[k].enabled = false;
     }
-    // Reset is an explicit user choice — clear all RKN auto-disabled marks so the
-    // periodic check won't later re-enable anything the user just turned off.
-    state.rknAutoDisabled = {};
     await persist();
     renderMain();
   });
@@ -375,7 +356,6 @@ function bindMain() {
     e.preventDefault();
     const input = $('#add-domain-input');
     const errEl = $('#add-domain-error');
-    const btn = $('#add-domain-btn');
     errEl.hidden = true;
 
     let entry;
@@ -400,46 +380,23 @@ function bindMain() {
       return;
     }
 
-    // RKN compliance check
-    btn.disabled = true;
-    btn.textContent = t('main_add_domain_btn_checking');
-    let unverified = false;
-    try {
-      const result = await chrome.runtime.sendMessage({
-        type: 'CHECK_DOMAIN',
-        domain: entry.value,
-      });
-      if (result?.blocked) {
-        errEl.textContent = t('err_domain_in_rkn_registry', entry.value);
-        errEl.hidden = false;
-        return;
-      }
-      unverified = !!result?.unverified;
-    } finally {
-      btn.disabled = false;
-      btn.textContent = t('main_add_domain_btn');
-    }
-
     state.customDomains = state.customDomains || [];
     state.customDomains.push(entry);
     await persist();
     input.value = '';
     renderMain();
 
-    showToast(t(unverified ? 'main_toast_domain_added_unverified' : 'main_toast_domain_added', entry.value));
+    showToast(t('main_toast_domain_added', entry.value));
   });
 }
 
 // Build one preset card. Full-colour brand logo with an emoji glyph fallback
 // (CSP-safe: listener attached via JS, no inline handlers).
-function makeCard(key, rknResults) {
+function makeCard(key) {
   const def = PRESET_DEFINITIONS[key];
   const stored = state.presets[key];
-  const isBlocked = (def.domains || []).some((d) => rknResults[d]?.blocked);
   const card = document.createElement('div');
-  card.className = 'preset-card'
-    + (stored?.enabled ? ' on' : '')
-    + (isBlocked ? ' rkn-blocked' : '');
+  card.className = 'preset-card' + (stored?.enabled ? ' on' : '');
   card.dataset.key = key;
 
   let mark;
@@ -465,7 +422,7 @@ function makeCard(key, rknResults) {
   label.textContent = def.label;
   card.append(mark, label);
 
-  if (!isBlocked) card.addEventListener('click', () => togglePreset(key));
+  card.addEventListener('click', () => togglePreset(key));
   return card;
 }
 
@@ -493,9 +450,6 @@ async function removeCustom(entry) {
 
 async function togglePreset(key) {
   state.presets[key].enabled = !state.presets[key].enabled;
-  // Manual toggle is the user's explicit choice — drop any RKN auto-disabled
-  // mark so the periodic check won't later override it.
-  if (state.rknAutoDisabled) delete state.rknAutoDisabled[key];
   await persist();
   renderMain();
 }
@@ -1166,8 +1120,8 @@ chrome.storage.onChanged.addListener((changes, area) => {
   applyTheme();
   renderThemePills();
 
-  // Keep the main screen live: background can rotate the free proxy / apply an
-  // RKN check while the popup is open. Settings screen is deliberately NOT
+  // Keep the main screen live: background can rotate the free proxy while the
+  // popup is open. Settings screen is deliberately NOT
   // re-rendered here — that would clobber form fields mid-typing (background
   // bumps poolFetchedAt every 5 minutes).
   if (!$('#screen-main').hidden) renderMain();

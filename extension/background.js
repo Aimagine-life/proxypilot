@@ -8,7 +8,6 @@ import { loadState, saveState } from './lib/storage.js';
 import { applyProxy, registerProxyAuth, probeThroughProxy, proxyControlStatus, isFirefox } from './lib/proxy-backend.js';
 import { setIconState } from './lib/icon.js';
 import { isHostRouted, socksAuthUnsupported } from './lib/pac.js';
-import { checkAllPresets, isCheckDue, checkDomain, applyRknResults } from './lib/rkn-check.js';
 import { pickAndValidate, fetchPool, nextLiveProxy, nextWarmProxy, DEAD_HOST_TTL_MS } from './lib/free-pool.js';
 import { registerFailureAndDecide } from './lib/rotation-policy.js';
 
@@ -39,13 +38,19 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, _tab) => {
   await refreshTabIcon(tabId, state);
 });
 
-// 5. Boot/wake + RKN compliance check.
+// 5. Boot/wake.
 (async function boot() {
   const state = await loadState();
   await applyProxy(state);
   await refreshActiveTabIcon(state);
-  await maybeRunRknCheck(state);
 })();
+
+// 5b. Cleanup after the RKN check was removed (0.17.0): its ~18MB list cache and
+// daily alarm would otherwise linger in existing installs forever.
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.storage.local.remove('rknListCache').catch(() => {});
+  chrome.alarms.clear('rkn-check').catch(() => {});
+});
 
 // 6. Periodic alarms. ensureAlarm() only creates an alarm if it doesn't already
 // exist — re-creating with the same name RESETS the schedule, and the MV3 worker
@@ -57,46 +62,15 @@ function ensureAlarm(name, periodInMinutes) {
     if (!existing) chrome.alarms.create(name, { periodInMinutes });
   });
 }
-ensureAlarm('rkn-check', 24 * 60);
 ensureAlarm('free-pool-refresh', FREE_REFRESH_MINUTES);
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name === 'rkn-check') {
-    const state = await loadState();
-    await runRknCheck(state);
-  } else if (alarm.name === 'free-pool-refresh') {
+  if (alarm.name === 'free-pool-refresh') {
     await refreshFreeProxy().catch((err) => {
       console.warn('[bg] free-pool refresh failed:', err.message);
     });
   }
 });
-
-async function maybeRunRknCheck(state) {
-  if (!isCheckDue(state.rknLastCheckAt)) return;
-  await runRknCheck(state);
-}
-
-async function runRknCheck(state) {
-  const results = await checkAllPresets(state.presets || {});
-  if (!results) {
-    // RKN list unavailable → no data to decide on. Keep last known rknResults and
-    // preset enabled-state untouched rather than disabling everything on a
-    // transient fetch failure.
-    console.warn('[RKN] list unavailable — skipping check, state unchanged');
-    return;
-  }
-  state.rknResults = results;
-  state.rknLastCheckAt = Date.now();
-
-  // Disable presets RKN blocks, and restore the ones WE auto-disabled once their
-  // domains leave the registry — without touching user-disabled presets.
-  const { rknAutoDisabled, changed } = applyRknResults(
-    state.presets || {}, results, state.rknAutoDisabled || {});
-  state.rknAutoDisabled = rknAutoDisabled;
-
-  await saveState(state);
-  if (changed) await applyProxy(state);
-}
 
 // --- helpers --------------------------------------------------------------
 
@@ -162,23 +136,6 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       .catch((err) => console.warn('[bg] detectScheme failed:', err));
     sendResponse({ started: true });
     return false;
-  }
-  if (msg?.type === 'CHECK_DOMAIN') {
-    checkDomain(msg.domain)
-      .then((result) => sendResponse(result))
-      .catch((err) => sendResponse({ blocked: false, reason: `error: ${err.message}` }));
-    return true;
-  }
-  if (msg?.type === 'RKN_CHECK') {
-    (async () => {
-      const st = await loadState();
-      await runRknCheck(st);
-      sendResponse(st.rknResults || {});
-    })().catch((err) => {
-      console.warn('[bg] RKN_CHECK failed:', err);
-      sendResponse({});
-    });
-    return true;
   }
 
   if (msg?.type === 'SWITCH_SOURCE') {

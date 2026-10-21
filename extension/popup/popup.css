@@ -80,7 +80,6 @@ html, body {
   max-height: 580px;
 }
 #screen-main > .header,
-#screen-main > .rkn-banner,
 #screen-main > .control-banner,
 #screen-main > .ai-free-banner,
 #screen-main > .app-footer { flex: 0 0 auto; }
@@ -273,8 +272,7 @@ html, body {
 .inline-warn[hidden] { display: none; }
 #control-warn-settings { margin: 0 0 10px; }
 
-/* Full-width control-hijack banner on the main screen, same shape as .rkn-banner
-   but amber (a warning we can act on, not a legal notice). */
+/* Full-width control-hijack banner on the main screen (amber: a warning we can act on). */
 .control-banner {
   display: flex;
   align-items: flex-start;
@@ -816,28 +814,7 @@ html, body {
 .about-cta-rate:hover { background: var(--bg-hover); border-color: var(--indigo); }
 .about-version-bar { justify-content: center; }
 
-.rkn-banner {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 10px 16px;
-  background: rgba(239, 68, 68, 0.06);
-  border-bottom: 1px solid rgba(239, 68, 68, 0.35);
-  font-size: 11px;
-  color: var(--red-ink);
-  line-height: 1.4;
-}
-.rkn-banner[hidden] { display: none; }
-.rkn-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
-
-.preset-card.rkn-blocked {
-  opacity: 0.4;
-  pointer-events: none;
-}
-.preset-card.rkn-blocked::after {
-  content: '⚖';
-  background: var(--red);
-}
+.banner-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
 
 .toast {
   position: fixed;

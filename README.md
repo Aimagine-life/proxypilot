@@ -50,7 +50,6 @@
 - ⚡ **Умный бесплатный пул** — сам находит быстрый рабочий прокси, отсеивает медленные, держит запас для мгновенной замены.
 - 🔒 **Без слежки и аккаунта** — ничего не собирает, всё хранится и работает локально.
 - 🧩 **HTTP / HTTPS / SOCKS5 / SOCKS4** с автоопределением протокола и авторизацией.
-- 🛡 **Список блокировки** — домены из списка блокировки расширение не маршрутизирует; проверка при запуске и каждые 24 часа.
 
 ## Как выглядит
 
@@ -85,10 +84,6 @@
 Можно добавлять и **свои домены**. Google Auth (`accounts.google.com`) подключается автоматически при включении любого Google-AI сервиса.
 
 > **⚠️ Часть сервисов ограничивает доступ по аккаунту/карте, не только по IP.** Прокси откроет сайт, но для полного доступа могут понадобиться зарубежный аккаунт и/или карта. Стриминговые сервисы детектят датацентровые прокси — надёжно работают только через резидентный/мобильный прокси.
-
-## Список блокировки
-
-Расширение проверяет маршрутизируемые домены по списку блокировки. Если домен в списке — маршрутизация для него автоматически отключается. Проверка выполняется при запуске и каждые 24 часа.
 
 ## Технологии
 
@@ -151,7 +146,6 @@ account, no tracking, all local.
 - ⚡ **Smart free pool** — finds a fast working proxy, skips slow ones, keeps a warm standby for instant switching.
 - 🔒 **No tracking, no account** — runs locally, collects nothing.
 - 🧩 **HTTP / HTTPS / SOCKS5 / SOCKS4** with auto-detection and auth.
-- 🛡 **Blocklist** — domains on the blocklist are never routed; checked on startup and every 24 hours.
 
 ## Screenshots
 
@@ -184,10 +178,6 @@ Presets are grouped by category — AI assistants and tools, video, music, desig
 You can also add **custom domains**. Google Auth (`accounts.google.com`) is auto-routed when any Google-AI service is on.
 
 > **⚠️ Some services gate by account/card, not just IP.** The proxy opens the site, but full access may also need a foreign account and/or card. Streaming services detect datacenter proxies — reliable only via a residential/mobile proxy.
-
-## Blocklist
-
-The extension checks routed domains against its blocklist. If a domain is on the list, routing for it is disabled automatically. Checks run on startup and every 24 hours.
 
 ## Tech
 

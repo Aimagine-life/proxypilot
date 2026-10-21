@@ -117,10 +117,6 @@
     "message": "+ Добавить",
     "description": "Add-domain button default label."
   },
-  "main_add_domain_btn_checking": {
-    "message": "Проверка…",
-    "description": "Add-domain button label while the domain is being checked."
-  },
   "main_footer_donate": {
     "message": "💛 Поддержать проект",
     "description": "Footer donation link."
@@ -137,10 +133,6 @@
     "message": "Нужна настройка прокси",
     "description": "Status line when no proxy is configured."
   },
-  "main_rkn_banner_blocked": {
-    "message": "$1 — в списке блокировки. Маршрутизация для этих доменов отключена.",
-    "description": "Banner shown when a routed domain is on the blocklist. $1 is a comma-separated list of service names."
-  },
   "main_cat_count_enabled": {
     "message": "$1 вкл",
     "description": "Category header badge: number of enabled services in this category. $1 is the count."
@@ -152,10 +144,6 @@
   "main_toast_domain_added": {
     "message": "✓ $1 добавлен",
     "description": "Toast after adding a custom domain. $1 is the domain."
-  },
-  "main_toast_domain_added_unverified": {
-    "message": "✓ $1 добавлен (список блокировки сейчас недоступен — проверка пропущена)",
-    "description": "Toast after adding a custom domain when the blocklist could not be loaded. $1 is the domain."
   },
 
   "settings_title": {
@@ -604,10 +592,6 @@
   "err_domain_already_in_list": {
     "message": "Уже в списке",
     "description": "Shown when adding a custom domain that is already present."
-  },
-  "err_domain_in_rkn_registry": {
-    "message": "⛔ $1 в списке блокировки — маршрутизировать нельзя",
-    "description": "Shown when a custom domain is on the blocklist. $1 is the domain."
   },
   "err_no_domain_to_test": {
     "message": "нет домена для проверки",

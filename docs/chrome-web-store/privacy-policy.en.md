@@ -1,6 +1,6 @@
 # Privacy Policy — ProxyPilot
 
-_Last updated: 2026-06-23_
+_Last updated: 2026-10-21_
 
 ProxyPilot is a Chromium/Firefox browser extension that routes user-selected domains
 through a proxy server. This policy describes what data the extension handles.
@@ -17,8 +17,8 @@ never leaves the device:
 
 - Settings: chosen services/domains to route, the selected proxy source, your proxy
   address and credentials (if you entered them), and the theme.
-- Technical cache: the public free-proxy lists and a domain blocklist — so the extension
-  works without constant downloads.
+- Technical cache: the public free-proxy lists — so the extension works without
+  constant downloads.
 
 Your proxy credentials are used solely to connect to that proxy and are stored locally
 only.
@@ -28,7 +28,6 @@ only.
 The extension makes external requests only for its own operation:
 
 - Downloading public free-proxy lists (GitHub/CDN) — configuration data, not user data.
-- Downloading a domain blocklist — used to mark domains that must not be routed.
 - Small test requests to check whether a proxy is alive.
 - When checking a proxy, its IP address is sent to the third-party service `ipinfo.io`
   to determine the proxy server's country/city and display them in the UI. This sends

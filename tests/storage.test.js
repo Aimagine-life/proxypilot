@@ -272,20 +272,18 @@ test('getDefaultState: includes donate defaults', () => {
   assert.deepEqual(s.donate, { uses: 0, lastShownAt: 0, dismissed: false });
 });
 
-test('getDefaultState: includes rknAutoDisabled default', () => {
-  assert.deepEqual(getDefaultState().rknAutoDisabled, {});
-});
-
-test('loadState: backfills rknAutoDisabled for users upgrading from before 0.16.3', async () => {
+test('loadState: drops leftover RKN-check fields (removed in 0.17.0)', async () => {
   await chrome.storage.local.clear();
   await saveState({
     schemaVersion: 2, enabled: false, proxy: null, proxySource: 'manual',
     manualProxy: null, freeProxy: { selected: null, lastError: null, deadHosts: {}, poolFetchedAt: 0 },
     theme: 'auto', resolvedTheme: 'light', presets: {}, customDomains: [],
-    // no rknAutoDisabled (pre-0.16.3 state)
+    rknResults: { 'x.com': { blocked: true } }, rknLastCheckAt: 1, rknAutoDisabled: { youtube: true },
   });
   const s = await loadState();
-  assert.deepEqual(s.rknAutoDisabled, {});
+  assert.equal('rknResults' in s, false);
+  assert.equal('rknLastCheckAt' in s, false);
+  assert.equal('rknAutoDisabled' in s, false);
 });
 
 test('loadState: backfills donate for users upgrading from before 0.12.0', async () => {

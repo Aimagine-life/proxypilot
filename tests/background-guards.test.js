@@ -31,9 +31,16 @@ test('TEST_PROXY / TEST_SERVICE: async-ответ защищён .catch', () => 
     'TEST_SERVICE отвечает и при исключении');
 });
 
-test('RKN_CHECK и DETECT_SCHEME: исключения не остаются необработанными', () => {
-  const rkn = js.match(/msg\?\.type === 'RKN_CHECK'[\s\S]*?return true;/);
-  assert.ok(rkn && /\.catch\(/.test(rkn[0]), 'RKN_CHECK имеет .catch');
+// Проверку РКН убрали в 0.17.0: её ~18 МБ кэш и ежедневный alarm у обновившихся
+// пользователей остались бы навсегда, если их не вычистить при обновлении.
+test('onInstalled: вычищает кэш и alarm удалённой проверки РКН', () => {
+  const m = js.match(/chrome\.runtime\.onInstalled\.addListener\([\s\S]*?\r?\n\}\);/);
+  assert.ok(m, 'onInstalled найден');
+  assert.match(m[0], /storage\.local\.remove\('rknListCache'\)/);
+  assert.match(m[0], /alarms\.clear\('rkn-check'\)/);
+});
+
+test('DETECT_SCHEME: исключения не остаются необработанными', () => {
   const detect = js.match(/msg\?\.type === 'DETECT_SCHEME'[\s\S]*?return false;/);
   assert.ok(detect && /\.catch\(/.test(detect[0]), 'DETECT_SCHEME имеет .catch');
 });

@@ -51,9 +51,6 @@ AI-ассистенты, видео, музыка, дизайн и другие 
 ВАЖНО О БЕСПЛАТНОМ ПУЛЕ
 Бесплатные публичные прокси крутят сторонние люди — не входите в важные аккаунты, пока трафик идёт через них. Для надёжности используйте свой прокси.
 
-СПИСОК БЛОКИРОВКИ
-Расширение не маршрутизирует домены из списка блокировки: если домен в нём — маршрутизация для него автоматически отключается.
-
 Расширение бесплатное. Разработано в Wildbots — https://wildbots.ru/
 ```
 
@@ -83,9 +80,6 @@ FEATURES
 ABOUT THE FREE POOL
 Free public proxies are run by strangers — don't sign into important accounts while routed through them. Use your own proxy for reliability.
 
-BLOCKLIST
-The extension does not route domains on its blocklist: if a domain is on the list, routing for it is disabled automatically.
-
 Free and open source. Made by Wildbots — https://wildbots.ru/
 ```
 
@@ -97,11 +91,11 @@ Route user-selected domains through a proxy server. The extension does not colle
 **Permission justifications (EN):**
 - **proxy** — core function: configure the browser proxy (PAC on Chrome / `proxy.onRequest` on Firefox) to route selected domains.
 - **storage** — store user settings (chosen services, own proxy/pool, theme) and a local cache of the free-proxy lists.
-- **unlimitedStorage** — caches a domain blocklist (~17 MB, ~870,000 domains), which exceeds the default `chrome.storage.local` quota (~5–10 MB); without it the cache is truncated and the blocklist compliance check stops working.
+- **unlimitedStorage** — caches the merged free-proxy lists (tens of thousands of entries, over 10 MB), which exceeds the default `chrome.storage.local` quota; without it the cache write fails and every pool refresh re-downloads all lists.
 - **webRequest** — detect proxy connection errors to auto-rotate to a working proxy.
 - **webRequestAuthProvider** (Chrome only) — supply proxy username/password on auth challenges (authenticated proxies). On Firefox, auth is inline in the proxy descriptor.
 - **tabs** — read the active tab's domain to show the correct toolbar icon state (proxied vs direct).
-- **alarms** — periodically refresh the free-proxy list and re-check the blocklist (daily).
+- **alarms** — periodically refresh the free-proxy list.
 - **host_permissions `<all_urls>`** — used only by the webRequest listeners (proxy auth + dead-proxy detection) across arbitrary user-routed domains, NOT for reading page content. `activeTab` doesn't fit — proxying runs in the background for all routed requests, not per click; specific hosts can't be listed because the user routes arbitrary domains. The extension does not read or modify page content and collects no user data.
 
 **Data collection (EN):** none — declare no data collected. Reasoning identical to §6.
@@ -124,11 +118,11 @@ CWS спросит, зачем каждое разрешение. Готовые
 
 - **proxy** — основная функция: программно настраивать прокси Chrome (PAC-скрипт), чтобы направлять выбранные домены через прокси.
 - **storage** — хранить настройки пользователя (выбранные сервисы, свой прокси/пул, тема) и кэш списка бесплатных прокси локально.
-- **unlimitedStorage** — расширение кэширует локально список заблокированных доменов — около 17 МБ (~870 000 доменов). Это превышает стандартный лимит `chrome.storage.local` (~5–10 МБ), из-за чего без `unlimitedStorage` кэш обрезается и проверка по списку блокировки перестаёт работать. Разрешение снимает лимит, чтобы надёжно хранить полный список офлайн.
+- **unlimitedStorage** — расширение кэширует объединённый список бесплатных прокси (десятки тысяч записей, больше 10 МБ). Это превышает стандартный лимит `chrome.storage.local`, без разрешения запись кэша падает и каждое обновление пула заново скачивает все списки.
 - **webRequest** — отслеживать ошибки соединения с прокси, чтобы автоматически переключаться на следующий рабочий прокси.
 - **webRequestAuthProvider** — подставлять логин/пароль прокси при запросе авторизации (прокси с аутентификацией).
 - **tabs** — определять домен активной вкладки, чтобы показывать корректный статус иконки (через прокси / напрямую) для текущего сайта.
-- **alarms** — периодически обновлять список бесплатных прокси и проверять список блокировки (раз в сутки).
+- **alarms** — периодически обновлять список бесплатных прокси.
 - **host_permissions `<all_urls>`** — нужен НЕ для проксирования (PAC-маршрутизация через `chrome.proxy` host-доступа не требует), а для двух webRequest-слушателей: `onAuthRequired` (подстановка логина/пароля прокси с авторизацией) и `onErrorOccurred` (определение отказа прокси и авто-переключение на рабочий). Пользователь может маршрутизировать произвольные домены, поэтому слушатели должны работать на любом URL. `activeTab` не подходит — проксирование идёт в фоне для всех маршрутизируемых запросов, а не по клику на вкладке; перечислить конкретные хосты нельзя — список маршрутизируемых доменов задаёт пользователь и заранее неизвестен. Расширение НЕ читает и НЕ изменяет содержимое страниц и не собирает данные пользователя.
 
 > **Предупреждение CWS «Разрешения на доступ к широкому кругу хостов».** Это не отказ,
@@ -141,7 +135,7 @@ CWS спросит, зачем каждое разрешение. Готовые
 Маршрутизация выбранных пользователем доменов через прокси-сервер. Расширение не собирает и не передаёт данные пользователя.
 ```
 
-**Remote code:** Нет (всё в пакете; внешне тянутся только публичные списки прокси и список блокировки как данные, не как исполняемый код).
+**Remote code:** Нет (всё в пакете; внешне тянутся только публичные списки прокси как данные, не как исполняемый код).
 
 ## 6. Раскрытие данных (Data usage / «Сбор данных»)
 
