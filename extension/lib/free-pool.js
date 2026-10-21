@@ -235,7 +235,8 @@ export async function fetchAllSources() {
   const merged = [];
   let okCount = 0;
   for (let i = 0; i < settled.length; i++) {
-    if (settled[i].status === 'fulfilled') { okCount++; merged.push(...settled[i].value); }
+    // Не push(...arr): фиды бывают на 80k+ записей — spread в аргументы переполняет стек.
+    if (settled[i].status === 'fulfilled') { okCount++; for (const p of settled[i].value) merged.push(p); }
     else console.warn(`[FreePool] источник ${SOURCES[i].name} недоступен:`, settled[i].reason?.message || settled[i].reason);
   }
   if (okCount === 0) {

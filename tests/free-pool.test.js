@@ -89,6 +89,17 @@ test('fetchAllSources: один источник падает — пул соб�
   assert.ok(pool.find((p) => p.host === '9.9.9.9'));
 });
 
+test('fetchAllSources: огромный фид не переполняет стек при склейке', async () => {
+  // Фиды разрослись до 80k+ записей; push(...arr) с таким числом аргументов
+  // падает в service worker с "Maximum call stack size exceeded".
+  const lines = [];
+  for (let i = 0; i < 300_000; i++) lines.push(`10.${(i >> 16) & 255}.${(i >> 8) & 255}.${i & 255}:1080`);
+  for (let i = 0; i < SOURCES.length - 1; i++) mockFetchResponses.push(mockResponse({ text: '[]' }));
+  mockFetchResponses.push(mockResponse({ text: lines.join('\n') }));              // hookzof (txt socks5)
+  const pool = await fetchAllSources();
+  assert.equal(pool.length, 300_000);
+});
+
 test('fetchAllSources: все источники упали → throw', async () => {
   for (let i = 0; i < SOURCES.length; i++) mockFetchResponses.push(new Error('down'));
   await assert.rejects(() => fetchAllSources(), /источник/i);

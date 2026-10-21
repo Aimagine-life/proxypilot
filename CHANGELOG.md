@@ -4,6 +4,21 @@
 [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/),
 версионирование — [SemVer](https://semver.org/lang/ru/).
 
+## [0.16.9] — 2026-10-21
+
+### Исправлено
+- **Бесплатный пул падал с «Maximum call stack size exceeded».** Публичные
+  списки прокси разрослись (proxifly — 80 тыс. записей, hookzof — 74 тыс.), и
+  склейка списков через `push(...arr)` переполняла стек service worker'а.
+  Теперь списки склеиваются поэлементно — размер фида больше не важен.
+
+> Store changelog (RU): Исправлено — бесплатный пул прокси перестал работать
+> с ошибкой «Maximum call stack size exceeded» из-за сильно выросших публичных
+> списков прокси.
+>
+> Store changelog (EN): Fixed — the free proxy pool failed with "Maximum call
+> stack size exceeded" after the public proxy lists grew very large.
+
 ## [0.16.8] — 2026-09-25
 
 ### Исправлено
